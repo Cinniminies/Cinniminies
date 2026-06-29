@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cinniminies · Rolls de canela hechos a mano</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Plus+Jakarta+Sans:wght@400..800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="cinniminies.css">
+</head>
+<body>
+
+<div class="grain-overlay" aria-hidden="true"></div>
+<div class="progress-roll" aria-hidden="true">
+  <svg viewBox="0 0 100 100">
+    <circle class="roll-track" cx="50" cy="50" r="42"></circle>
+    <circle class="roll-fill" cx="50" cy="50" r="42"></circle>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a href="#top" class="brand">Cinni<span>minies</span></a>
+  <nav class="topnav">
+    <a href="#menu">Menú</a>
+    <a href="#proceso">Proceso</a>
+    <a href="#local">Local</a>
+    <a href="#contacto">Contactanos</a>
+  </nav>
+  <a href="#menu" class="topbar-cta">Hacer pedido</a>
+  <button class="menu-toggle" aria-label="Abrir menú" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<nav class="mobile-nav" id="mobileNav">
+  <a href="#menu">Menú</a>
+  <a href="#proceso">Proceso</a>
+  <a href="#local">Local</a>
+  <a href="#contacto">Contactanos</a>
+</nav>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg">
+      <picture>
+        <source srcset="img/hero-bg.webp" type="image/webp">
+        <img src="img/hero-bg.jpg" alt="" class="hero-bg-photo">
+      </picture>
+      <div class="hero-bg-fade"></div>
+    </div>
+
+    <div class="hero-text">
+      <p class="eyebrow">Horneado en Paysandú con exceso de amor.</p>
+      <h1 class="hero-title">
+        El roll<br>
+        que se <em>desenrolla</em><br>
+        en capas de canela.
+      </h1>
+      <p class="hero-sub">
+        Cinniminies es un horno chico en Paysandú donde cada caja se arma a mano.
+      </p>
+      <div class="hero-actions">
+        <a href="#menu" class="btn-primary">Ver el menú</a>
+        <a href="#proceso" class="btn-ghost">Cómo se hace ↓</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESO -->
+  <section class="proceso" id="proceso">
+    <div class="proceso-head">
+      <p class="eyebrow">El proceso</p>
+      <h2 class="section-title">De la masa al horno,<br>sin apurar nada.</h2>
+    </div>
+
+    <div class="proceso-spiral">
+      <div class="proceso-step" data-step="amasar">
+        <div class="step-mark">amasar</div>
+        <h3>La masa descansa</h3>
+        <p>Harina, manteca y leche tibia se mezclan despacio. La masa fermenta para ahí formar el sabor.</p>
+      </div>
+      <div class="proceso-step" data-step="enrollar">
+        <div class="step-mark">enrollar</div>
+        <h3>Canela en capas</h3>
+        <p>Se estira la masa, se cubre, y se enrolla apretado. Cada vuelta es una capa que vas a ver al cortar.</p>
+      </div>
+      <div class="proceso-step" data-step="hornear">
+        <div class="step-mark">hornear</div>
+        <h3>El punto justo</h3>
+        <p>Al horno hasta que doran por fuera y quedan húmedos por dentro. Ahí es cuando se bañan en glaseado, todavía calientes.</p>
+      </div>
+    </div>
+
+    <div class="bake-meter" id="bakeMeter">
+      <svg viewBox="0 0 320 320" class="bake-roll">
+        <defs>
+          <clipPath id="bakeClip">
+            <rect x="0" y="320" width="320" height="320" id="bakeClipRect" />
+          </clipPath>
+        </defs>
+        <g class="roll-raw">
+          <circle cx="160" cy="160" r="130" class="roll-base" />
+          <path class="roll-swirl-line" d="M160,160 C160,100 230,100 230,160 C230,205 175,205 175,160 C175,130 200,130 200,160 C200,178 182,178 182,160" />
+        </g>
+        <g class="roll-baked" clip-path="url(#bakeClip)">
+          <circle cx="160" cy="160" r="130" class="roll-base-baked" />
+          <path class="roll-swirl-line-baked" d="M160,160 C160,100 230,100 230,160 C230,205 175,205 175,160 C175,130 200,130 200,160 C200,178 182,178 182,160" />
+          <circle cx="160" cy="160" r="130" class="roll-glaze" />
+        </g>
+      </svg>
+      <p class="bake-meter-label">Scrolleá para hornear ↓</p>
+    </div>
+  </section>
+
+  <!-- MENU -->
+  <section class="menu" id="menu">
+    <div class="menu-head">
+      <p class="eyebrow">El menú</p>
+      <h2 class="section-title">Tres rolls.<br>Ninguno apurado.</h2>
+      <p class="menu-sub">Se venden por caja de 6 o 12, o armá tu propia caja personalizada de entre 3 y 12 rolls.</p>
+    </div>
+
+    <div class="box-picker">
+      <p class="box-picker-label">1. Elegí el tamaño de tu caja</p>
+      <div class="box-options">
+        <button class="box-option is-active" data-qty="6" data-price="250">
+          <span class="box-qty">6</span>
+          <span class="box-desc">rolls</span>
+          <span class="box-cost">$250</span>
+        </button>
+        <button class="box-option" data-qty="12" data-price="450">
+          <span class="box-qty">12</span>
+          <span class="box-desc">rolls</span>
+          <span class="box-cost">$450</span>
+        </button>
+        <button class="box-option" data-qty="custom">
+          <span class="box-qty">3 a 12</span>
+          <span class="box-desc">a tu gusto</span>
+          <span class="box-cost">según sabor</span>
+        </button>
+      </div>
+      <p class="box-picker-note" id="boxPickerNote">Ahora sumá los sabores que quieras de la lista de abajo hasta completar tu caja.</p>
+      <p class="box-progress" id="boxProgress"></p>
+    </div>
+
+    <div class="menu-grid">
+
+      <article class="roll-card" data-flavor="canela">
+        <div class="roll-card-media">
+          <picture><source srcset="img/roll-canela.webp" type="image/webp"><img src="img/roll-canela.jpg" alt="Roll de canela clásico con glaseado" class="roll-photo" loading="lazy"></picture>
+          <span class="roll-tag">El clásico</span>
+        </div>
+        <div class="roll-card-body">
+          <h3>Roll de Canela</h3>
+          <p>Glaseado simple, relleno de canela, masa esponjosa. El que pide todo el mundo la primera vez.</p>
+          <div class="roll-card-foot">
+            <span class="roll-price" data-flavor-price="canela">Precio: Incluido en la caja</span>
+            <button class="roll-add" data-name="Roll de Canela" data-id="canela">Agregar al pedido</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="roll-card" data-flavor="dulce">
+        <div class="roll-card-media">
+          <picture><source srcset="img/roll-dulce.webp" type="image/webp"><img src="img/roll-dulce.jpg" alt="Roll de dulce de leche" class="roll-photo" loading="lazy"></picture>
+          <span class="roll-tag">Un pequeño reversionado</span>
+        </div>
+        <div class="roll-card-body">
+          <h3>Roll de Dulce de Leche</h3>
+          <p>El mismo proceso, pero con un relleno de dulce de leche que se derrite adentro al hornear.</p>
+          <div class="roll-card-foot">
+            <span class="roll-price" data-flavor-price="dulce">Precio: Incluido en la caja</span>
+            <button class="roll-add" data-name="Roll de Dulce de Leche" data-id="dulce">Agregar al pedido</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="roll-card" data-flavor="oreo">
+        <div class="roll-card-media">
+          <picture><source srcset="img/roll-oreo.webp" type="image/webp"><img src="img/roll-oreo.jpg" alt="Roll de Oreo con trozos de galleta" class="roll-photo" loading="lazy"></picture>
+          <span class="roll-tag">Más nuevo</span>
+        </div>
+        <div class="roll-card-body">
+          <h3>Roll de Oreo</h3>
+          <p>Trozos de oreo dentro de la masa y en el glaseado. ¿Qué esperás para probarlo?</p>
+          <div class="roll-card-foot">
+            <span class="roll-price" data-flavor-price="oreo">Precio: Incluido en la caja</span>
+            <button class="roll-add" data-name="Roll de Oreo" data-id="oreo">Agregar al pedido</button>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- LOCAL -->
+  <section class="local" id="local">
+    <div class="local-info">
+      <p class="eyebrow">Dónde encontrarnos</p>
+      <h2 class="section-title">Retiro en Paysandú,<br>con aviso previo.</h2>
+      <p class="local-text">
+        No tenemos local, funcionamos por pedido. Escribinos por WhatsApp o por DM en Instagram
+        y coordinamos juntos el horario de retiro para el día sábado.
+      </p>
+      <ul class="local-list">
+        <li><span>Zona</span>Cerca de Barrio Obrero, Paysandú</li>
+        <li><span>¿Cuándo estamos?</span>Los días sábado</li>
+      </ul>
+    </div>
+    <div class="local-map">
+      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d250.6050913965069!2d-58.061820849953996!3d-32.319193573440536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95afc97afac7e1a5%3A0x546b41531c68be01!2sBruno%20Goyeneche%20976%2C%2060000%20Paysand%C3%BA%2C%20Departamento%20de%20Paysand%C3%BA!5e0!3m2!1ses-419!2suy!4v1782011792443!5m2!1ses-419!2suy" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </section>
+
+  <!-- CONTACTO / FOOTER -->
+  <footer class="contact" id="contacto">
+    <div class="contact-main">
+      <p class="eyebrow">¿Pedimos?</p>
+      <h2 class="contact-title">Escribinos y coordinamos<br>tu caja para este finde.</h2>
+      <div class="contact-links">
+        <a href="https://wa.me/59895226739" target="_blank" rel="noopener" class="contact-link is-primary">
+          WhatsApp
+          <small>Respuesta en el día</small>
+        </a>
+        <a href="https://instagram.com/cinniminies.pay" target="_blank" rel="noopener" class="contact-link">
+          Instagram
+          <small>@cinniminies.pay</small>
+        </a>
+      </div>
+    </div>
+    <div class="contact-bottom">
+      <span class="brand small">Cinni<span>minies</span></span>
+      <span>&copy; 2026 · Hecho a mano en Paysandú</span>
+    </div>
+  </footer>
+
+</main>
+
+<!-- Botón flotante de carrito -->
+<button class="cart-fab" id="cartFab" aria-label="Ver pedido">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3a1 1 0 0 0 .7 1.7H17M10 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM17 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"/></svg>
+  <span class="cart-fab-count" id="cartFabCount">0</span>
+</button>
+
+<!-- Modal de pedido -->
+<div class="cart-modal" id="cartModal">
+  <div class="cart-modal-backdrop" id="cartBackdrop"></div>
+  <div class="cart-modal-panel">
+
+    <div class="cart-step" id="stepCart">
+      <div class="cart-modal-head">
+        <h3>Tu pedido</h3>
+        <button class="cart-close" id="cartClose" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="cart-items" id="cartItems">
+        <p class="cart-empty">Todavía no agregaste rollos. Cerrá esto y elegí tus sabores en el menú.</p>
+      </div>
+      <div class="cart-summary" id="cartSummary"></div>
+      <button class="btn-primary cart-continue" id="cartContinue" disabled>Pedir ahora</button>
+    </div>
+
+    <form class="cart-step is-hidden" id="stepForm" novalidate>
+      <div class="cart-modal-head">
+        <h3>Tus datos</h3>
+        <button type="button" class="cart-close" id="formClose" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <label class="field">
+        <span>Nombre y apellido</span>
+        <input type="text" name="nombre" required placeholder="Ej: Pia Piovano">
+      </label>
+      <label class="field">
+        <span>WhatsApp</span>
+        <input type="tel" name="telefono" required pattern="[0-9+\s\(\)\-]{6,}" title="Solo números, espacios y los símbolos + ( ) -" placeholder="Ej: 095226739">
+      </label>
+      <div class="field">
+        <span>Retiro o entrega</span>
+        <div class="modalidad-toggle">
+          <input type="radio" name="modalidad" id="modalidadRetiro" value="Retiro en Paysandú" checked>
+          <label for="modalidadRetiro">Retiro</label>
+          <input type="radio" name="modalidad" id="modalidadEntrega" value="Coordinar entrega">
+          <label for="modalidadEntrega">Entrega</label>
+        </div>
+      </div>
+      <label class="field">
+        <span>Notas (opcional)</span>
+        <textarea name="notas" rows="2" placeholder="Alguna aclaración, horario preferido, etc."></textarea>
+      </label>
+
+      <input type="hidden" name="order_id" id="formOrderId">
+      <input type="hidden" name="order_detail" id="formOrderDetail">
+      <input type="hidden" name="subject" value="Nuevo pedido · Cinniminies">
+
+      <button type="submit" class="btn-primary cart-submit" id="cartSubmit">Confirmar pedido</button>
+      <p class="form-error" id="formError"></p>
+    </form>
+
+    <div class="cart-step is-hidden" id="stepDone">
+      <div class="cart-modal-head">
+        <h3>¡Listo, pedido recibido!</h3>
+        <button type="button" class="cart-close" id="doneClose" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="order-id-box">
+        <span class="order-id-label">Tu número de pedido</span>
+        <span class="order-id-value" id="orderIdDisplay">CM-0000</span>
+      </div>
+      <p class="done-text">Ya nos llegó tu pedido. Te vamos a escribir por WhatsApp para confirmar el horario de retiro. Si querés adelantarte, tocá el botón de abajo.</p>
+      <a href="#" target="_blank" rel="noopener" class="btn-primary cart-whatsapp" id="doneWhatsapp">Escribir por WhatsApp</a>
+    </div>
+
+  </div>
+</div>
+
+<div class="order-toast" id="orderToast"></div>
+
+<script src="cinniminies.js"></script>
+</body>
+</html>
