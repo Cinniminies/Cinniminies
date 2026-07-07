@@ -25,6 +25,10 @@
 
 *{ box-sizing: border-box; }
 
+/* Evita el zoom por doble tap en mobile (permite pan y pinch-zoom igual),
+   para poder tocar rápido "Agregar al pedido" sin que se agrande la pantalla */
+*{ touch-action: manipulation; }
+
 html{ scroll-behavior: smooth; }
 
 body{
@@ -887,6 +891,9 @@ a{ color: inherit; }
 .field input:not([type="radio"]):not(:placeholder-shown):valid{
   border-color: #6B8E5A;
 }
+
+/* Campo de dirección: solo se muestra si eligieron "Entrega" */
+.field-direccion.is-hidden{ display: none; }
 
 /* Toggle de modalidad: retiro vs entrega, dos rectángulos pegados */
 .modalidad-toggle{

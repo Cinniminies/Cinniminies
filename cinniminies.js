@@ -442,6 +442,25 @@ document.addEventListener('DOMContentLoaded', () => {
     goToStep(stepForm);
   });
 
+  /* ---------- Dirección condicional (solo si eligen Entrega) ---------- */
+  const direccionField = document.getElementById('direccionField');
+  const direccionInput = stepForm ? stepForm.direccion : null;
+
+  function updateDireccionVisibility() {
+    if (!direccionField || !stepForm) return;
+    const esEntrega = stepForm.modalidad.value === 'Coordinar entrega';
+    direccionField.classList.toggle('is-hidden', !esEntrega);
+    if (direccionInput) {
+      direccionInput.required = esEntrega;
+      if (!esEntrega) direccionInput.value = '';
+    }
+  }
+
+  stepForm?.querySelectorAll('input[name="modalidad"]').forEach(radio => {
+    radio.addEventListener('change', updateDireccionVisibility);
+  });
+  updateDireccionVisibility();
+
   /* ---------- Envío del formulario ---------- */
   const formError = document.getElementById('formError');
 
@@ -452,10 +471,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const nombre = stepForm.nombre.value.trim();
     const telefono = stepForm.telefono.value.trim();
     const modalidad = stepForm.modalidad.value;
+    const esEntrega = modalidad === 'Coordinar entrega';
+    const direccion = stepForm.direccion.value.trim();
+    const pago = stepForm.pago.value;
     const notas = stepForm.notas.value.trim();
 
     if (!nombre || !telefono) {
       formError.textContent = 'Completá nombre y WhatsApp para continuar.';
+      return;
+    }
+    if (esEntrega && !direccion) {
+      formError.textContent = 'Completá la dirección de entrega para continuar.';
       return;
     }
     if (cart.length === 0) {
@@ -487,6 +513,8 @@ document.addEventListener('DOMContentLoaded', () => {
       `Cliente: ${nombre}`,
       `WhatsApp: ${telefono}`,
       `Modalidad: ${modalidad}`,
+      esEntrega && direccion ? `Dirección: ${direccion}` : '',
+      `Pago: ${pago}`,
       detailLines,
       `Total: $${total}`,
       notas ? `Notas: ${notas}` : ''
@@ -502,8 +530,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cliente: nombre,
         box: isCustomBox(box) ? 'Personalizada' : String(box.size),
         cantBox: boxFilled(box),
-        envio: modalidad,
-        notas: [`Pedido ${orderId}`, flavorList, notas ? `Notas: ${notas}` : '']
+        envio: esEntrega && direccion ? `${modalidad} · ${direccion}` : modalidad,
+        notas: [`Pedido ${orderId}`, `Pago: ${pago}`, flavorList, notas ? `Notas: ${notas}` : '']
           .filter(Boolean).join(' · ')
       };
     });
@@ -532,6 +560,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cliente: nombre,
             whatsapp_cliente: telefono,
             modalidad: modalidad,
+            direccion: esEntrega && direccion ? direccion : 'No aplica (retiro)',
+            pago: pago,
             detalle: fullDetail,
             total: `$${total}`,
             notas: notas || 'Sin notas'
@@ -561,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Armar el link de WhatsApp con todo prearmado
     const waMessage = encodeURIComponent(
-      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}\n\nTotal: $${total}\nModalidad: ${modalidad}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
+      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
     );
     const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 
@@ -577,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cart = [];
     renderCart();
     stepForm.reset();
+    updateDireccionVisibility();
   });
 
 });

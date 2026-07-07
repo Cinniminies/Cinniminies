@@ -48,7 +48,7 @@
     <div class="hero-bg">
       <picture>
         <source srcset="img/hero-bg.webp" type="image/webp">
-        <img src="img/hero-bg.jpg" alt="" class="hero-bg-photo">
+        <img src="img/hero-bg.webp" alt="" class="hero-bg-photo">
       </picture>
       <div class="hero-bg-fade"></div>
     </div>
@@ -151,7 +151,7 @@
 
       <article class="roll-card" data-flavor="canela">
         <div class="roll-card-media">
-          <picture><source srcset="img/roll-canela.webp" type="image/webp"><img src="img/roll-canela.jpg" alt="Roll de canela clásico con glaseado" class="roll-photo" loading="lazy"></picture>
+          <picture><source srcset="img/roll-canela.webp" type="image/webp"><img src="img/roll-canela.webp" alt="Roll de canela clásico con glaseado" class="roll-photo" loading="lazy"></picture>
           <span class="roll-tag">El clásico</span>
         </div>
         <div class="roll-card-body">
@@ -166,7 +166,7 @@
 
       <article class="roll-card" data-flavor="dulce">
         <div class="roll-card-media">
-          <picture><source srcset="img/roll-dulce.webp" type="image/webp"><img src="img/roll-dulce.jpg" alt="Roll de dulce de leche" class="roll-photo" loading="lazy"></picture>
+          <picture><source srcset="img/roll-dulce.webp" type="image/webp"><img src="img/roll-dulce.webp" alt="Roll de dulce de leche" class="roll-photo" loading="lazy"></picture>
           <span class="roll-tag">Un pequeño reversionado</span>
         </div>
         <div class="roll-card-body">
@@ -181,7 +181,7 @@
 
       <article class="roll-card" data-flavor="oreo">
         <div class="roll-card-media">
-          <picture><source srcset="img/roll-oreo.webp" type="image/webp"><img src="img/roll-oreo.jpg" alt="Roll de Oreo con trozos de galleta" class="roll-photo" loading="lazy"></picture>
+          <picture><source srcset="img/roll-oreo.webp" type="image/webp"><img src="img/roll-oreo.webp" alt="Roll de Oreo con trozos de galleta" class="roll-photo" loading="lazy"></picture>
           <span class="roll-tag">Más nuevo</span>
         </div>
         <div class="roll-card-body">
@@ -284,6 +284,19 @@
           <label for="modalidadRetiro">Retiro</label>
           <input type="radio" name="modalidad" id="modalidadEntrega" value="Coordinar entrega">
           <label for="modalidadEntrega">Entrega</label>
+        </div>
+      </div>
+      <label class="field field-direccion is-hidden" id="direccionField">
+        <span>Dirección de entrega</span>
+        <input type="text" name="direccion" placeholder="Ej: Bruno Goyeneche 976">
+      </label>
+      <div class="field">
+        <span>¿Cómo vas a pagar?</span>
+        <div class="modalidad-toggle">
+          <input type="radio" name="pago" id="pagoEfectivo" value="Efectivo" checked>
+          <label for="pagoEfectivo">Efectivo</label>
+          <input type="radio" name="pago" id="pagoTransferencia" value="Transferencia">
+          <label for="pagoTransferencia">Transferencia</label>
         </div>
       </div>
       <label class="field">
