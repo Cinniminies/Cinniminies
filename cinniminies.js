@@ -236,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cartSummaryEl = document.getElementById('cartSummary');
   const cartContinueBtn = document.getElementById('cartContinue');
   const boxProgressEl = document.getElementById('boxProgress');
+  const submitBtn = document.getElementById('cartSubmit');
 
   function updateBoxProgress() {
     if (!boxProgressEl) return;
