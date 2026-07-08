@@ -126,8 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // (mirá el archivo extras/google-sheets-apps-script.gs para los pasos).
   // Si la dejás vacía o con el valor de ejemplo, el sitio sigue funcionando
   // igual de bien por WhatsApp y Web3Forms, simplemente no anota en la hoja.
-  const GOOGLE_SHEETS_PLACEHOLDER = "PEGAR_ACA_TU_URL_DE_APPS_SCRIPT";
-  const GOOGLE_SHEETS_URL = "PEGAR_ACA_TU_URL_DE_APPS_SCRIPT";
+  const GOOGLE_SHEETS_PLACEHOLDER = "https://script.google.com/macros/s/AKfycbxycZYHqNEU__ni8iQ8JVANeuuGPf1cAGGxHgZW9k6vmJzfiT_KfUmNfOZN3cNRFCzC/exec";
+  const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxycZYHqNEU__ni8iQ8JVANeuuGPf1cAGGxHgZW9k6vmJzfiT_KfUmNfOZN3cNRFCzC/exec";
 
   const BOX_PRICES = { 6: 250, 12: 450 };
   const CUSTOM_FLAVOR_PRICES = { canela: 50, dulce: 55, oreo: 60 };
