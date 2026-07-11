@@ -147,6 +147,21 @@
       <p class="box-progress" id="boxProgress"></p>
     </div>
 
+    <datalist id="qtyOptions">
+      <option value="1"></option>
+      <option value="2"></option>
+      <option value="3"></option>
+      <option value="4"></option>
+      <option value="5"></option>
+      <option value="6"></option>
+      <option value="7"></option>
+      <option value="8"></option>
+      <option value="9"></option>
+      <option value="10"></option>
+      <option value="11"></option>
+      <option value="12"></option>
+    </datalist>
+
     <div class="menu-grid">
 
       <article class="roll-card" data-flavor="canela">
@@ -159,7 +174,10 @@
           <p>Glaseado simple, relleno de canela, masa esponjosa. El que pide todo el mundo la primera vez.</p>
           <div class="roll-card-foot">
             <span class="roll-price" data-flavor-price="canela">Precio: Incluido en la caja</span>
-            <button class="roll-add" data-name="Roll de Canela" data-id="canela">Agregar al pedido</button>
+            <div class="roll-add-group">
+              <input type="number" class="roll-qty" list="qtyOptions" min="1" max="12" value="1" inputmode="numeric" aria-label="Cantidad de Roll de Canela">
+              <button class="roll-add" data-name="Roll de Canela" data-id="canela">Agregar al pedido</button>
+            </div>
           </div>
         </div>
       </article>
@@ -174,7 +192,10 @@
           <p>El mismo proceso, pero con un relleno de dulce de leche que se derrite adentro al hornear.</p>
           <div class="roll-card-foot">
             <span class="roll-price" data-flavor-price="dulce">Precio: Incluido en la caja</span>
-            <button class="roll-add" data-name="Roll de Dulce de Leche" data-id="dulce">Agregar al pedido</button>
+            <div class="roll-add-group">
+              <input type="number" class="roll-qty" list="qtyOptions" min="1" max="12" value="1" inputmode="numeric" aria-label="Cantidad de Roll de Dulce de Leche">
+              <button class="roll-add" data-name="Roll de Dulce de Leche" data-id="dulce">Agregar al pedido</button>
+            </div>
           </div>
         </div>
       </article>
@@ -189,7 +210,10 @@
           <p>Trozos de oreo dentro de la masa y en el glaseado. ¿Qué esperás para probarlo?</p>
           <div class="roll-card-foot">
             <span class="roll-price" data-flavor-price="oreo">Precio: Incluido en la caja</span>
-            <button class="roll-add" data-name="Roll de Oreo" data-id="oreo">Agregar al pedido</button>
+            <div class="roll-add-group">
+              <input type="number" class="roll-qty" list="qtyOptions" min="1" max="12" value="1" inputmode="numeric" aria-label="Cantidad de Roll de Oreo">
+              <button class="roll-add" data-name="Roll de Oreo" data-id="oreo">Agregar al pedido</button>
+            </div>
           </div>
         </div>
       </article>
@@ -329,6 +353,19 @@
 </div>
 
 <div class="order-toast" id="orderToast"></div>
+
+<!-- Popup de caja completa -->
+<div class="box-complete-modal" id="boxCompleteModal">
+  <div class="box-complete-backdrop" id="boxCompleteBackdrop"></div>
+  <div class="box-complete-panel">
+    <h3>¡Caja completa!</h3>
+    <p id="boxCompleteText">Ya completaste tu caja de rolls.</p>
+    <div class="box-complete-actions">
+      <button type="button" class="btn-primary" id="boxCompleteCart">Ir al carrito</button>
+      <button type="button" class="btn-secondary" id="boxCompleteContinue">Continuar pedido</button>
+    </div>
+  </div>
+</div>
 
 <script src="cinniminies.js"></script>
 </body>

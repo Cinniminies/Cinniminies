@@ -341,12 +341,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  document.querySelectorAll('.roll-qty').forEach(input => {
+    input.addEventListener('change', () => {
+      let qty = parseInt(input.value, 10);
+      if (!Number.isFinite(qty) || qty < 1) qty = 1;
+      if (qty > CUSTOM_MAX) qty = CUSTOM_MAX;
+      input.value = qty;
+    });
+  });
+
   document.querySelectorAll('.roll-add').forEach(btn => {
     btn.addEventListener('click', () => {
-      const box = addToCart(btn.dataset.id, btn.dataset.name);
+      const card = btn.closest('.roll-card');
+      const qtyInput = card ? card.querySelector('.roll-qty') : null;
+      let requestedQty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+      if (!Number.isFinite(requestedQty) || requestedQty < 1) requestedQty = 1;
+      if (requestedQty > CUSTOM_MAX) requestedQty = CUSTOM_MAX;
+
+      let box = currentBox();
+      const selectedSize = getSelectedBoxSize();
+      if (!box || box.size !== selectedSize) {
+        box = { size: selectedSize, flavors: {} };
+        cart.push(box);
+      }
+      const wasComplete = boxIsComplete(box);
+      const remaining = boxCap(box) - boxFilled(box);
+      const qtyToAdd = Math.min(requestedQty, remaining);
+
+      box.flavors[btn.dataset.id] = (box.flavors[btn.dataset.id] || 0) + qtyToAdd;
+      box._flavorNames = box._flavorNames || {};
+      box._flavorNames[btn.dataset.id] = btn.dataset.name;
+
+      renderCart();
+      if (qtyInput) qtyInput.value = 1;
+
       const filled = boxFilled(box);
 
-      const card = btn.closest('.roll-card');
       if (card) {
         card.classList.remove('is-added');
         // forzamos un reflow para que la animación se pueda re-disparar
@@ -369,6 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         showToast(`${filled}/${box.size} en tu caja`);
       }
+
+      // recién completada esta caja: ofrecemos seguir pidiendo o ir al carrito
+      if (!wasComplete && boxIsComplete(box)) {
+        const message = isCustomBox(box)
+          ? `Tu caja personalizada quedó lista con ${filled} rolls.`
+          : `Tu caja de ${box.size} rolls quedó completa.`;
+        openBoxCompleteModal(message);
+      }
     });
   });
 
@@ -390,6 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const menuGrid = document.querySelector('.menu-grid');
+
   boxOptions.forEach(btn => {
     btn.addEventListener('click', () => {
       boxOptions.forEach(b => b.classList.remove('is-active'));
@@ -401,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateFlavorPrices();
       updateBoxProgress();
+      menuGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
   updateFlavorPrices();
@@ -437,6 +478,30 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('formClose')?.addEventListener('click', closeModal);
   document.getElementById('doneClose')?.addEventListener('click', closeModal);
   document.getElementById('cartBackdrop')?.addEventListener('click', closeModal);
+
+  /* ---------- Popup de "caja completa" ---------- */
+  const boxCompleteModal = document.getElementById('boxCompleteModal');
+  const boxCompleteText = document.getElementById('boxCompleteText');
+
+  function openBoxCompleteModal(message) {
+    if (!boxCompleteModal) return;
+    if (boxCompleteText) boxCompleteText.textContent = message;
+    boxCompleteModal.classList.add('is-open');
+  }
+  function closeBoxCompleteModal() {
+    boxCompleteModal?.classList.remove('is-open');
+  }
+
+  document.getElementById('boxCompleteBackdrop')?.addEventListener('click', closeBoxCompleteModal);
+  document.getElementById('boxCompleteContinue')?.addEventListener('click', () => {
+    closeBoxCompleteModal();
+    document.querySelector('.box-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  document.getElementById('boxCompleteCart')?.addEventListener('click', () => {
+    closeBoxCompleteModal();
+    goToStep(stepCart);
+    openModal();
+  });
 
   cartContinueBtn?.addEventListener('click', () => {
     if (cartHasIncompleteBox()) return;
