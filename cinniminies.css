@@ -130,7 +130,7 @@ a:hover{ color: var(--canela-hover); }
   border-radius: 100px;
   transition: background 0.3s var(--ease), transform 0.3s var(--ease);
 }
-.topbar-cta:hover{ background: var(--canela-hover); transform: translateY(-1px); }
+.topbar-cta:hover{ background: var(--canela-hover); transform: translateY(-1px); color: var(--crema-card)}
 
 .menu-toggle{
   display: none;
@@ -266,6 +266,7 @@ a:hover{ color: var(--canela-hover); }
 .btn-primary:hover{
   transform: translateY(-2px);
   background: var(--canela-hover);
+  color: var(--crema-card);
   box-shadow: 0 12px 26px rgba(217,143,62,0.42);
 }
 
