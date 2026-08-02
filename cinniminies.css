@@ -45,6 +45,7 @@ body{
 }
 
 a{ color: inherit; }
+a:hover{ color: var(--canela-hover); }
 
 /* Grain texture overlay: da textura de papel/horno, no plástico */
 .grain-overlay{
@@ -129,7 +130,7 @@ a{ color: inherit; }
   border-radius: 100px;
   transition: background 0.3s var(--ease), transform 0.3s var(--ease);
 }
-.topbar-cta:hover{ background: var(--canela-hover); transform: translateY(-1px); }
+.topbar-cta:hover{ background: var(--canela-hover); transform: translateY(-1px); color: var(--crema-card)}
 
 .menu-toggle{
   display: none;
@@ -265,6 +266,7 @@ a{ color: inherit; }
 .btn-primary:hover{
   transform: translateY(-2px);
   background: var(--canela-hover);
+  color: var(--crema-card);
   box-shadow: 0 12px 26px rgba(217,143,62,0.42);
 }
 
@@ -923,11 +925,45 @@ a{ color: inherit; }
   outline-offset: -2px;
 }
 
+/* Leyenda "obligatorios" y marca de asterisco en los labels del form */
+.field-legend{
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--cafe-suave);
+  margin: -4px 0 20px;
+}
+.required-mark{
+  color: #B2462E;
+}
+
 .form-error{
   color: #B2462E;
   font-size: 13px;
   margin: 10px 0 0;
   min-height: 18px;
+}
+
+/* Hint en vivo debajo de "Confirmar pedido": qué falta para poder pedir */
+.form-hint{
+  font-size: 12px;
+  color: var(--cafe-suave);
+  text-align: center;
+  margin: 10px 0 0;
+  min-height: 16px;
+}
+.form-hint.is-missing{ color: #B2462E; }
+
+/* Confirmar pedido: gris e inclickeable hasta completar el formulario */
+.cart-submit:disabled{
+  background: rgba(58,36,23,0.1);
+  color: rgba(58,36,23,0.4);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.cart-submit:disabled:hover{
+  background: rgba(58,36,23,0.1);
+  transform: none;
 }
 
 .order-id-box{

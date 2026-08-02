@@ -68,7 +68,35 @@
     </div>
   </section>
 
+<<<<<<< HEAD
   <!-- BAKE METER -->
+=======
+  <!-- PROCESO -->
+  <section class="proceso" id="proceso">
+    <div class="proceso-head">
+      <p class="eyebrow">El proceso</p>
+      <h2 class="section-title">De la masa al horno,<br>sin apurar nada.</h2>
+    </div>
+
+    <div class="proceso-spiral">
+      <div class="proceso-step" data-step="amasar">
+        <div class="step-mark">amasar</div>
+        <h3>La masa descansa</h3>
+        <p>Harina, manteca y leche tibia se mezclan despacio. La masa fermenta para ahí formar el sabor.</p>
+      </div>
+      <div class="proceso-step" data-step="enrollar">
+        <div class="step-mark">enrollar</div>
+        <h3>Relleno en capas</h3>
+        <p>Se estira la masa, se cubre, y se enrolla apretado. Cada vuelta es una capa que vas a ver al cortar.</p>
+      </div>
+      <div class="proceso-step" data-step="hornear">
+        <div class="step-mark">hornear</div>
+        <h3>El punto justo</h3>
+        <p>Al horno hasta que doran por fuera y quedan húmedos por dentro. Ahí es cuando se bañan en glaseado, todavía calientes.</p>
+      </div>
+    </div>
+
+>>>>>>> 1b2b672543e3bf50240c9131abff44ccc808edc7
     <div class="bake-meter" id="bakeMeter">
       <svg viewBox="0 0 320 320" class="bake-roll">
         <defs>
@@ -161,7 +189,7 @@
       <article class="roll-card" data-flavor="oreo">
         <div class="roll-card-media">
           <picture><source srcset="img/roll-oreo.webp" type="image/webp"><img src="img/roll-oreo.jpg" alt="Roll de Oreo con trozos de galleta" class="roll-photo" loading="lazy"></picture>
-          <span class="roll-tag">Más nuevo</span>
+          <span class="roll-tag">Nuestro producto estrella</span>
         </div>
         <div class="roll-card-body">
           <h3>Roll de Oreo</h3>
@@ -191,6 +219,8 @@
       <ul class="local-list">
         <li><span>Zona</span>Cerca de Barrio Obrero, Paysandú</li>
         <li><span>¿Cuándo estamos?</span>Los días sábado</li>
+        <li><span>¿A qué hora?</span>Alrededor del mediodia</li>
+
       </ul>
     </div>
     <div class="local-map">
@@ -251,17 +281,24 @@
         <button type="button" class="cart-close" id="formClose" aria-label="Cerrar">&times;</button>
       </div>
 
+      <p class="field-legend">Los campos con <span class="required-mark">*</span> son obligatorios. Notas es opcional.</p>
+
       <label class="field">
-        <span>Nombre y apellido</span>
+        <span>Nombre y apellido <span class="required-mark">*</span></span>
         <input type="text" name="nombre" required placeholder="Ej: Pia Piovano">
       </label>
       <label class="field">
+<<<<<<< HEAD
         <span>WhatsApp</span>
         <input type="tel" name="telefono" required inputmode="numeric" autocomplete="tel-national" maxlength="9" pattern="09[1-9][0-9]{6}" title="Celular uruguayo: 9 dígitos que empiezan con 09. Ej: 095226739" placeholder="Ej: 095226739">
         <small class="field-hint">9 dígitos, empieza con 09. No hace falta el +598.</small>
+=======
+        <span>WhatsApp <span class="required-mark">*</span></span>
+        <input type="tel" name="telefono" required pattern="[0-9+\s\(\)\-]{6,}" title="Solo números, espacios y los símbolos + ( ) -" placeholder="Ej: 095226739">
+>>>>>>> 1b2b672543e3bf50240c9131abff44ccc808edc7
       </label>
       <div class="field">
-        <span>Retiro o entrega</span>
+        <span>Retiro o entrega <span class="required-mark">*</span></span>
         <div class="modalidad-toggle">
           <input type="radio" name="modalidad" id="modalidadRetiro" value="Retiro en Paysandú" checked>
           <label for="modalidadRetiro">Retiro</label>
@@ -270,11 +307,11 @@
         </div>
       </div>
       <label class="field field-direccion is-hidden" id="direccionField">
-        <span>Dirección de entrega</span>
+        <span>Dirección de entrega <span class="required-mark">*</span></span>
         <input type="text" name="direccion" placeholder="Ej: Bruno Goyeneche 976">
       </label>
       <div class="field">
-        <span>¿Cómo vas a pagar?</span>
+        <span>¿Cómo vas a pagar? <span class="required-mark">*</span></span>
         <div class="modalidad-toggle">
           <input type="radio" name="pago" id="pagoEfectivo" value="Efectivo" checked>
           <label for="pagoEfectivo">Efectivo</label>
@@ -291,7 +328,8 @@
       <input type="hidden" name="order_detail" id="formOrderDetail">
       <input type="hidden" name="subject" value="Nuevo pedido · Cinniminies">
 
-      <button type="submit" class="btn-primary cart-submit" id="cartSubmit">Confirmar pedido</button>
+      <button type="submit" class="btn-primary cart-submit" id="cartSubmit" disabled>Confirmar pedido</button>
+      <p class="form-hint" id="formHint"></p>
       <p class="form-error" id="formError"></p>
     </form>
 
