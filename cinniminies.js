@@ -263,8 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderCart() {
-    updateSubmitState();
-
     const rollCount = cartRollCount();
     if (cartFabCount) cartFabCount.textContent = rollCount;
     if (cartFab) cartFab.classList.toggle('is-visible', rollCount > 0);
@@ -343,6 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+
+    // Al final: el contenido del carrito también decide si "Confirmar pedido"
+    // puede tocarse, y así un error acá nunca impide dibujar el carrito.
+    updateSubmitBtn();
   }
 
   document.querySelectorAll('.roll-qty').forEach(input => {
@@ -739,7 +741,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     enviandoPedido = false;
     submitBtn.textContent = 'Confirmar pedido';
-    updateSubmitState();
 
     goToStep(stepDone);
 
