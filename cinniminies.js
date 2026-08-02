@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
       link.addEventListener('click', () => {
         mobileNav.classList.remove('is-open');
         toggle.setAttribute('aria-expanded', 'false');
+        // Sin esto el ícono queda como "X" aunque el menú ya se cerró
+        toggle.classList.remove('is-active');
       });
     });
   }
@@ -506,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cartContinueBtn?.addEventListener('click', () => {
     if (cartHasIncompleteBox()) return;
     goToStep(stepForm);
+    updateSubmitBtn();
   });
 
   /* ---------- Dirección condicional (solo si eligen Entrega) ---------- */
@@ -527,6 +530,66 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   updateDireccionVisibility();
 
+  /* ---------- WhatsApp: solo celulares uruguayos ---------- */
+  // Formato válido: 9 dígitos, 09 + prefijo de compañía (1 a 9) + 6 dígitos.
+  // Ej: 095226739. El 090 no se usa para celulares, por eso queda afuera.
+  const TEL_URUGUAYO = /^09[1-9]\d{6}$/;
+  const telInput = stepForm ? stepForm.telefono : null;
+
+  // Deja solo dígitos y saca el código de país si lo pegaron (+598, 00598, 598).
+  // Un número local siempre arranca con 0, así que un 598 adelante es país.
+  function normalizarTel(valor) {
+    let d = String(valor).replace(/\D/g, '');
+    let teniaPais = false;
+    if (d.startsWith('00598')) { d = d.slice(5); teniaPais = true; }
+    else if (d.startsWith('598')) { d = d.slice(3); teniaPais = true; }
+    // En formato internacional el 0 inicial no se escribe (+598 95 226 739),
+    // así que se lo devolvemos para dejarlo siempre como número local.
+    if (teniaPais && d && d[0] !== '0') d = '0' + d;
+    return d.slice(0, 9);
+  }
+
+  // Solo para mostrarlo lindo en el pedido: 095226739 -> 095 226 739
+  function formatearTel(digitos) {
+    return [digitos.slice(0, 3), digitos.slice(3, 6), digitos.slice(6, 9)]
+      .filter(Boolean).join(' ');
+  }
+
+  // Filtra mientras escriben: letras y símbolos nunca llegan a entrar al campo.
+  telInput?.addEventListener('input', () => {
+    const limpio = normalizarTel(telInput.value);
+    if (telInput.value !== limpio) telInput.value = limpio;
+  });
+
+  /* ---------- Estado del botón "Confirmar pedido" ---------- */
+  // Mismo criterio que "Pedir ahora": el botón queda gris mientras falte algo,
+  // así nunca promete un envío que después se rechaza.
+  let enviandoPedido = false;
+
+  function formularioCompleto() {
+    if (!stepForm) return false;
+    const esEntrega = stepForm.modalidad.value === 'Coordinar entrega';
+    return stepForm.nombre.value.trim() !== ''
+      && TEL_URUGUAYO.test(normalizarTel(stepForm.telefono.value))
+      && (!esEntrega || stepForm.direccion.value.trim() !== '')
+      && cart.length > 0
+      && !cartHasIncompleteBox();
+  }
+
+  function updateSubmitBtn() {
+    if (!submitBtn || enviandoPedido) return;
+    const listo = formularioCompleto();
+    submitBtn.disabled = !listo;
+    submitBtn.title = listo ? '' : 'Completá tus datos para confirmar el pedido';
+  }
+
+  // 'input' cubre los campos de texto, 'change' los radios de modalidad y pago.
+  // Ambos suben por bubbling desde los campos, así que el filtro del teléfono
+  // ya normalizó el valor cuando esto corre.
+  stepForm?.addEventListener('input', updateSubmitBtn);
+  stepForm?.addEventListener('change', updateSubmitBtn);
+  updateSubmitBtn();
+
   /* ---------- Envío del formulario ---------- */
   const formError = document.getElementById('formError');
 
@@ -535,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     formError.textContent = '';
 
     const nombre = stepForm.nombre.value.trim();
-    const telefono = stepForm.telefono.value.trim();
+    const telefono = normalizarTel(stepForm.telefono.value);
     const modalidad = stepForm.modalidad.value;
     const esEntrega = modalidad === 'Coordinar entrega';
     const direccion = stepForm.direccion.value.trim();
@@ -546,6 +609,12 @@ document.addEventListener('DOMContentLoaded', () => {
       formError.textContent = 'Completá nombre y WhatsApp para continuar.';
       return;
     }
+    if (!TEL_URUGUAYO.test(telefono)) {
+      formError.textContent = 'Revisá el WhatsApp: tiene que ser un celular uruguayo de 9 dígitos que empiece con 09 (ej: 095226739).';
+      telInput?.focus();
+      return;
+    }
+    const telefonoFmt = formatearTel(telefono);
     if (esEntrega && !direccion) {
       formError.textContent = 'Completá la dirección de entrega para continuar.';
       return;
@@ -577,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullDetail = [
       `Pedido: ${orderId}`,
       `Cliente: ${nombre}`,
-      `WhatsApp: ${telefono}`,
+      `WhatsApp: ${telefonoFmt}`,
       `Modalidad: ${modalidad}`,
       esEntrega && direccion ? `Dirección: ${direccion}` : '',
       `Pago: ${pago}`,
@@ -605,6 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('formOrderId').value = orderId;
     document.getElementById('formOrderDetail').value = fullDetail;
 
+    enviandoPedido = true;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Enviando...';
 
@@ -623,7 +693,9 @@ document.addEventListener('DOMContentLoaded', () => {
             subject: `Nuevo pedido ${orderId} · Cinniminies`,
             order_id: orderId,
             cliente: nombre,
-            whatsapp_cliente: telefono,
+            whatsapp_cliente: telefonoFmt,
+            // Link directo para escribirle al cliente desde el mail
+            chat_cliente: `https://wa.me/598${telefono.slice(1)}`,
             modalidad: modalidad,
             direccion: esEntrega && direccion ? direccion : 'No aplica (retiro)',
             pago: pago,
@@ -663,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('orderIdDisplay').textContent = orderId;
     document.getElementById('doneWhatsapp').href = waLink;
 
-    submitBtn.disabled = false;
+    enviandoPedido = false;
     submitBtn.textContent = 'Confirmar pedido';
 
     goToStep(stepDone);
@@ -673,6 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     stepForm.reset();
     updateDireccionVisibility();
+    updateSubmitBtn();
   });
 
 });

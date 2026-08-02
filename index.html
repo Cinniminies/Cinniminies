@@ -24,7 +24,6 @@
   <a href="#top" class="brand">Cinni<span>minies</span></a>
   <nav class="topnav">
     <a href="#menu">Menú</a>
-    <a href="#proceso">Proceso</a>
     <a href="#local">Local</a>
     <a href="#contacto">Contactanos</a>
   </nav>
@@ -36,7 +35,6 @@
 
 <nav class="mobile-nav" id="mobileNav">
   <a href="#menu">Menú</a>
-  <a href="#proceso">Proceso</a>
   <a href="#local">Local</a>
   <a href="#contacto">Contactanos</a>
 </nav>
@@ -65,36 +63,12 @@
       </p>
       <div class="hero-actions">
         <a href="#menu" class="btn-primary">Ver el menú</a>
-        <a href="#proceso" class="btn-ghost">Cómo se hace ↓</a>
+        <a href="#contacto" class="btn-ghost">Contactanos</a>
       </div>
     </div>
   </section>
 
-  <!-- PROCESO -->
-  <section class="proceso" id="proceso">
-    <div class="proceso-head">
-      <p class="eyebrow">El proceso</p>
-      <h2 class="section-title">De la masa al horno,<br>sin apurar nada.</h2>
-    </div>
-
-    <div class="proceso-spiral">
-      <div class="proceso-step" data-step="amasar">
-        <div class="step-mark">amasar</div>
-        <h3>La masa descansa</h3>
-        <p>Harina, manteca y leche tibia se mezclan despacio. La masa fermenta para ahí formar el sabor.</p>
-      </div>
-      <div class="proceso-step" data-step="enrollar">
-        <div class="step-mark">enrollar</div>
-        <h3>Canela en capas</h3>
-        <p>Se estira la masa, se cubre, y se enrolla apretado. Cada vuelta es una capa que vas a ver al cortar.</p>
-      </div>
-      <div class="proceso-step" data-step="hornear">
-        <div class="step-mark">hornear</div>
-        <h3>El punto justo</h3>
-        <p>Al horno hasta que doran por fuera y quedan húmedos por dentro. Ahí es cuando se bañan en glaseado, todavía calientes.</p>
-      </div>
-    </div>
-
+  <!-- BAKE METER -->
     <div class="bake-meter" id="bakeMeter">
       <svg viewBox="0 0 320 320" class="bake-roll">
         <defs>
@@ -114,7 +88,6 @@
       </svg>
       <p class="bake-meter-label">Scrolleá para hornear ↓</p>
     </div>
-  </section>
 
   <!-- MENU -->
   <section class="menu" id="menu">
@@ -284,7 +257,8 @@
       </label>
       <label class="field">
         <span>WhatsApp</span>
-        <input type="tel" name="telefono" required pattern="[0-9+\s\(\)\-]{6,}" title="Solo números, espacios y los símbolos + ( ) -" placeholder="Ej: 095226739">
+        <input type="tel" name="telefono" required inputmode="numeric" autocomplete="tel-national" maxlength="9" pattern="09[1-9][0-9]{6}" title="Celular uruguayo: 9 dígitos que empiezan con 09. Ej: 095226739" placeholder="Ej: 095226739">
+        <small class="field-hint">9 dígitos, empieza con 09. No hace falta el +598.</small>
       </label>
       <div class="field">
         <span>Retiro o entrega</span>

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"http.server 8777\")",
+      "Bash(kill 6380)",
+      "Bash(curl -s -m 2 -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8777/)",
+      "Bash(pkill -f \"http\\\\.server 8777\")"
+    ]
+  }
+}

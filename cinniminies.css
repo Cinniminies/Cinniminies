@@ -3,7 +3,7 @@
    Paleta tomada de la identidad real de marca (Instagram @cinniminies.pay):
    crema cálido dominante, canela dorada, café tostado para texto y acentos.
    ============================================ */
-
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 :root{
   --crema:        #FBF3E1;
   --crema-suave:  #F7E7C8;
@@ -293,62 +293,6 @@ a{ color: inherit; }
   transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
 }
 .btn-secondary:hover{ border-color: var(--canela); background: var(--crema); }
-
-
-/* ============== PROCESO ============== */
-.proceso{
-  background: var(--crema);
-  color: var(--cafe);
-  padding: 100px 5vw 60px;
-}
-.proceso-head{ max-width: 600px; margin: 0 0 70px; }
-.section-title{
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  line-height: 1.1;
-  margin: 0;
-  letter-spacing: -0.01em;
-  color: var(--cafe);
-}
-
-.proceso-spiral{
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 36px;
-  margin-bottom: 80px;
-}
-.proceso-step{
-  border-top: 2px solid var(--canela);
-  padding-top: 22px;
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
-}
-.proceso-step.is-visible{ opacity: 1; transform: translateY(0); }
-.proceso-step:nth-child(2){ transition-delay: 0.12s; }
-.proceso-step:nth-child(3){ transition-delay: 0.24s; }
-
-.step-mark{
-  font-family: var(--font-mono);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--canela-hover);
-  margin-bottom: 14px;
-}
-.proceso-step h3{
-  font-family: var(--font-display);
-  font-size: 24px;
-  margin: 0 0 10px;
-  color: var(--cafe);
-}
-.proceso-step p{
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--cafe-suave);
-  margin: 0;
-}
 
 /* Bake meter: signature element, el rollo se hornea con el scroll */
 .bake-meter{
@@ -893,7 +837,7 @@ a{ color: inherit; }
   font-size: 16px;
   cursor: pointer;
 }
-.cart-continue:disabled{ opacity: 0.4; cursor: not-allowed; }
+.cart-continue:disabled, .cart-submit:disabled{ opacity: 0.4; cursor: not-allowed; }
 
 .field{
   display: flex;
@@ -928,6 +872,14 @@ a{ color: inherit; }
 }
 .field input:not([type="radio"]):not(:placeholder-shown):valid{
   border-color: #6B8E5A;
+}
+
+/* Aclaración chica debajo de un campo (ej: formato del WhatsApp) */
+.field-hint{
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cafe);
+  opacity: 0.65;
 }
 
 /* Campo de dirección: solo se muestra si eligieron "Entrega" */
