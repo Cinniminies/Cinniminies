@@ -532,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   updateDireccionVisibility();
 
-<<<<<<< HEAD
   /* ---------- WhatsApp: solo celulares uruguayos ---------- */
   // Formato válido: 9 dígitos, 09 + prefijo de compañía (1 a 9) + 6 dígitos.
   // Ej: 095226739. El 090 no se usa para celulares, por eso queda afuera.
@@ -592,51 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
   stepForm?.addEventListener('input', updateSubmitBtn);
   stepForm?.addEventListener('change', updateSubmitBtn);
   updateSubmitBtn();
-=======
-  /* ---------- Validación en vivo: habilita "Confirmar pedido" ----------
-     El botón arranca gris/deshabilitado (ver atributo disabled en el
-     HTML) y solo se habilita cuando el formulario está completo y válido:
-     nombre y apellido, WhatsApp con al menos 8 dígitos, dirección (si
-     eligieron entrega), y un carrito con al menos una caja completa.
-     Notas queda afuera a propósito, es el único campo opcional. */
-  const formHint = document.getElementById('formHint');
-
-  function missingFields() {
-    if (!stepForm) return [];
-    const nombre = stepForm.nombre.value.trim();
-    const telefono = stepForm.telefono.value.trim();
-    const esEntrega = stepForm.modalidad.value === 'Coordinar entrega';
-    const direccion = stepForm.direccion.value.trim();
-    const digits = telefono.replace(/[^0-9]/g, '');
-
-    const missing = [];
-    if (!/\S+\s+\S+/.test(nombre)) missing.push('nombre y apellido');
-    if (!(/^[0-9+\s()\-]+$/.test(telefono) && digits.length >= 8)) missing.push('WhatsApp');
-    if (esEntrega && direccion.length < 5) missing.push('dirección de entrega');
-    if (cart.length === 0) missing.push('agregar rolls al pedido');
-    else if (cartHasIncompleteBox()) missing.push('completar la caja');
-    return missing;
-  }
-
-  function updateSubmitState() {
-    if (!submitBtn) return;
-    const missing = missingFields();
-    const valid = missing.length === 0;
-    submitBtn.disabled = !valid;
-    if (formHint) {
-      formHint.textContent = valid ? '' : `Falta: ${missing.join(' · ')}`;
-      formHint.classList.toggle('is-missing', !valid);
-    }
-  }
-
-  ['nombre', 'telefono', 'direccion'].forEach(name => {
-    stepForm?.[name]?.addEventListener('input', updateSubmitState);
-  });
-  stepForm?.querySelectorAll('input[name="modalidad"]').forEach(radio => {
-    radio.addEventListener('change', updateSubmitState);
-  });
-  updateSubmitState();
->>>>>>> 1b2b672543e3bf50240c9131abff44ccc808edc7
 
   /* ---------- Envío del formulario ---------- */
   const formError = document.getElementById('formError');
@@ -783,10 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('orderIdDisplay').textContent = orderId;
     document.getElementById('doneWhatsapp').href = waLink;
 
-<<<<<<< HEAD
     enviandoPedido = false;
-=======
->>>>>>> 1b2b672543e3bf50240c9131abff44ccc808edc7
     submitBtn.textContent = 'Confirmar pedido';
     updateSubmitState();
 
@@ -797,11 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     stepForm.reset();
     updateDireccionVisibility();
-<<<<<<< HEAD
     updateSubmitBtn();
-=======
-    updateSubmitState();
->>>>>>> 1b2b672543e3bf50240c9131abff44ccc808edc7
   });
 
 });
