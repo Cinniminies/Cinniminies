@@ -48,7 +48,7 @@
 | Unidad DDL | $55 | |
 | Unidad Oreo | $60 | |
 | Unidad Nutella | $65 | En la planilla. Box 6 / 12 Nutella también a $250 / $450 |
-| Envío | $25 | **[CONFIRMAR]** Se asumió que lo paga el cliente aparte (así lo trata la fórmula de ganancia actual) |
+| Envío | $25 | **Confirmado (23/09):** lo paga el cliente aparte. Es ingreso |
 | Menú viejo (histórico) | Box de 4 $180, Box de 10 $380 | Solo en ventas viejas, marcadas con la nota "MENU VIEJO" |
 
 - **Descuentos y recargos:** se carga un "precio final" distinto del de lista. Descuento = lista − final, y puede ser negativo (se cobró más).
@@ -114,7 +114,7 @@
 | CALCULADORA | "¿Cuántas tandas vas a hacer?" → qué comprar. Un bloque por sabor más uno combinado |
 
 **Cómo se interpreta cada fila de VENTAS:**
-- **"Box de 6" / "Box de 12" genéricas, sin detalle de sabores:** la planilla las costeó como **Canela** (usa el costo de la caja de Canela). Ojo: ya se vendían Oreo y DDL desde el 17/07, aunque TANDAS recién empieza el 25/07. Tomalas como Canela salvo que los dueños digan otra cosa. **[CONFIRMAR]**
+- **"Box de 6" / "Box de 12" genéricas, sin detalle de sabores:** la planilla las costeó como **Canela** (usa el costo de la caja de Canela). Ojo: ya se vendían Oreo y DDL desde el 17/07, aunque TANDAS recién empieza el 25/07. **Confirmado (23/09): eran mezcladas y no se sabe el detalle.** Se migran con un sabor especial **"Sin detalle"** (inactivo, no visible en la web) que se costea como Canela, así queda claro que el costo es una estimación.
 - **"Box de 6 Oreo", "Box de 12 Canela", etc.:** un solo sabor.
 - **Box con unidades en Canela/DDL/Oreo (u):** caja mixta.
 - **"Personalizado":** unidades sueltas, con "Caja usada" opcional.
@@ -132,7 +132,7 @@
 8. **Rangos con tope fijo:** la fila de totales estaba en la 212 y la app la iba a pisar.
 9. **Clientes duplicados o de prueba:** "Hola"; "Romina Müller / Salinas" es en realidad **Romina Salinas (ITSP)**. El uso de cajas se cargaba a mano, y **no cuadra**: VENTAS implica ~80 cajas de 6 usadas y se compraron 71.
 
-**Arreglos en la planilla:** en la sesión anterior se prepararon dos archivos, `docs/planilla-apps-script/Codigo.gs` y `Arreglos.gs`, que corrigen todo esto dentro del Sheet. Las instrucciones para aplicarlos están al principio de `Arreglos.gs`. Importante: después hay que publicar una versión nueva de la web app. **[CONFIRMAR] si se aplicaron.** Cómo detectarlo:
+**Arreglos en la planilla:** en la sesión anterior se prepararon dos archivos, `docs/planilla-apps-script/Codigo.gs` y `Arreglos.gs`, que corrigen todo esto dentro del Sheet. Las instrucciones para aplicarlos están al principio de `Arreglos.gs`. Importante: después hay que publicar una versión nueva de la web app. **Los dueños dicen (23/09) que ya los aplicaron y publicaron la web app nueva.** Igual verificalo en el `.xlsx`:
 - Si en VENTAS hay columnas "Cobro envío ($)" y "Control", y los totales están en las filas 1–3, **se aplicaron**.
 - Si no, no se aplicaron.
 
@@ -216,7 +216,7 @@ La migración tiene que funcionar **en los dos casos**, leyendo columnas por nom
 
 ### 3.1 Costos y cuentas a tener en cuenta
 - **Supabase:** plan gratis suficiente. El proyecto se pausa tras 7 días sin actividad.
-- **Vercel:** el plan Hobby es para uso **no comercial**. Avisales que, siendo un negocio, corresponde Pro (USD 20 al mes) o mover el hosting a Netlify o Cloudflare Pages. **[CONFIRMAR]**
+- **Vercel:** el plan Hobby es para uso **no comercial**. Siendo un negocio, corresponde Pro (USD 20 al mes) o mover el hosting a Netlify o Cloudflare Pages. **Decisión (23/09): se define más adelante**, antes de usar la app en serio. Mientras tanto se construye en Vercel Hobby; mantené las funciones de `api/` simples para que sean fáciles de portar.
 - **No crees proyectos ni actives nada pago sin confirmación explícita.**
 
 ---
@@ -407,7 +407,7 @@ create table conteos (                    -- conteo físico de stock
 - **caja_fija:** precio vigente del formato × cantidad. Si existe un precio especial para esa caja y ese sabor (una sola variedad), se usa ese.
 - **personalizado / unidad:** Σ (unidades × precio unitario vigente del sabor).
 - **Precio especial ("precio final"):** si se carga, `precio_cobrado` = ese valor. El descuento es `precio_lista − precio_cobrado`, y puede ser negativo.
-- **Envío:** `cobro_envio` = `parametros.precio_envio` si `entrega = 'envio'`, si no 0. Va **aparte** del precio cobrado, pero suma al total vendido y a la ganancia. **[CONFIRMAR]** que lo paga el cliente.
+- **Envío:** `cobro_envio` = `parametros.precio_envio` si `entrega = 'envio'`, si no 0. Va **aparte** del precio cobrado, pero suma al total vendido y a la ganancia (confirmado: lo paga el cliente).
 
 ### 5.4 Validaciones al guardar una venta
 - **caja_fija:** Σ unidades de los sabores = `rolls × cantidad`. Si no se detallan sabores y la caja no tiene sabor único, exigirlos: hoy se carga el sabor siempre.
@@ -477,22 +477,22 @@ Idioma: **español rioplatense** (vos), montos con el formato `$1.234,50`.
 Cada etapa termina con una demo a los dueños y con los criterios de aceptación cumplidos. No avances de etapa sin su OK.
 
 ### Etapa 0 — Reconocimiento (sin cambios)
-- [ ] Releer el repo (resumen en 2.4) y confirmar el enfoque de `admin/` + `api/` de la sección 3.
+- [x] Releer el repo (resumen en 2.4). Verificado el 23/09: sigue sin `package.json` ni `vercel.json`. Ojo: `settings.local.json` está en la raíz del repo, no en `.claude/`. Falta confirmar el enfoque `admin/` + `api/` de la sección 3.
 - [ ] Confirmar con los dueños cómo está configurado Vercel (proyecto, rama de producción, si hay previews por rama).
 - [ ] Confirmar con los dueños los puntos **[CONFIRMAR]** (lista en la sección 9).
-- [ ] Verificar si los arreglos del Sheet (`Arreglos.gs`) se aplicaron (ver 2.2).
+- [ ] Verificar en el `.xlsx` que los arreglos del Sheet (`Arreglos.gs`) están aplicados (ver 2.2). Los dueños dicen que sí.
 - [ ] Pedirles que descarguen el Sheet actual como `.xlsx` (Archivo → Descargar) en `migracion/datos/`. **Agregar `migracion/datos/` al `.gitignore`**: tiene teléfonos e Instagram de clientes.
 - [ ] Proponer un plan concreto (qué archivos se crean o tocan) y esperar el OK.
 
 ### Etapa 1 — Base de datos y migración del histórico
 - [ ] Con confirmación, crear el proyecto de Supabase (región São Paulo). Usar el MCP de Supabase si está disponible; si no, la CLI.
 - [ ] Guardar las migraciones SQL en el repo (`supabase/migrations/`): tablas, RLS, funciones (`costo_insumo(insumo, fecha)`, `costo_roll(sabor, fecha)`, `precio_vigente(...)`, `registrar_venta(jsonb)`, `registrar_tanda(jsonb)`) y vistas `v_*`.
-- [ ] Sembrar el catálogo (sección 1): sabores, insumos (incluir cajas de 6 y de 12, papel manteca y stickers), recetas, formatos (incluidos los históricos "Box de 4" y "Box de 10", inactivos), precios con `vigente_desde` 2026-05-01 y el parámetro `precio_envio` = 25.
+- [ ] Sembrar el catálogo (sección 1): sabores (más "Sin detalle", inactivo, para las cajas viejas sin sabores), insumos (incluir cajas de 6 y de 12, papel manteca y stickers), recetas, formatos (incluidos los históricos "Box de 4" y "Box de 10", inactivos), precios con `vigente_desde` 2026-05-01 y el parámetro `precio_envio` = 25.
 - [ ] Script de migración `migracion/importar` (Node o Python, lo que ya use el repo). Tiene que ser **idempotente**: vaciar y recargar. Lee el `.xlsx` **buscando hojas y columnas por nombre normalizado** (sin espacios, sin acentos, en minúsculas).
 - [ ] Mapeo:
   - **VENTAS → ventas + líneas + sabores.**
     - Congelar los valores **tal como están en la planilla**: Precio Cobrado, Costo Prod. y Costo Caja son los snapshots. No recalcular.
-    - Cajas genéricas sin detalle = Canela **[CONFIRMAR]**.
+    - Cajas genéricas sin detalle = sabor "Sin detalle", con el costo por roll de Canela de la planilla.
     - Nombres "Box de 6 X" = formato Box de 6 más un solo sabor X.
     - Detalle Canela/DDL/Oreo (u) = sabores de la línea.
     - ENVIO: "Envio" → envio; "Pick up" o "Retiro" → retiro; "-" → sin_envio. `cobro_envio` = 25 si hubo envío.
@@ -602,18 +602,18 @@ El checkout **ya existe** (ver 2.4). Esta etapa lo conecta a la base:
 2. ¿Dónde está el código? → **En un repo git** (este).
 3. ¿Dónde analizan los números? → **Google Sheets.**
 4. ¿Pedidos desde la web? → **Sí, pero al final** (Etapa 6). La web ya tiene checkout; falta conectarlo a la base.
+5. **Envío $25** → **Lo paga el cliente aparte.** Es ingreso.
+6. **Cajas genéricas** sin detalle → **Eran mezcladas, no se sabe.** Sabor "Sin detalle", costeado como Canela.
+12. **Hosting** → **Se decide más adelante.** Por ahora, Vercel Hobby.
+14. **¿Se aplicaron los arreglos del Sheet?** → **Sí, y se publicó la web app nueva.** Verificar en el `.xlsx`.
 
 **Pendientes:**
-5. **Envío $25:** ¿lo paga el cliente aparte, es decir, es ingreso? ¿O lo pagan ustedes a un cadete?
-6. **Cajas genéricas** ("Box de 6" o "Box de 12" sin detalle de sabores): ¿eran todas de Canela?
 7. **Filas de "Pia Piovano / Dueña 1"** (08/08, sin formato con 9 DDL; 19/08, 12 rolls sin formato ni sabores; 27/08, Box de 6 sin caja; y 12/09, Box de 6 a $200): ¿son ventas, consumo propio o regalo?
 8. **Venta del 11/09 de Giovanna Firpo, "Box de 12 Canela" con 2/2/2:** ¿qué se entregó realmente?
 9. **"Acomodo de plata / Balance" $614,21** en MERMAS: ¿qué fue?
 10. **Compras de "Cajas" sin tamaño:** ¿cómo distinguimos las de 6 y las de 12? ¿Tienen precios distintos?
 11. ¿Cuánto papel manteca y cuántos stickers lleva cada caja?
-12. **Hosting:** ¿pasan Vercel a Pro, o mudan la web a Netlify / Cloudflare Pages (gratis con uso comercial)?
 13. ¿Qué emails usan para el login de la app?
-14. ¿Se aplicaron los arreglos del Sheet (`Arreglos.gs`)?
 
 ---
 
