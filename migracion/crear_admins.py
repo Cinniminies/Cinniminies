@@ -4,8 +4,9 @@
 Uso:
     python3 migracion/crear_admins.py "Pia=pia@ejemplo.com" "Lucio=lucio@ejemplo.com"
 
-Para cada email: si el usuario no existe en Supabase Auth, le manda una invitación por mail
-(con el link para entrar), y lo agrega a `usuarios_admin`. Se puede correr varias veces.
+Para cada email: si el usuario no existe en Supabase Auth lo crea ya confirmado (no manda
+ningún mail; entran después con el link por mail desde /admin) y lo agrega a `usuarios_admin`.
+Se puede correr varias veces.
 Lee SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY de `.env.local`. Los emails no se guardan en el repo.
 """
 
@@ -49,8 +50,9 @@ def main():
         if user_id:
             print(f"{nombre}: ya existía en Auth")
         else:
-            user_id = llamar(url, clave, "POST", "/auth/v1/invite", {"email": email})["id"]
-            print(f"{nombre}: invitación enviada a su mail")
+            user_id = llamar(url, clave, "POST", "/auth/v1/admin/users",
+                             {"email": email, "email_confirm": True})["id"]
+            print(f"{nombre}: usuario creado")
         llamar(url, clave, "POST", "/rest/v1/usuarios_admin?on_conflict=user_id",
                {"user_id": user_id, "nombre": nombre},
                {"Prefer": "resolution=merge-duplicates,return=minimal"})

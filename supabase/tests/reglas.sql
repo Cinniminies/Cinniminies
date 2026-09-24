@@ -32,7 +32,9 @@ begin
            jsonb_build_object('sabor_id', ca, 'unidades', 2), jsonb_build_object('sabor_id', oreo, 'unidades', 4))))));
   assert (r->>'precio_lista')::numeric = 250, 'precio box 6';
   assert (r->>'cobro_envio')::numeric = 25, 'envío';
-  assert (r->>'costo_caja')::numeric = 30, 'costo caja 6';
+  -- Costo de caja = caja + papel manteca + sticker (caja_insumos)
+  assert (r->>'costo_caja')::numeric = round(costo_caja((select caja_insumo_id from formatos where id = b6)), 2),
+         'costo caja 6 con packaging';
 
   -- 5.3 Personalizado: suma por unidad y caja sugerida de 6 (5 rolls). Precio especial.
   r := calcular_venta(jsonb_build_object('entrega', 'retiro', 'precio_especial', 1100, 'lineas', jsonb_build_array(
@@ -43,7 +45,9 @@ begin
   assert (r->>'precio_lista')::numeric = 900 + 3 * 55 + 2 * 60, 'precio 2 box 12 + personalizado';
   assert (r->>'descuento')::numeric = 1185 - 1100, 'descuento';
   assert (r->>'cobro_envio')::numeric = 0, 'retiro sin envío';
-  assert (r->>'costo_caja')::numeric = 2 * 35 + 30, 'cajas 2×12 + 1×6';
+  assert (r->>'costo_caja')::numeric
+         = round(2 * costo_caja((select caja_insumo_id from formatos where id = b12)), 2)
+           + round(costo_caja((select caja_insumo_id from formatos where id = b6)), 2), 'cajas 2×12 + 1×6';
 
   -- Sin caja
   r := calcular_venta(jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object(
@@ -90,6 +94,17 @@ begin
   assert (select cantidad from tanda_consumos where tanda_id = (r->>'tanda_id')::uuid and insumo_id = har) = 900,
          'consumo de harina de 2 tandas';
   assert (r->>'rolls')::int = 24, 'rolls de 2 tandas';
+
+  -- 5.7 Una venta posterior al último conteo descuenta la caja y lo que lleva
+  select jsonb_object_agg(nombre, teorico) into antes from v_stock
+   where nombre in ('Caja Box de 6', 'Papel manteca', 'Stickers');
+  perform registrar_venta(jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object(
+            'formato_id', b6, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 6))))));
+  select jsonb_object_agg(nombre, teorico) into despues from v_stock
+   where nombre in ('Caja Box de 6', 'Papel manteca', 'Stickers');
+  assert (despues->>'Caja Box de 6')::numeric = (antes->>'Caja Box de 6')::numeric - 1, 'stock caja 6';
+  assert (despues->>'Papel manteca')::numeric = (antes->>'Papel manteca')::numeric - 1, 'stock papel';
+  assert (despues->>'Stickers')::numeric = (antes->>'Stickers')::numeric - 1, 'stock stickers';
 
   raise exception 'TODO OK';
 end $$;

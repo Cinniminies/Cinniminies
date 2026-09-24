@@ -49,7 +49,7 @@ INSUMOS.update({"cajasboxde6": "Caja Box de 6", "cajasboxde12": "Caja Box de 12"
 UNIDAD_BASE = {"Leche": "ml", "Huevos": "un", "Galletitas Oreo": "paq", "Caja Box de 6": "un",
                "Caja Box de 12": "un", "Papel manteca": "un", "Stickers": "un"}  # el resto: g
 PACKAGING = {"Caja Box de 6", "Caja Box de 12", "Papel manteca", "Stickers"}
-CAJA_POR_PRECIO = {30: "Caja Box de 6", 35: "Caja Box de 12"}
+CAJA_POR_PRECIO = {25: "Caja Box de 3", 30: "Caja Box de 6", 35: "Caja Box de 12"}
 CAJA_DE_FORMATO = {4: "Caja Box de 6", 6: "Caja Box de 6", 10: "Caja Box de 12", 12: "Caja Box de 12"}
 # Costo por roll al 22/09 (solo como peso para repartir el costo congelado entre sabores)
 PESO_COSTO = {"Canela": 9.5096, "Dulce de Leche": 9.5458, "Oreo": 15.0061, "Nutella": 17.5427,
@@ -211,8 +211,9 @@ def leer_ventas(libro):
         elif box is None:
             caja = None  # filas sin formato: confirmado "sin caja"
             if costo_caja:
-                aviso("VENTAS", nro, f"sin formato y sin caja, pero con costo de caja ${costo_caja:g} "
-                                     "(se mantiene el costo congelado)")
+                aviso("VENTAS", nro, f"sin formato: no llevó caja (confirmado), se corrige el costo de "
+                                     f"caja de ${costo_caja:g} a $0")
+                costo_caja = 0
         elif rolls_caja:
             caja = CAJA_DE_FORMATO.get(rolls_caja)
         else:
@@ -393,10 +394,11 @@ def separar_cajas(base, n, total, nro):
                                                     "precio unitario" if a and b else None) if x) or None}
                     for q, caja, t in partes if q]
     aviso("COMPRAS", nro, f"{int(n or 0)} cajas por ${total:g} no se pueden separar en $30/$35: "
-                          "quedan sin tamaño (REVISAR)")
+                          "tamaños combinados sin detalle (confirmado), quedan sin tamaño")
     return [{**base, "insumo": None, "categoria": "packaging", "cantidad": n, "unidad": "un",
              "cantidad_base": None,
-             "notas": "; ".join(x for x in (base["notas"], "REVISAR: tamaño de caja") if x)}]
+             "notas": "; ".join(x for x in (base["notas"], "Cajas de tamaños combinados, sin detalle")
+                                if x)}]
 
 
 # ---------------------------------------------------------------- TANDAS
@@ -463,6 +465,9 @@ def leer_gastos(libro):
                 continue
             serial = int(ultimo_serial)
             aviso("MERMAS", nro, f"{descripcion!r} sin fecha: se usa la de la fila anterior")
+            sin_fecha = True
+        else:
+            sin_fecha = False
         ultimo_serial = serial
         fecha, creado = fecha_y_hora(serial, nro)
         tipo_txt = texto(celda(fila, cols, "Tipo"))
@@ -475,7 +480,9 @@ def leer_gastos(libro):
         rolls = numero(celda(fila, cols, "Cant. Rolls"))
         gastos.append({"fila": nro, "fecha": fecha, "creado_en": creado, "descripcion": descripcion,
                        "tipo": tipo, "monto": monto, "rolls": int(rolls) if rolls else None,
-                       "notas": texto(celda(fila, cols, "Motivo"))})
+                       "notas": "; ".join(x for x in (texto(celda(fila, cols, "Motivo")),
+                                                       "Fecha incierta (sin fecha en la planilla)"
+                                                       if sin_fecha else None) if x) or None})
     return gastos
 
 

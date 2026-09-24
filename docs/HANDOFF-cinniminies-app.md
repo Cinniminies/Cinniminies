@@ -8,11 +8,10 @@
 > confirmá con los dueños los puntos marcados como **[CONFIRMAR]**. No crees recursos
 > pagos ni borres nada sin preguntar.
 
-> **Estado al 24/09/2026:** Etapa 0 cerrada. Etapa 1 en curso (rama `feat/etapa-1-base-de-datos`):
-> esquema, RLS, funciones, vistas y catálogo aplicados en Supabase; script de migración listo y
-> conciliado en modo prueba (`docs/conciliacion-etapa-1.md`). Falta: `.env.local` con la
-> service_role key para cargar el histórico, dar de alta a los 2 admins, desactivar el registro
-> público en Auth y que los dueños revisen los números.
+> **Estado al 24/09/2026:** Etapa 1 casi cerrada (rama `feat/etapa-1-base-de-datos`). Base
+> armada en Supabase, histórico cargado y conciliado sobre la base (`docs/conciliacion-etapa-1.md`),
+> RLS probada, y Pia y Lucio dados de alta como admins. Falta: confirmar que el registro público
+> de Auth está desactivado, el OK final de los dueños a los números y abrir el PR.
 
 ---
 
@@ -62,7 +61,7 @@
 ### 1.2 Costos de packaging (de la planilla)
 
 - Caja Box de 6: **$30** por unidad. Caja Box de 12: **$35** por unidad.
-- Papel manteca: $99 por 50 hojas. Stickers: $100 por 15. Hoy **no** se suman al costo por venta.
+- Papel manteca: $99 por 50 hojas. Stickers: $100 por 15. En la planilla **no** se sumaban al costo por venta. **Decisión (24/09): en la app sí se suman** al costo de caja de las ventas nuevas (función `costo_caja`); las ventas migradas conservan el costo de la planilla.
 
 ### 1.3 Recetas por tanda (12 rolls)
 
@@ -528,7 +527,7 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
     - "Cobramos menos…" → `otro` (en realidad es un descuento).
     - Balance / "Acomodo de plata" → `ajuste_caja`.
   - **STOCK → conteos:** conteo inicial con la fecha del export y el "Stock real" de cada ingrediente. Cajas: compradas − usadas de la hoja STOCK.
-- [ ] **Conciliación.** Hecha en modo prueba (`docs/conciliacion-etapa-1.md`): cierra todo salvo +$45,99 de costo por la fila 110, que está explicado. Falta cargar y verificar en la base. Referencia: export del 22/09/2026, antes de los arreglos. Si la planilla ya tiene más ventas, conciliá contra ella en ese momento.
+- [x] **Conciliación.** Cargada y verificada sobre la base el 24/09 (`docs/conciliacion-etapa-1.md`): cierra todo, con dos correcciones confirmadas por los dueños (fila 110: +$45,99 de costo; fila 89: −$35 de caja). Referencia: export del 22/09/2026, antes de los arreglos. Si la planilla ya tiene más ventas, conciliá contra ella en ese momento.
 
   | Control | Valor esperado |
   |---|---|
@@ -546,6 +545,9 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   Cada diferencia se explica por escrito, o se corrige.
 
 - **Aceptación:** la conciliación cierra, las RLS están probadas (sin login no se lee nada) y los dueños revisaron los números.
+  - [x] Conciliación cerrada. [x] RLS probadas: `anon` no tiene permisos; un usuario logueado que no es admin ve 0 filas; los 2 admins ven todo. [x] Admins creados con `migracion/crear_admins.py` (usuarios confirmados, sin mail; entran con link por mail cuando exista `/admin`).
+  - [ ] Registro público desactivado en Auth (dashboard: Authentication → Sign In / Providers → "Allow new users to sign up").
+  - [ ] OK final de los dueños a los números.
 
 ### Etapa 2 — App de carga (reemplaza la web app de Apps Script)
 - [ ] Auth, layout mobile-first con la paleta de 2.3 y PWA instalable.

@@ -1,5 +1,6 @@
 # Datos reales de la planilla (teléfonos e Instagram de clientes)
 migracion/datos/
+migracion/emails.txt
 *.xlsx
 
 # Secretos
