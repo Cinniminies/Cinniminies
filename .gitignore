@@ -10,3 +10,6 @@ migracion/datos/
 # Supabase CLI local
 supabase/.temp/
 supabase/.branches/
+
+# Python
+__pycache__/

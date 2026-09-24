@@ -8,10 +8,11 @@
 > confirmá con los dueños los puntos marcados como **[CONFIRMAR]**. No crees recursos
 > pagos ni borres nada sin preguntar.
 
-> **Estado al 24/09/2026:** Etapa 0 casi cerrada. Todas las preguntas de la sección 9
-> están respondidas, los arreglos del Sheet están aplicados y el proyecto de Supabase
-> está creado pero vacío (ver Etapa 1). Falta: guardar el `.xlsx` en `migracion/datos/`
-> en la compu del negocio, proponer la lista de archivos y arrancar la Etapa 1.
+> **Estado al 24/09/2026:** Etapa 0 cerrada. Etapa 1 en curso (rama `feat/etapa-1-base-de-datos`):
+> esquema, RLS, funciones, vistas y catálogo aplicados en Supabase; script de migración listo y
+> conciliado en modo prueba (`docs/conciliacion-etapa-1.md`). Falta: `.env.local` con la
+> service_role key para cargar el histórico, dar de alta a los 2 admins, desactivar el registro
+> público en Auth y que los dueños revisen los números.
 
 ---
 
@@ -495,15 +496,15 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
 - [x] Vercel publica desde `main` (confirmado 24/09). Falta ver si hay previews por rama.
 - [x] Confirmar con los dueños los puntos **[CONFIRMAR]** (sección 9: todas respondidas el 24/09).
 - [x] Arreglos del Sheet aplicados: verificado en el `.xlsx` del 24/09.
-- [ ] Guardar el `.xlsx` del Sheet en `migracion/datos/` **en la compu del negocio** (se exportó el 24/09; volvé a descargarlo para tener lo último). `migracion/datos/` ya está en el `.gitignore`: tiene teléfonos e Instagram de clientes.
-- [ ] Proponer un plan concreto (qué archivos se crean o tocan) y esperar el OK.
+- [x] Guardar el `.xlsx` del Sheet en `migracion/datos/` (bajado del Drive el 24/09; está en el `.gitignore`).
+- [x] Plan concreto: `admin/` + `api/` como en la sección 3; la Etapa 1 agrega `supabase/` y `migracion/`. OK de los dueños para arrancar (24/09).
 
 ### Etapa 1 — Base de datos y migración del histórico
 - [x] Proyecto de Supabase creado el 24/09: nombre `cinniminies`, ref `skysdjfxuykrufawhzvn`, región São Paulo (sa-east-1), plan gratis, URL `https://skysdjfxuykrufawhzvn.supabase.co`. La clave pública (publishable/anon) se saca del dashboard (Project Settings → API Keys); la service_role **nunca** va al repo. Todavía está vacío: sin tablas, sin usuarios. Se creó en otra organización y los dueños lo movieron a la organización **cinniminies** (24/09): conectá el MCP de Supabase con la cuenta que tenga acceso a esa organización. Un proyecto gratis se pausa tras 7 días sin actividad.
-- [ ] Guardar las migraciones SQL en el repo (`supabase/migrations/`): tablas, RLS, funciones (`costo_insumo(insumo, fecha)`, `costo_roll(sabor, fecha)`, `precio_vigente(...)`, `registrar_venta(jsonb)`, `registrar_tanda(jsonb)`) y vistas `v_*`.
-- [ ] Sembrar el catálogo (sección 1): sabores (más "Sin detalle", inactivo, para las cajas viejas sin sabores), insumos (incluir cajas de 6 y de 12, papel manteca y stickers), recetas, formatos (incluidos los históricos "Box de 4" y "Box de 10", inactivos), precios con `vigente_desde` 2026-05-01 y el parámetro `precio_envio` = 25.
-- [ ] Script de migración `migracion/importar` (Node o Python, lo que ya use el repo). Tiene que ser **idempotente**: vaciar y recargar. Lee el `.xlsx` **buscando hojas y columnas por nombre normalizado** (sin espacios, sin acentos, en minúsculas).
-- [ ] Mapeo:
+- [x] Guardar las migraciones SQL en el repo (`supabase/migrations/`): tablas, RLS, funciones (`costo_insumo(insumo, fecha)`, `costo_roll(sabor, fecha)`, `precio_vigente(...)`, `registrar_venta(jsonb)`, `registrar_tanda(jsonb)`) y vistas `v_*`. Aplicadas en Supabase el 24/09. Además: `calcular_venta(jsonb)` (el cálculo sin guardar, para el resumen en vivo), `importar_planilla(jsonb)` (solo service_role) y pruebas en `supabase/tests/reglas.sql`.
+- [x] Sembrar el catálogo (sección 1): sabores (más "Sin detalle", inactivo, para las cajas viejas sin sabores), insumos (incluir cajas de 6 y de 12, papel manteca y stickers), recetas, formatos (incluidos los históricos "Box de 4" y "Box de 10", inactivos), precios con `vigente_desde` 2026-05-01 y el parámetro `precio_envio` = 25.
+- [x] Script de migración `migracion/importar.py` (Python sin dependencias; en la compu no hay Node). Ver `migracion/README.md`. Tiene que ser **idempotente**: vaciar y recargar. Lee el `.xlsx` **buscando hojas y columnas por nombre normalizado** (sin espacios, sin acentos, en minúsculas).
+- [x] Mapeo (implementado en `importar.py`; decisiones y dudas en `docs/conciliacion-etapa-1.md`):
   - **VENTAS → ventas + líneas + sabores.**
     - Congelar los valores **tal como están en la planilla**: Precio Cobrado, Costo Prod. y Costo Caja son los snapshots. No recalcular.
     - Cajas genéricas sin detalle = sabor "Sin detalle", con el costo por roll de Canela de la planilla.
@@ -527,7 +528,7 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
     - "Cobramos menos…" → `otro` (en realidad es un descuento).
     - Balance / "Acomodo de plata" → `ajuste_caja`.
   - **STOCK → conteos:** conteo inicial con la fecha del export y el "Stock real" de cada ingrediente. Cajas: compradas − usadas de la hoja STOCK.
-- [ ] **Conciliación.** Referencia: export del 22/09/2026, antes de los arreglos. Si la planilla ya tiene más ventas, conciliá contra ella en ese momento.
+- [ ] **Conciliación.** Hecha en modo prueba (`docs/conciliacion-etapa-1.md`): cierra todo salvo +$45,99 de costo por la fila 110, que está explicado. Falta cargar y verificar en la base. Referencia: export del 22/09/2026, antes de los arreglos. Si la planilla ya tiene más ventas, conciliá contra ella en ese momento.
 
   | Control | Valor esperado |
   |---|---|
