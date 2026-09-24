@@ -8,10 +8,10 @@
 > confirmá con los dueños los puntos marcados como **[CONFIRMAR]**. No crees recursos
 > pagos ni borres nada sin preguntar.
 
-> **Estado al 24/09/2026:** Etapa 1 casi cerrada (rama `feat/etapa-1-base-de-datos`). Base
-> armada en Supabase, histórico cargado y conciliado sobre la base (`docs/conciliacion-etapa-1.md`),
-> RLS probada, y Pia y Lucio dados de alta como admins. Falta: confirmar que el registro público
-> de Auth está desactivado, el OK final de los dueños a los números y abrir el PR.
+> **Estado al 24/09/2026:** **Etapa 1 cerrada** (PR de `feat/etapa-1-base-de-datos`). Base en
+> Supabase con el histórico cargado y conciliado (`docs/conciliacion-etapa-1.md`), RLS probada,
+> admins dados de alta, registro público desactivado y números aprobados por los dueños.
+> Sigue: Etapa 2 (app de carga en `/admin`).
 
 ---
 
@@ -546,8 +546,8 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
 
 - **Aceptación:** la conciliación cierra, las RLS están probadas (sin login no se lee nada) y los dueños revisaron los números.
   - [x] Conciliación cerrada. [x] RLS probadas: `anon` no tiene permisos; un usuario logueado que no es admin ve 0 filas; los 2 admins ven todo. [x] Admins creados con `migracion/crear_admins.py` (usuarios confirmados, sin mail; entran con link por mail cuando exista `/admin`).
-  - [ ] Registro público desactivado en Auth (dashboard: Authentication → Sign In / Providers → "Allow new users to sign up").
-  - [ ] OK final de los dueños a los números.
+  - [x] Registro público desactivado en Auth (dashboard: Authentication → Sign In / Providers → "Allow new users to sign up").
+  - [x] OK final de los dueños a los números (24/09).
 
 ### Etapa 2 — App de carga (reemplaza la web app de Apps Script)
 - [ ] Auth, layout mobile-first con la paleta de 2.3 y PWA instalable.
