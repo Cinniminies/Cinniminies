@@ -1,0 +1,16 @@
+# Datos reales de la planilla (teléfonos e Instagram de clientes)
+migracion/datos/
+migracion/emails.txt
+*.xlsx
+
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local
+supabase/.temp/
+supabase/.branches/
+
+# Python
+__pycache__/
