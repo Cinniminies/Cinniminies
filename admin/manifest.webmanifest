@@ -1,0 +1,16 @@
+{
+  "name": "Cinniminies · Gestión",
+  "short_name": "Cinniminies",
+  "description": "Carga de ventas, tandas, compras y gastos de Cinniminies",
+  "lang": "es",
+  "start_url": "./#/panel",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf6f0",
+  "theme_color": "#a8531d",
+  "icons": [
+    { "src": "icons/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#a8531d">
+<title>Cinniminies · Gestión</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cinniminies">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="barra">
+    <a href="#/panel" class="marca">Cinniminies</a>
+    <span class="barra-titulo" id="titulo"></span>
+  </header>
+  <main id="vista" class="vista" aria-live="polite">
+    <p class="cargando">Cargando…</p>
+  </main>
+  <nav class="tabs" id="tabs" hidden>
+    <a href="#/panel" data-tab="panel"><span class="ico">⌂</span>Inicio</a>
+    <a href="#/ventas" data-tab="ventas"><span class="ico">≡</span>Ventas</a>
+    <a href="#/venta" data-tab="venta" class="tab-principal"><span class="ico">+</span>Venta</a>
+    <a href="#/tandas" data-tab="tandas"><span class="ico">◎</span>Tandas</a>
+    <a href="#/mas" data-tab="mas"><span class="ico">⋯</span>Más</a>
+  </nav>
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
