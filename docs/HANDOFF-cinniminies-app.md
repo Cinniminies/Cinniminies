@@ -8,6 +8,11 @@
 > confirmá con los dueños los puntos marcados como **[CONFIRMAR]**. No crees recursos
 > pagos ni borres nada sin preguntar.
 
+> **Estado al 24/09/2026:** Etapa 0 casi cerrada. Todas las preguntas de la sección 9
+> están respondidas, los arreglos del Sheet están aplicados y el proyecto de Supabase
+> está creado pero vacío (ver Etapa 1). Falta: guardar el `.xlsx` en `migracion/datos/`
+> en la compu del negocio, proponer la lista de archivos y arrancar la Etapa 1.
+
 ---
 
 ## 0. Resumen en 10 líneas
@@ -118,21 +123,21 @@
 - **"Box de 6 Oreo", "Box de 12 Canela", etc.:** un solo sabor.
 - **Box con unidades en Canela/DDL/Oreo (u):** caja mixta.
 - **"Personalizado":** unidades sueltas, con "Caja usada" opcional.
-- **Clientes "Pia Piovano" con origen "Dueña 1":** consumo o venta a una de las dueñas. Las filas 88 y 89 no tienen formato. **[CONFIRMAR] cómo tratarlas.**
+- **Clientes "Pia Piovano" con origen "Dueña 1":** **confirmado (24/09): consumo propio pagado a menor precio.** Se migran con `tipo = 'consumo_propio'` y el precio que se pagó. Las filas 88 y 89 no tienen formato: se migran como línea "Personalizado" sin caja.
 
 ### 2.2 Errores detectados en la planilla (la migración debe corregirlos)
 
 1. **Costos y precios históricos que cambian solos:** las fórmulas usan el costo y precio *actual*. → En la base, **cada venta guarda precio y costo del momento** (snapshot).
 2. K2/L2 de VENTAS siempre daban 0.
 3. **Envío:** la ganancia sumaba los $25, pero el total vendido no. Además había un 25 escrito en todas las filas, hubiera envío o no.
-4. **MERMAS:** cine, comida y hamburguesas (~$2.795) son **retiros de socios**, no gastos. "Acomodo de plata / Balance $614,21" no está claro. **[CONFIRMAR]**
+4. **MERMAS:** cine, comida y hamburguesas (~$2.795) son **retiros de socios**, no gastos. "Acomodo de plata / Balance $614,21" fue un **ajuste para que la caja coincidiera con la billetera** (tipo `ajuste_caja`).
 5. **STOCK:** "Usado" no filtraba por la fecha de control.
 6. **Costo de ingrediente:** precio de la última compra dividido por una "unidad de compra" escrita a mano, que se rompe si cambia la presentación.
-7. **Cajas mixtas inconsistentes.** La fila 110 es una "Box de 12 Canela" con 2/2/2 unidades **[CONFIRMAR qué fue]**.
+7. **Cajas mixtas inconsistentes.** La fila 110 es una "Box de 12 Canela" con 2/2/2 unidades. **Confirmado: se entregó una Box de 12 de Canela** (12 Canela; se ignoran los 2/2/2).
 8. **Rangos con tope fijo:** la fila de totales estaba en la 212 y la app la iba a pisar.
 9. **Clientes duplicados o de prueba:** "Hola"; "Romina Müller / Salinas" es en realidad **Romina Salinas (ITSP)**. El uso de cajas se cargaba a mano, y **no cuadra**: VENTAS implica ~80 cajas de 6 usadas y se compraron 71.
 
-**Arreglos en la planilla:** en la sesión anterior se prepararon dos archivos, `docs/planilla-apps-script/Codigo.gs` y `Arreglos.gs`, que corrigen todo esto dentro del Sheet. Las instrucciones para aplicarlos están al principio de `Arreglos.gs`. Importante: después hay que publicar una versión nueva de la web app. **Los dueños dicen (23/09) que ya los aplicaron y publicaron la web app nueva.** Igual verificalo en el `.xlsx`:
+**Arreglos en la planilla:** en la sesión anterior se prepararon dos archivos, `docs/planilla-apps-script/Codigo.gs` y `Arreglos.gs`, que corrigen todo esto dentro del Sheet. Las instrucciones para aplicarlos están al principio de `Arreglos.gs`. Importante: después hay que publicar una versión nueva de la web app. **Verificado en el `.xlsx` del 24/09: están aplicados** (VENTAS tiene "Cobro envío ($)" y "Control", y los totales están en las filas 1–3). Cómo detectarlo en otro export:
 - Si en VENTAS hay columnas "Cobro envío ($)" y "Control", y los totales están en las filas 1–3, **se aplicaron**.
 - Si no, no se aplicaron.
 
@@ -267,6 +272,14 @@ create table formatos (
   orden int not null default 0
 );
 
+create table caja_insumos (               -- packaging extra que lleva cada caja
+  caja_insumo_id uuid references insumos on delete cascade,
+  insumo_id uuid references insumos,
+  cantidad numeric not null,
+  primary key (caja_insumo_id, insumo_id)
+);
+-- Confirmado 24/09: Caja Box de 12 → 2 papel manteca + 1 sticker; Caja Box de 6 → 1 papel manteca + 1 sticker.
+
 create table precios (                    -- historial: nunca se pisa, se agrega
   id uuid primary key default gen_random_uuid(),
   formato_id uuid references formatos,    -- caja_fija: precio de la caja
@@ -361,7 +374,7 @@ create table gastos (
   fecha date not null,
   descripcion text not null,
   tipo text not null check (tipo in
-    ('merma','tanda_descartada','gasto_operativo','comision','retiro_socios','otro')),
+    ('merma','tanda_descartada','gasto_operativo','comision','retiro_socios','ajuste_caja','otro')),
   monto numeric(12,2) not null,
   rolls int,
   notas text
@@ -420,13 +433,14 @@ create table conteos (                    -- conteo físico de stock
 - Lo mismo vale para las tandas: `tanda_consumos` guarda lo que se consumió con la receta de ese día.
 
 ### 5.6 Panel (mismas definiciones que la planilla, corregidas)
-- **Total vendido** = Σ `precio_cobrado` + Σ `cobro_envio` (ventas tipo 'venta').
+- **Total vendido** = Σ `precio_cobrado` + Σ `cobro_envio` (ventas tipo 'venta' y 'consumo_propio': el consumo propio se paga, a menor precio).
 - **Cobrado** = lo anterior, solo de ventas con estado 'pagado'. **Pendiente** = vendido − cobrado.
 - **Total gastado** = Σ compras + Σ gastos **excepto** `retiro_socios`.
 - **Retiros socios** = Σ gastos con tipo `retiro_socios`. Se muestra aparte.
+- **Ajustes de caja** = Σ gastos con tipo `ajuste_caja`. Se muestran aparte; no cuentan como gasto pero sí restan de la caja teórica.
 - **Ganancia bruta de ventas** = Σ (precio cobrado + envío − costo de producción − costo de caja).
 - **Ganancia neta** = vendido − gastado + valor del stock de ingredientes + valor del stock de packaging.
-- **Caja teórica** = vendido − gastado − pendiente − retiros.
+- **Caja teórica** = vendido − gastado − pendiente − retiros − ajustes de caja.
 - **Capital** = caja teórica + valor del stock.
 - **Tandas hechas**, **rolls producidos** y **rolls vendidos** por sabor.
 
@@ -434,7 +448,7 @@ create table conteos (                    -- conteo físico de stock
 - **Stock teórico de un insumo** = último conteo + compras posteriores − consumos de tandas posteriores − (si es caja) cajas usadas en ventas posteriores.
 - Alertas cuando el teórico queda por debajo del mínimo.
 - El **desvío** (teórico − contado) se ve al cargar un conteo.
-- Papel manteca y stickers: **[CONFIRMAR]** cuánto usa cada caja. Mientras tanto, se controlan solo con conteos.
+- Papel manteca y stickers: cada caja usada descuenta lo que indica `caja_insumos` (Box de 12: 2 papel + 1 sticker; Box de 6: 1 papel + 1 sticker).
 
 ### 5.8 "¿Qué compro?" (reemplaza la hoja CALCULADORA)
 - Entrada: tandas planeadas por sabor.
@@ -478,14 +492,14 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
 
 ### Etapa 0 — Reconocimiento (sin cambios)
 - [x] Releer el repo (resumen en 2.4). Verificado el 23/09: sigue sin `package.json` ni `vercel.json`. Ojo: `settings.local.json` está en la raíz del repo, no en `.claude/`. Falta confirmar el enfoque `admin/` + `api/` de la sección 3.
-- [ ] Confirmar con los dueños cómo está configurado Vercel (proyecto, rama de producción, si hay previews por rama).
-- [ ] Confirmar con los dueños los puntos **[CONFIRMAR]** (lista en la sección 9).
-- [ ] Verificar en el `.xlsx` que los arreglos del Sheet (`Arreglos.gs`) están aplicados (ver 2.2). Los dueños dicen que sí.
-- [ ] Pedirles que descarguen el Sheet actual como `.xlsx` (Archivo → Descargar) en `migracion/datos/`. **Agregar `migracion/datos/` al `.gitignore`**: tiene teléfonos e Instagram de clientes.
+- [x] Vercel publica desde `main` (confirmado 24/09). Falta ver si hay previews por rama.
+- [x] Confirmar con los dueños los puntos **[CONFIRMAR]** (sección 9: todas respondidas el 24/09).
+- [x] Arreglos del Sheet aplicados: verificado en el `.xlsx` del 24/09.
+- [ ] Guardar el `.xlsx` del Sheet en `migracion/datos/` **en la compu del negocio** (se exportó el 24/09; volvé a descargarlo para tener lo último). `migracion/datos/` ya está en el `.gitignore`: tiene teléfonos e Instagram de clientes.
 - [ ] Proponer un plan concreto (qué archivos se crean o tocan) y esperar el OK.
 
 ### Etapa 1 — Base de datos y migración del histórico
-- [ ] Con confirmación, crear el proyecto de Supabase (región São Paulo). Usar el MCP de Supabase si está disponible; si no, la CLI.
+- [x] Proyecto de Supabase creado el 24/09: nombre `cinniminies`, ref `skysdjfxuykrufawhzvn`, región São Paulo (sa-east-1), plan gratis, URL `https://skysdjfxuykrufawhzvn.supabase.co`. La clave pública (publishable/anon) se saca del dashboard (Project Settings → API Keys); la service_role **nunca** va al repo. Todavía está vacío: sin tablas, sin usuarios. Ojo: la organización de Supabase comparte el límite de 2 proyectos gratis con "ConectaLab" (pausado), y un proyecto gratis se pausa tras 7 días sin actividad.
 - [ ] Guardar las migraciones SQL en el repo (`supabase/migrations/`): tablas, RLS, funciones (`costo_insumo(insumo, fecha)`, `costo_roll(sabor, fecha)`, `precio_vigente(...)`, `registrar_venta(jsonb)`, `registrar_tanda(jsonb)`) y vistas `v_*`.
 - [ ] Sembrar el catálogo (sección 1): sabores (más "Sin detalle", inactivo, para las cajas viejas sin sabores), insumos (incluir cajas de 6 y de 12, papel manteca y stickers), recetas, formatos (incluidos los históricos "Box de 4" y "Box de 10", inactivos), precios con `vigente_desde` 2026-05-01 y el parámetro `precio_envio` = 25.
 - [ ] Script de migración `migracion/importar` (Node o Python, lo que ya use el repo). Tiene que ser **idempotente**: vaciar y recargar. Lee el `.xlsx` **buscando hojas y columnas por nombre normalizado** (sin espacios, sin acentos, en minúsculas).
@@ -497,11 +511,11 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
     - Detalle Canela/DDL/Oreo (u) = sabores de la línea.
     - ENVIO: "Envio" → envio; "Pick up" o "Retiro" → retiro; "-" → sin_envio. `cobro_envio` = 25 si hubo envío.
     - Tipo → medio_pago. Precio Final → precio especial.
-    - Filas 88, 89 y 110 → según lo que confirmen.
+    - Filas 88, 89 y ventas de "Dueña 1" → `consumo_propio` con el precio pagado. Fila 110 → Box de 12 con 12 Canela.
   - **CLIENTES:** deduplicar por nombre normalizado. Corregir "Romina Salinas" y descartar "Hola".
   - **COMPRAS:**
     - Mapear el insumo desde "Ingrediente (final)" o "Ingrediente".
-    - Cajas, stickers y papel manteca → packaging. **[CONFIRMAR]** las compras de "Cajas" no dicen el tamaño.
+    - Cajas, stickers y papel manteca → packaging. Las compras de "Cajas" sin tamaño se asignan por precio unitario: **$30 → Caja Box de 6, $35 → Caja Box de 12** (confirmado). Si alguna no encaja, listarla para que la revisen.
     - Balanza → equipamiento.
     - Parsear cantidades viejas en texto ("5kg", "500gr", "2L", "100g") a `cantidad_base`.
   - **TANDAS:** una tanda por fila. `tanda_consumos` con los valores de las columnas de ingredientes: la fila del 30/08 (Canela) tiene consumos atípicos y hay que respetarlos tal cual.
@@ -511,7 +525,7 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
     - Comisión y Transferencia → `comision`.
     - EXTRA y Bolsa → `gasto_operativo`.
     - "Cobramos menos…" → `otro` (en realidad es un descuento).
-    - Balance → **[CONFIRMAR]**.
+    - Balance / "Acomodo de plata" → `ajuste_caja`.
   - **STOCK → conteos:** conteo inicial con la fecha del export y el "Stock real" de cada ingrediente. Cajas: compradas − usadas de la hoja STOCK.
 - [ ] **Conciliación.** Referencia: export del 22/09/2026, antes de los arreglos. Si la planilla ya tiene más ventas, conciliá contra ella en ese momento.
 
@@ -522,7 +536,7 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   | Σ Costo producción | $8.145,16 |
   | Σ Costo caja | $3.265 |
   | Pendiente de cobro | $900 (2 ventas de Giovanna Firpo, 11/09) |
-  | Ventas con envío | 31 → $775 de envíos |
+  | Ventas con envío | 30 → $750 de envíos (dato del export del 24/09, con los arreglos aplicados) |
   | Compras | $14.578,87 |
   | Gastos (MERMAS) | $3.771,60, de los cuales retiros = $2.795 |
   | Tandas | 23 (Canela 12, Oreo 8, DDL 3) |
@@ -607,13 +621,15 @@ El checkout **ya existe** (ver 2.4). Esta etapa lo conecta a la base:
 12. **Hosting** → **Se decide más adelante.** Por ahora, Vercel Hobby.
 14. **¿Se aplicaron los arreglos del Sheet?** → **Sí, y se publicó la web app nueva.** Verificar en el `.xlsx`.
 
-**Pendientes:**
-7. **Filas de "Pia Piovano / Dueña 1"** (08/08, sin formato con 9 DDL; 19/08, 12 rolls sin formato ni sabores; 27/08, Box de 6 sin caja; y 12/09, Box de 6 a $200): ¿son ventas, consumo propio o regalo?
-8. **Venta del 11/09 de Giovanna Firpo, "Box de 12 Canela" con 2/2/2:** ¿qué se entregó realmente?
-9. **"Acomodo de plata / Balance" $614,21** en MERMAS: ¿qué fue?
-10. **Compras de "Cajas" sin tamaño:** ¿cómo distinguimos las de 6 y las de 12? ¿Tienen precios distintos?
-11. ¿Cuánto papel manteca y cuántos stickers lleva cada caja?
-13. ¿Qué emails usan para el login de la app?
+7. **Filas de "Pia Piovano / Dueña 1"** → **Consumo propio, pagado a menor precio.**
+8. **Giovanna Firpo 11/09** → **Se entregó una Box de 12 de Canela.**
+9. **"Acomodo de plata / Balance" $614,21** → **Ajuste para que coincidiera con la billetera** (`ajuste_caja`).
+10. **Cajas sin tamaño** → **Cuestan distinto: las de 6, $30; las de 12, $35.** Se separan por precio unitario.
+11. **Papel y stickers por caja** → **Box de 12: 2 papel manteca + 1 sticker. Box de 6: 1 papel manteca + 1 sticker.**
+13. **Emails del login** → los dieron en el chat del 24/09. **No se guardan en el repo**: pedíselos a los dueños al configurar Auth.
+15. **Vercel** → publica desde `main`.
+
+**Pendientes:** ninguna para arrancar la Etapa 1.
 
 ---
 
