@@ -6,6 +6,7 @@
 // para dar formato (fechas, $), así agregar una columna no obliga a tocar el script.
 
 const crypto = require('node:crypto');
+const { configuracion, encabezados, responderJson } = require('./supabase.js');
 
 // Tipos: texto, fecha (AAAA-MM-DD), mes (primer día del mes), fechahora (ISO),
 // dinero, numero, bool.
@@ -112,8 +113,6 @@ const VISTAS = {
   },
 };
 
-// La URL es pública (también está en admin/js/config.js); se puede pisar con SUPABASE_URL.
-const URL_SUPABASE = 'https://skysdjfxuykrufawhzvn.supabase.co';
 const TAMANO_PAGINA = 1000; // el máximo que devuelve la API de Supabase por pedido
 
 // Compara la clave recibida con la esperada sin filtrar por tiempo cuántos caracteres coinciden.
@@ -139,13 +138,6 @@ function urlPagina(base, vista, desde) {
     limit: String(TAMANO_PAGINA),
   });
   return `${base.replace(/\/+$/, '')}/rest/v1/${v.tabla}?${params}`;
-}
-
-function encabezados(clave) {
-  const h = { apikey: clave, Accept: 'application/json' };
-  // Las claves nuevas (sb_secret_…) van solo en apikey; la service_role vieja es un JWT.
-  if (!clave.startsWith('sb_')) h.Authorization = `Bearer ${clave}`;
-  return h;
 }
 
 // Trae todas las filas de la vista, página por página.
@@ -201,8 +193,7 @@ function autorizar(req, res) {
     return null;
   }
   const esperada = process.env.EXPORT_KEY;
-  const url = process.env.SUPABASE_URL || URL_SUPABASE;
-  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { url, clave } = configuracion();
   if (!esperada || !url || !clave) {
     responderJson(res, 500, {
       error: 'Faltan variables de entorno en Vercel (EXPORT_KEY o SUPABASE_SERVICE_ROLE_KEY)',
@@ -214,12 +205,6 @@ function autorizar(req, res) {
     return null;
   }
   return { url, clave };
-}
-
-function responderJson(res, estado, cuerpo) {
-  res.statusCode = estado;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify(cuerpo));
 }
 
 module.exports = {

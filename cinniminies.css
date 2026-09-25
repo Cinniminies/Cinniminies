@@ -370,6 +370,13 @@ a:hover{ color: var(--canela-hover); }
   transition: transform 0.6s var(--ease);
 }
 .roll-card:hover .roll-photo{ transform: scale(1.08); }
+/* Sabor cargado en /admin sin foto todavía: la inicial sobre un fondo cálido */
+.roll-photo-vacia{
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--crema-suave), var(--canela-soft-text));
+  color: var(--canela-tostada);
+  font-family: var(--font-display); font-size: 72px; font-weight: 600;
+}
 
 .roll-tag{
   position: absolute;
@@ -451,6 +458,7 @@ a:hover{ color: var(--canela-hover); }
 }
 .roll-add:hover{ background: var(--canela-hover); }
 .roll-add:active{ transform: scale(0.95); }
+.roll-add:disabled{ background: var(--linea); color: var(--cafe-suave); cursor: not-allowed; transform: none; }
 
 /* Box picker */
 .box-picker{
