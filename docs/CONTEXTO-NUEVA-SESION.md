@@ -135,6 +135,6 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
 3. Menú lateral de /admin con todas las secciones (PR #14): si no está en `main`, revisar que se haya mergeado.
 4. **Etapa 7:** confirmar la aceptación. Pendientes sueltos: decidir hosting (Vercel Pro o mover, handoff 3.1),
-   sacar el envío a `GOOGLE_SHEETS_URL` del checkout con OK de los dueños, y la aceptación de la Etapa 2 (carga en paralelo).
+   que los dueños archiven el Apps Script de pedidos a Sheets (el checkout ya no lo usa), y la aceptación de la Etapa 2 (carga en paralelo).
 5. Seguí el flujo de la sección 3: una rama por tarea, PR directo a `main`, probar en Chrome con usuario temporal,
    dejar la base como estaba.

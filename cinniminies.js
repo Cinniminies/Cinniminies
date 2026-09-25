@@ -124,14 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // tu número, con código de país, sin + ni espacios. Se puede cambiar desde /admin → Web (contacto.whatsapp).
   let WHATSAPP_NUMBER = "59895226739";
 
-  // ---- CONFIGURACIÓN: Google Sheets ----
-  // Pegá acá la URL que te dio Google al "Implementar" el Apps Script
-  // (mirá el archivo extras/google-sheets-apps-script.gs para los pasos).
-  // Si la dejás vacía o con el valor de ejemplo, el sitio sigue funcionando
-  // igual de bien por WhatsApp y Web3Forms, simplemente no anota en la hoja.
-  const GOOGLE_SHEETS_PLACEHOLDER = "https://script.google.com/macros/s/AKfycbxycZYHqNEU__ni8iQ8JVANeuuGPf1cAGGxHgZW9k6vmJzfiT_KfUmNfOZN3cNRFCzC/exec";
-  const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxycZYHqNEU__ni8iQ8JVANeuuGPf1cAGGxHgZW9k6vmJzfiT_KfUmNfOZN3cNRFCzC/exec";
-
   // Precios y límites. Estos valores son el RESPALDO: al cargar, la página pide el catálogo a
   // /api/catalogo (lo que se carga en /admin) y los reemplaza. Si la API falla, quedan estos y las
   // tarjetas escritas en index.html, así la web nunca se queda sin menú.
@@ -843,28 +835,11 @@ document.addEventListener('DOMContentLoaded', () => {
       notas ? `Notas: ${notas}` : ''
     ].filter(Boolean).join('\n');
 
-    // Armamos una fila por cada caja, para la planilla de Google Sheets
-    // (columnas Box / Cant. Box son por caja, no por pedido completo)
-    const sheetRows = cart.map(box => {
-      const flavorList = Object.entries(box.flavors)
-        .map(([id, qty]) => `${qty}x ${box._flavorNames[id]}`)
-        .join(', ');
-      return {
-        cliente: nombre,
-        box: isCustomBox(box) ? 'Personalizada' : String(box.size),
-        cantBox: boxFilled(box),
-        envio: esEntrega && direccion ? `${modalidad} · ${direccion}` : modalidad,
-        notas: [`Pedido ${orderId}`, `Pago: ${pago}`, flavorList, notas ? `Notas: ${notas}` : '']
-          .filter(Boolean).join(' · ')
-      };
-    });
-
     document.getElementById('formOrderId').value = orderId;
     document.getElementById('formOrderDetail').value = fullDetail;
 
-    // Intenta notificar por email (Web3Forms) y anotar en la planilla
-    // (Google Sheets) al mismo tiempo. Si alguno falla, no afecta al otro
-    // ni al resto del pedido: el cliente siempre puede seguir por WhatsApp.
+    // 2) Aviso por email (Web3Forms). Si falla, no afecta al resto del pedido: ya quedó en la base
+    //    (/admin → Pedidos web) y el cliente siempre puede seguir por WhatsApp.
     const notificaciones = [];
 
     if (WEB3FORMS_ACCESS_KEY && WEB3FORMS_ACCESS_KEY !== WEB3FORMS_PLACEHOLDER) {
@@ -887,16 +862,6 @@ document.addEventListener('DOMContentLoaded', () => {
             total: `$${total}`,
             notas: notas || 'Sin notas'
           })
-        })
-      );
-    }
-
-    if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL !== GOOGLE_SHEETS_PLACEHOLDER) {
-      notificaciones.push(
-        fetch(GOOGLE_SHEETS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' }, // evita un preflight CORS extra con Apps Script
-          body: JSON.stringify({ filas: sheetRows })
         })
       );
     }
