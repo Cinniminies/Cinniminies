@@ -33,7 +33,7 @@ async function lista(cont) {
           f.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo'), ' ',
           f.visible_web ? h('span', { class: 'badge ok' }, 'En la web') : null),
         h('div', { class: 't2' }, detalle(f))),
-      '›')))),
+      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/formatos/nuevo' }, '+ Nuevo formato')));
 }
 
@@ -153,7 +153,6 @@ async function ficha(cont, id) {
       campo('Agregar', nuevoEspecial),
     ] : null,
     id && datos.tipo !== 'caja_fija'
-      ? h('p', { class: 'ayuda' }, 'Este formato cobra el precio por unidad de cada sabor: se carga en cada sabor.') : null,
-    h('p', { class: 'pie' }, h('a', { href: '#/formatos' }, '← Volver a formatos')));
+      ? h('p', { class: 'ayuda' }, 'Este formato cobra el precio por unidad de cada sabor: se carga en cada sabor.') : null);
   mostrarCampos();
 }

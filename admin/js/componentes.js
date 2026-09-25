@@ -1,4 +1,5 @@
 import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, hoyISO, conBoton } from './util.js';
+import { PRODUCCION } from './app.js';
 
 
 // Selector de cliente con autocompletar y alta de cliente nuevo.
@@ -59,7 +60,7 @@ export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
 // `lineas`: [{ formato_id, cantidad, caja (undefined = la de siempre | null | id), sabores: {sabor_id: unidades} }].
 // El editor modifica ese mismo array (así quien lo usa puede guardar el borrador).
 export function editorLineas(cat, lineas, alCambiar) {
-  const cont = h('div');
+  const cont = h('div', { class: 'editor-lineas' });
   const nueva = () => ({ formato_id: null, cantidad: 1, caja: undefined, sabores: {} });
   if (!lineas.length) lineas.push(nueva());
   let mostrarCajas = lineas.some((l) => l.caja !== undefined);
@@ -204,4 +205,12 @@ export function seccionPrecios(filas, alGuardar, alBorrar, { sinPrecio = 'Sin pr
       campo('Precio nuevo', precio), campo('Vigente desde', desde)),
     h('p', { class: 'ayuda' }, 'Las ventas ya cargadas no cambian. Con una fecha futura, el precio queda programado.'),
     guardar);
+}
+
+// Pestañas internas de Producción (Tandas · Stock · Compras · ¿Qué compro?).
+export function subnavProduccion(actual) {
+  return h('nav', { class: 'subnav', 'aria-label': 'Producción' },
+    PRODUCCION.map(([ruta, texto]) => h('a', {
+      href: `#/${ruta}`, class: ruta === actual ? 'activo' : null, 'aria-current': ruta === actual ? 'page' : null,
+    }, texto)));
 }

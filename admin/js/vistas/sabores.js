@@ -23,7 +23,7 @@ async function lista(cont) {
         h('div', { class: 't2' }, costoDe[s.id]?.costo_roll != null
           ? `Costo ${pesos(costoDe[s.id].costo_roll)} por roll · unidad ${pesos(costoDe[s.id].precio_unidad)}`
           : 'Sin receta')),
-      '›')))),
+      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/sabores/nuevo' }, '+ Nuevo sabor')));
 }
 
@@ -173,7 +173,6 @@ async function ficha(cont, id) {
         async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); toast('Precio borrado'); irA(`#/sabores/${id}`); }))
       : h('p', { class: 'ayuda' }, 'El precio por unidad se carga después de crear el sabor.'),
 
-    usado && id ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: no se puede borrar, pero se puede desactivar.`) : null,
-    h('p', { class: 'pie' }, h('a', { href: '#/sabores' }, '← Volver a sabores')));
+    usado && id ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: no se puede borrar, pero se puede desactivar.`) : null);
   dibujarReceta();
 }
