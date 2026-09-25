@@ -9,7 +9,9 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
   `usuarios_admin` leen y escriben).
 - **Reglas de negocio:** en la base (`supabase/migrations/`). La app llama a `calcular_venta`
   (el resumen en vivo), `registrar_venta`, `actualizar_venta`, `registrar_tanda`,
-  `registrar_compra` y `fusionar_clientes`. El navegador no calcula precios ni costos.
+  `registrar_compra`, `fusionar_clientes`, `guardar_receta`, `guardar_packaging_caja`,
+  `fijar_precio`, `registrar_conteo` y `que_comprar`. El navegador no calcula precios ni costos
+  que se guarden (solo muestra una estimación en vivo del costo de una receta mientras se edita).
 - **PWA:** `manifest.webmanifest`, íconos en `icons/` y un `sw.js` mínimo para que sea instalable.
   No funciona sin conexión.
 
@@ -22,7 +24,7 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/db.js`, `js/catalogo.js` | Cliente de Supabase y catálogo en memoria (sabores, formatos, insumos). |
 | `js/componentes.js` | Selector de cliente con autocompletar y editor de productos (formatos + sabores + caja). |
 | `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), chips, steppers y avisos. |
-| `js/vistas/*.js` | Una pantalla por archivo. |
+| `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Catálogo (etapa 3): catalogo, sabores, insumos, formatos, precios. Stock: stock (con conteos) y comprar ("¿Qué compro?"). |
 | `tests/` | Pruebas de los formatos: `node --test admin/tests/*.test.mjs`. |
 
 Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.

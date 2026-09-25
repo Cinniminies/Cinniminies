@@ -10,9 +10,18 @@ const RUTAS = {
   compras: ['Compras', () => import('./vistas/compras.js')],
   gastos: ['Gastos y retiros', () => import('./vistas/gastos.js')],
   clientes: ['Clientes', () => import('./vistas/clientes.js')],
+  stock: ['Stock', () => import('./vistas/stock.js')],
+  comprar: ['¿Qué compro?', () => import('./vistas/comprar.js')],
+  catalogo: ['Catálogo', () => import('./vistas/catalogo.js')],
+  sabores: ['Sabores', () => import('./vistas/sabores.js')],
+  insumos: ['Insumos', () => import('./vistas/insumos.js')],
+  formatos: ['Formatos', () => import('./vistas/formatos.js')],
+  precios: ['Precios', () => import('./vistas/precios.js')],
   mas: ['Más', () => import('./vistas/mas.js')],
 };
-const TAB_DE = { compras: 'mas', gastos: 'mas', clientes: 'mas' };
+// Pantallas que no tienen pestaña propia: se marca "Más".
+const TAB_DE = Object.fromEntries(['compras', 'gastos', 'clientes', 'stock', 'comprar', 'catalogo', 'sabores', 'insumos',
+  'formatos', 'precios'].map((r) => [r, 'mas']));
 
 const vista = document.getElementById('vista');
 const tabs = document.getElementById('tabs');

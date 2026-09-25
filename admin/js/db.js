@@ -16,3 +16,10 @@ export async function q(consulta) {
 }
 
 export const rpc = (fn, args) => q(sb.rpc(fn, args));
+
+// Cantidad de filas de una tabla que cumplen un filtro, sin traerlas: contar('tandas', (c) => c.eq('sabor_id', id)).
+export async function contar(tabla, filtro = (c) => c) {
+  const { count, error } = await filtro(sb.from(tabla).select('*', { count: 'exact', head: true }));
+  if (error) throw new Error(error.message);
+  return count || 0;
+}

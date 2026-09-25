@@ -4,7 +4,7 @@ import { sesion } from '../app.js';
 
 export async function mostrar(cont) {
   const item = (href, texto, sub) => h('li', {}, h('a', { class: 'fila', href },
-    h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), sub ? h('div', { class: 't2' }, sub) : null), '›'));
+    h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), sub ? h('div', { class: 't2' }, sub) : null), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
 
   const clave = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8 });
   const repetir = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8 });
@@ -26,6 +26,10 @@ export async function mostrar(cont) {
       item('#/compras', 'Compras', 'Ingredientes, packaging y equipamiento'),
       item('#/gastos', 'Gastos y retiros', 'Mermas, comisiones, retiros de socios'),
       item('#/clientes', 'Clientes', 'Libreta, historial y duplicados')),
+    h('ul', { class: 'lista menu-mas', style: 'margin-top:1rem' },
+      item('#/stock', 'Stock', 'Lo que hay, alertas y conteos'),
+      item('#/comprar', '¿Qué compro?', 'Según las tandas que vas a hacer'),
+      item('#/catalogo', 'Catálogo', 'Sabores, recetas, insumos, formatos, precios y márgenes')),
     h('details', { class: 'plegable', style: 'margin-top:1rem' },
       h('summary', {}, 'Contraseña'),
       h('p', { class: 'ayuda' }, 'Elegí una contraseña para entrar sin esperar el código por mail.'),
