@@ -42,6 +42,23 @@ Las pestañas de análisis nuevas van aparte, nunca dentro de `datos_*`.
 Si "Por mes", "Por sabor" o "Top 10 clientes" muestran `#ERROR!`, la pestaña se creó con una versión
 vieja del script: pegar el `Codigo.gs` actual, borrar la pestaña Resumen y volver a crearla desde el menú.
 
+## Diseño y Tablero
+
+Menú **📊 Análisis → 🎨 Aplicar diseño** (con los colores de la web: crema, canela y café):
+
+- **Tablero** (primera pestaña): tarjetas con vendido, ganancia bruta, pendiente de cobro, resultado y
+  stock, y cuatro gráficos: vendido y ganancia por mes, rolls por sabor, top 10 clientes y ventas contra
+  compras por mes. Se actualizan solos cada hora. **No se edita a mano:** "🎨 Aplicar diseño" la rehace
+  de cero. Los gráficos leen de una pestaña oculta, `graficos_datos`.
+- **Pestañas `datos_*`:** encabezado café, franjas, filtro en cada columna, montos negativos en rojo,
+  escala de color en vendido y ganancia, ventas pendientes e insumos para reponer resaltados en naranja
+  y retiros en gris. Esto se vuelve a aplicar en cada actualización (a mano no dura: la pestaña se
+  reescribe).
+- **Resumen:** títulos, encabezados y franjas en sus tablas, negativos en rojo. Sus fórmulas no se tocan,
+  y lo que agregues a mano se mantiene.
+
+Si se desarma algo (por ejemplo después de borrar una pestaña), tocá "🎨 Aplicar diseño" de nuevo.
+
 ## Instalación (una sola vez)
 
 1. **Clave de export en Vercel.** En el proyecto de Vercel → Settings → Environment Variables,
@@ -61,7 +78,7 @@ vieja del script: pegar el `Codigo.gs` actual, borrar la pestaña Resumen y volv
    permisos (conectarse a un servicio externo, editar la planilla y crear activadores):
    aceptarlos. La clave queda en las propiedades del script, no en la planilla ni en el código.
 6. **📊 Actualizar ahora** → aparecen las pestañas `datos_*`.
-7. **Activar actualización cada hora** y **Crear pestaña Resumen**.
+7. **Activar actualización cada hora**, **Crear pestaña Resumen** y **🎨 Aplicar diseño**.
 8. Compartir la planilla con el otro dueño (como lector o editor: las pestañas `datos_*` las puede
    editar solo quien instaló el script).
 
