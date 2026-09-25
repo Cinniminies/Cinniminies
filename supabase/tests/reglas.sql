@@ -343,3 +343,42 @@ begin
   assert (select original from contenido_web where clave = 'hero.frase') = 'Horneado en Paysandú con exceso de amor.', 'original';
   raise exception 'TODO OK';
 end $$;
+
+-- Revisión del backend: borrar la venta de un pedido lo devuelve a "nuevo", tope general de 40
+-- pedidos por hora, y en contenido_web un admin solo puede cambiar el valor.
+do $$
+declare r jsonb; v jsonb; ped uuid; fallo text; n int := 0; admin uuid;
+  caja text := '"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
+begin
+  r := crear_pedido_web(('{"nombre":"PRUEBA","telefono":"099123456","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h0');
+  select id into ped from pedidos where codigo = r->>'codigo';
+  v := confirmar_pedido(ped);
+  delete from ventas where id = (v->>'venta_id')::uuid;
+  assert (select estado = 'nuevo' and venta_id is null and gestionado_en is null from pedidos where id = ped), 'vuelve a nuevo';
+  perform confirmar_pedido(ped);
+  assert (select estado from pedidos where id = ped) = 'confirmado', 'reconfirmar';
+
+  while (select count(*) from pedidos where creado_en > now() - interval '1 hour') < 40 loop
+    n := n + 1;
+    perform crear_pedido_web(('{"nombre":"PRUEBA","telefono":"099123456","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h' || n);
+  end loop;
+  begin
+    perform crear_pedido_web(('{"nombre":"PRUEBA","telefono":"099123456","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h-otra');
+    fallo := 'no';
+  exception when others then fallo := sqlerrm; end;
+  assert fallo like 'Demasiados pedidos en este momento%', 'tope: ' || fallo;
+
+  select user_id into admin from usuarios_admin limit 1;
+  perform set_config('request.jwt.claims', json_build_object('sub', admin, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  update contenido_web set valor = 'Otra frase' where clave = 'hero.frase';
+  begin
+    update contenido_web set tipo = 'texto' where clave = 'contacto.whatsapp';
+    fallo := 'no';
+  exception when insufficient_privilege then fallo := 'bloqueado'; end;
+  reset role;
+  assert fallo = 'bloqueado', 'tipo: ' || fallo;
+  assert (select valor from contenido_web where clave = 'hero.frase') = 'Otra frase', 'valor';
+
+  raise exception 'TODO OK';
+end $$;
