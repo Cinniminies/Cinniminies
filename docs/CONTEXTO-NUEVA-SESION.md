@@ -15,8 +15,8 @@
 | 2. App de carga `/admin` | ✅ Publicada. **Falta la aceptación:** una semana de carga en paralelo con la planilla y que los números coincidan |
 | 3. Catálogo editable, stock y "¿Qué compro?" | ✅ Publicada. Aceptación ("Pistacho") probada en Chrome; **falta que la repitan los dueños** |
 | Correcciones visuales y rediseño de `/admin` | ✅ Publicados (PR #6, #7, #8, #9) |
-| 4. Google Sheet de análisis (solo lectura) | ✅ Publicada y funcionando (totales = panel). Falta: Resumen sin `#ERROR!` (PR #12) y verlo desde el celular con el activador por hora ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
-| 5. Web pública lee el catálogo | Pendiente |
+| 4. Google Sheet de análisis (solo lectura) | ✅ Cerrada (25/09). Sheet "Cinniminies · Análisis" en el Drive de Lucio, actualización cada hora ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
+| **5. Web pública lee el catálogo** | ⏭️ **Lo que sigue** (ver handoff, sección 7) |
 | 6. Pedidos de la web a la base | Pendiente (la dejaron para el final) |
 
 Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/admin/.
@@ -125,15 +125,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
 3. Corregi el UI del panel, poniendo mas opciones laterales y sacando algunas de la pagina "MAS"
-4. **Arrancá la Etapa 4** (handoff, sección 7):
-   - Endpoints `GET /api/export/<vista>` como Vercel Functions en Node (`api/export/[vista].js`), autenticados con
-     el header `x-export-key` contra una variable de entorno, leyendo con la service key del lado del servidor.
-     Vistas: `ventas`, `ventas_sabores`, `costos`, `stock`, `resumen_mensual`, `gastos`, `compras`, `tandas`.
-   - Spreadsheet nuevo "Cinniminies · Análisis" con Apps Script propio: `actualizarTodo()` con `UrlFetchApp`
-     (clave en `PropertiesService`, nunca en el código), una pestaña `datos_<vista>` protegida por vista,
-     activador cada hora, menú "📊 Actualizar ahora" y una pestaña "Resumen" de ejemplo.
-   - Las variables de entorno de Vercel (`SUPABASE_SERVICE_ROLE_KEY`, `EXPORT_KEY`) las cargan los dueños en el
-     dashboard de Vercel; no pedirlas por chat.
-   - Aceptación: los totales del Sheet coinciden con el panel de la app.
+4. **Arrancá la Etapa 5** (handoff, sección 7): `GET /api/catalogo` (o vista pública con RLS) y que
+   `cinniminies.js` arme precios y tarjetas desde el catálogo, con los valores actuales como respaldo si la API falla.
+   Mantener el diseño de la web. Seguir el patrón de `api/_lib/` + pruebas en `api/_tests/` de la Etapa 4.
 5. Seguí el flujo de la sección 3: una rama por tarea, PR directo a `main`, probar en Chrome con usuario temporal,
    dejar la base como estaba.
