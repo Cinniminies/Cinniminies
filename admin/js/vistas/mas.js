@@ -40,6 +40,8 @@ export async function mostrar(cont) {
       item('#/precios', 'etiqueta', 'Precios', 'Vigentes, programados e historial'),
       item('#/insumos', 'bolsa', 'Insumos', 'Ingredientes, packaging y mínimos'),
       item('#/catalogo', 'grafico', 'Costos y márgenes', 'Costo por roll y margen por caja')),
+    seccion('Web',
+      item('#/web', 'etiqueta', 'Textos e imágenes', 'Inicio, dónde encontrarnos, contacto y WhatsApp de la web')),
     h('h2', { class: 'seccion-titulo' }, 'Cuenta'),
     h('ul', { class: 'lista' },
       h('li', {}, h('details', { class: 'fila-detalle' },

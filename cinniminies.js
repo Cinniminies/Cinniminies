@@ -121,7 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // que viva en el código del front-end, como acá.
   const WEB3FORMS_PLACEHOLDER = "TU_ACCESS_KEY_DE_WEB3FORMS_AQUI";
   const WEB3FORMS_ACCESS_KEY = "37fd769c-9fca-4535-b7c7-dd4186dfce19";
-  const WHATSAPP_NUMBER = "59895226739"; // tu número, con código de país, sin + ni espacios
+  // tu número, con código de país, sin + ni espacios. Se puede cambiar desde /admin → Web (contacto.whatsapp).
+  let WHATSAPP_NUMBER = "59895226739";
 
   // ---- CONFIGURACIÓN: Google Sheets ----
   // Pegá acá la URL que te dio Google al "Implementar" el Apps Script
@@ -542,13 +543,52 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
+  /* ---------- Textos e imágenes editables (Etapa 7) ---------- */
+  // Vienen en /api/catalogo como { "hero.titulo": "…" }. Cada lugar de index.html tiene un atributo
+  // data-contenido*="clave"; lo que no venga queda como está escrito.
+  function marcado(texto) {
+    const seguro = texto.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    return seguro.replace(/\*([^*\n]+)\*/g, '<em>$1</em>').replace(/\r?\n/g, '<br>');
+  }
+
+  function aplicarContenido(c) {
+    if (!c || typeof c !== 'object') return;
+    const valor = (clave) => (typeof c[clave] === 'string' ? c[clave] : null);
+    document.querySelectorAll('[data-contenido]').forEach(el => {
+      const v = valor(el.dataset.contenido);
+      if (v !== null) el.innerHTML = marcado(v);
+    });
+    document.querySelectorAll('[data-contenido-img]').forEach(img => {
+      const v = valor(img.dataset.contenidoImg);
+      if (!v || !/^(\/?img\/[\w./-]+|https:\/\/[^\s"'<>]+)$/.test(v)) return;
+      img.closest('picture')?.querySelectorAll('source').forEach(src => src.remove());
+      img.src = v;
+    });
+    document.querySelectorAll('[data-contenido-mapa]').forEach(mapa => {
+      const v = valor(mapa.dataset.contenidoMapa)?.trim();
+      if (v) mapa.src = `https://www.google.com/maps?q=${encodeURIComponent(v)}&output=embed`;
+    });
+    const wa = valor('contacto.whatsapp');
+    if (wa && /^598\d{8}$/.test(wa)) {
+      WHATSAPP_NUMBER = wa;
+      document.querySelectorAll('[data-contenido-whatsapp]').forEach(a => { a.href = `https://wa.me/${wa}`; });
+    }
+    const ig = valor('contacto.instagram');
+    if (ig && /^[\w.]{1,30}$/.test(ig)) {
+      document.querySelectorAll('[data-contenido-instagram]').forEach(a => { a.href = `https://instagram.com/${ig}`; });
+      document.querySelectorAll('[data-contenido-instagram-texto]').forEach(el => { el.textContent = `@${ig}`; });
+    }
+  }
+
   (async () => {
     const corte = new AbortController();
     const reloj = setTimeout(() => corte.abort(), 5000);
     try {
       const r = await fetch('/api/catalogo', { signal: corte.signal });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      if (!aplicarCatalogo(await r.json())) console.warn('Catálogo vacío: se usa el menú de respaldo');
+      const cat = await r.json();
+      try { aplicarContenido(cat.contenido); } catch (e) { console.warn('No se pudieron aplicar los textos:', e.message); }
+      if (!aplicarCatalogo(cat)) console.warn('Catálogo vacío: se usa el menú de respaldo');
     } catch (e) {
       console.warn('No se pudo leer el catálogo, se usa el menú de respaldo:', e.message);
     } finally {

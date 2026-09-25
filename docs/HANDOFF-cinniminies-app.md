@@ -607,12 +607,14 @@ El checkout **ya existe** (ver 2.4). Esta etapa lo conecta a la base:
 - Pruebas: bloque de pedidos en `supabase/tests/reglas.sql`; `node --test api/_tests/*.test.js`; checkout en Chrome contra la base real con un servidor local que imita a Vercel (Web3Forms interceptado): pedido guardado con el código del servidor, y con la API caída sigue funcionando.
 - **Aceptación:** un pedido real hecho desde la web aparece en /admin → Pedidos web y al confirmarlo queda como venta con los mismos rolls y precio.
 
-### Etapa 7 (después de la 6) — Panel para editar la web pública
+### Etapa 7 — Panel para editar la web pública
 Pedido de los dueños (TO-DO del 25/09): modificar desde /admin los textos, imágenes, etc. de la web, sin tocar código.
-- [ ] Relevar qué partes de `index.html` cambian seguido (hero, "Dónde encontrarnos", horarios, contacto, redes, fotos) y proponerlo antes de construir.
-- [ ] Guardarlo en la base (por ejemplo una tabla `contenido_web` clave → texto/imagen) y servirlo con el mismo patrón que `/api/catalogo` (cache de CDN y respaldo con lo escrito en `index.html`).
-- [ ] Pantalla en /admin para editarlo, con las imágenes en Supabase Storage (como las fotos de sabores).
-- **Aceptación:** cambiar un texto y una imagen desde /admin y verlos en la web sin deploy.
+- [x] Alcance (propuesto el 25/09, ampliable cargando filas): Inicio (frase, título, texto, foto de fondo), Dónde encontrarnos (frase, título, texto, zona, día, horario, dirección del mapa), Contacto (frase, título, número de WhatsApp —también el del checkout—, nota, Instagram, pie) y el texto de "Pedido recibido". El título del menú y los sabores salen del catálogo.
+- [x] Base (migración `20261001100000_contenido_web.sql`): tabla `contenido_web` (clave, sección, etiqueta, ayuda, tipo, valor, **original** para volver atrás), con checks por tipo (imagen: `img/…` o https; WhatsApp: `598` + 8 dígitos; Instagram sin @; textos cortos no vacíos) y RLS solo admins. Bucket público `web` para las imágenes. `catalogo_web()` suma `contenido`.
+- [x] Web: cada lugar de `index.html` tiene `data-contenido*="clave"`; `cinniminies.js` aplica lo que llega en `/api/catalogo` (misma cache de 5 min) y, si falla, queda lo escrito. Los textos se escapan; un renglón nuevo es un salto de línea y `*así*` va en cursiva.
+- [x] /admin → **Web → Textos e imágenes** (en el celular, Más → Web): campos por sección, subir imagen (se achica en el navegador), "Volver al original" y guardar todos los cambios juntos. Las funciones de fotos pasaron a `admin/js/fotos.js` (las usan Sabores y Web).
+- Pruebas: bloque en `supabase/tests/reglas.sql`; en Chrome con un servidor local que reemplaza el contenido en la respuesta (sin tocar la base): título con cursiva y saltos, HTML escapado, foto, mapa por dirección, WhatsApp e Instagram.
+- **Aceptación:** cambiar un texto y una imagen desde /admin y verlos en la web sin deploy (en ≤ 5 min).
 
 ---
 

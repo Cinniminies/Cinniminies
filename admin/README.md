@@ -47,6 +47,12 @@ La web guarda cada pedido en `pedidos` (vía `/api/pedidos`). En **Pedidos web**
 WhatsApp al cliente, **Confirmar como venta** (queda pendiente de cobro, con el total que vio el cliente) o
 **Rechazar**. Los pedidos nuevos aparecen también en Inicio → "Para hacer".
 
+## Web: textos e imágenes (Etapa 7)
+
+**Web → Textos e imágenes** edita lo que dice la web pública (inicio, dónde encontrarnos, contacto, WhatsApp,
+Instagram, texto de pedido recibido) y la foto de fondo del inicio. Cada campo es una fila de
+`contenido_web`; "Volver al original" restaura el valor de fábrica. La web lo muestra en unos 5 minutos.
+
 ## Navegación
 
 - **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más.
@@ -55,7 +61,7 @@ WhatsApp al cliente, **Confirmar como venta** (queda pendiente de cobro, con el 
   - **Más**: Pedidos web, Clientes, Gastos y retiros, todo el catálogo y la cuenta, cada uno a un toque.
 - **Compu y tablet (≥ 900 px):** menú lateral con todo a un clic: "+ Venta" arriba, Inicio, Ventas y
   los grupos Producción (Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Gastos y retiros) y
-  Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes); abajo, **Cuenta** (contraseña y
+  Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes) y Web (Textos e imágenes); abajo, **Cuenta** (contraseña y
   salir), que es lo único que queda en "Más". Sin las pestañas internas de Producción ni "←" hacia "Más".
   La lista del menú está en `MENU` (`js/app.js`).
 - Toda subpantalla tiene **←** arriba (vuelve a la pantalla de la que depende) y el título en la barra.

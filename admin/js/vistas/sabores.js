@@ -3,40 +3,7 @@ import { h, vaciar, campo, interruptor, pesos, plural, toast, conBoton } from '.
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { seccionPrecios } from '../componentes.js';
 import { irA } from '../app.js';
-
-// Fotos: se achican en el navegador (lado mayor 1200 px, WebP o JPEG) y se suben al bucket público
-// "sabores" de Supabase Storage. En la base queda la URL pública; también vale una ruta del sitio (img/…).
-const BUCKET = 'sabores';
-const LADO_MAX = 1200;
-const srcFoto = (f) => (!f ? null : /^https?:\/\//.test(f) ? f : `/${f.replace(/^\/+/, '')}`);
-const rutaEnBucket = (url) => url?.match(/\/storage\/v1\/object\/public\/sabores\/(.+)$/)?.[1] ?? null;
-
-async function achicar(archivo) {
-  const bmp = await createImageBitmap(archivo).catch(() => { throw new Error('No se pudo leer la imagen'); });
-  const escala = Math.min(1, LADO_MAX / Math.max(bmp.width, bmp.height));
-  const lienzo = document.createElement('canvas');
-  lienzo.width = Math.round(bmp.width * escala);
-  lienzo.height = Math.round(bmp.height * escala);
-  lienzo.getContext('2d').drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
-  const aBlob = (tipo) => new Promise((ok) => lienzo.toBlob(ok, tipo, 0.82));
-  const webp = await aBlob('image/webp');
-  // Safari viejo no genera WebP y devuelve PNG: ahí va JPEG
-  return webp?.type === 'image/webp' ? webp : aBlob('image/jpeg');
-}
-
-async function subirFoto(archivo, base) {
-  const blob = await achicar(archivo);
-  const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
-  const nombre = `${(base || 'sabor').toLowerCase().replace(/[^a-z0-9-]+/g, '-')}-${Date.now()}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(nombre, blob, { contentType: blob.type, cacheControl: '31536000' });
-  if (error) throw new Error(`No se pudo subir la foto: ${error.message}`);
-  return sb.storage.from(BUCKET).getPublicUrl(nombre).data.publicUrl;
-}
-
-async function borrarFotoDelBucket(url) {
-  const ruta = rutaEnBucket(url);
-  if (ruta) await sb.storage.from(BUCKET).remove([decodeURIComponent(ruta)]).catch(() => {});
-}
+import { srcFoto, subirFoto, borrarFotoDelBucket } from '../fotos.js';
 
 export async function mostrar(cont, { id }) {
   return id ? ficha(cont, id === 'nuevo' ? null : id) : lista(cont);
@@ -162,7 +129,7 @@ async function ficha(cont, id) {
       p_sabor: guardado.id,
       p_items: receta.filter((r) => r.insumo_id && r.cantidad > 0).map((r) => ({ insumo_id: r.insumo_id, cantidad: r.cantidad })),
     });
-    if (sabor?.foto && sabor.foto !== fila.foto) await borrarFotoDelBucket(sabor.foto);
+    if (sabor?.foto && sabor.foto !== fila.foto) await borrarFotoDelBucket('sabores', sabor.foto);
     invalidarCatalogo();
     toast(id ? 'Sabor guardado' : 'Sabor creado');
     irA(`#/sabores/${guardado.id}`);
@@ -181,7 +148,7 @@ async function ficha(cont, id) {
         : `¿Eliminar "${sabor.nombre}" para siempre? Se borran también su receta y sus precios.`;
       if (!confirm(aviso)) return;
       const r = await rpc('eliminar_sabor', { p_sabor: id });
-      if (r === 'borrado') await borrarFotoDelBucket(sabor.foto);
+      if (r === 'borrado') await borrarFotoDelBucket('sabores', sabor.foto);
       invalidarCatalogo();
       toast(r === 'borrado' ? 'Sabor borrado' : 'Sabor eliminado (se puede restaurar)');
       irA('#/sabores');
@@ -221,7 +188,7 @@ async function ficha(cont, id) {
     if (!f) return;
     subir.textContent = 'Subiendo…';
     try {
-      datos.foto = await subirFoto(f, datos.slug || datos.nombre);
+      datos.foto = await subirFoto('sabores', f, datos.slug || datos.nombre);
       toast('Foto subida: tocá Guardar para que quede');
     } finally {
       dibujarFoto();

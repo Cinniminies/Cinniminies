@@ -13,6 +13,7 @@ const RUTAS = {
   compras: ['Producción', () => import('./vistas/compras.js'), 'produccion', null],
   comprar: ['Producción', () => import('./vistas/comprar.js'), 'produccion', null],
   mas: ['Más', () => import('./vistas/mas.js'), 'mas', null],
+  web: ['Textos e imágenes de la web', () => import('./vistas/web.js'), 'mas', '#/mas'],
   pedidos: ['Pedidos web', () => import('./vistas/pedidos.js'), 'mas', '#/mas'],
   gastos: ['Gastos y retiros', () => import('./vistas/gastos.js'), 'mas', '#/mas'],
   clientes: ['Clientes', () => import('./vistas/clientes.js'), 'mas', '#/mas'],
@@ -62,6 +63,7 @@ const MENU = [
   ['precios', 'Precios', 'etiqueta', () => '#/precios', 'lateral', 'Catálogo'],
   ['insumos', 'Insumos', 'bolsa', () => '#/insumos', 'lateral', 'Catálogo'],
   ['catalogo', 'Costos y márgenes', 'grafico', () => '#/catalogo', 'lateral', 'Catálogo'],
+  ['web', 'Textos e imágenes', 'etiqueta', () => '#/web', 'lateral', 'Web'],
   ['mas', 'Más', 'menu', () => '#/mas', 'celular'],
   ['cuenta', 'Cuenta', 'llave', () => '#/mas', 'lateral', ' '],
 ];

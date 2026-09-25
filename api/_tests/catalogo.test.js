@@ -21,7 +21,9 @@ test('limpiar: tipos, sabores sin id y fotos no permitidas', () => {
   assert.equal(c.sabores[1].precio_unidad, null);
   assert.equal(c.sabores[2].foto, 'https://cdn.ejemplo.com/y.jpg');
   assert.deepEqual(c.formatos[0], { nombre: 'Box de 6', tipo: 'caja_fija', rolls: 6, min_rolls: null, max_rolls: null, precio: 250 });
-  assert.deepEqual(limpiar(null), { sabores: [], formatos: [] });
+  assert.deepEqual(limpiar(null), { sabores: [], contenido: {}, formatos: [] });
+  assert.deepEqual(limpiar({ contenido: { 'hero.titulo': 'Hola', 'mal clave': 'x', 'hero.num': 3, 'hero.largo': 'x'.repeat(1001) } }).contenido,
+    { 'hero.titulo': 'Hola' });
 });
 
 test('leerCatalogo llama a la RPC con la clave', async () => {
