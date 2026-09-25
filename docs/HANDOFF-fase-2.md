@@ -43,7 +43,7 @@
 | ⏸️ Pospuesta por los dueños (25/09) | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
 | ⏸️ Pendiente: armar un plan con los dueños (25/09) | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
 | ✅ Hecho (PR #27) | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
-| 🟢 **Baja** | **6.5** Más lugares editables de la web | S | — |
+| ✅ Hecho (PR #30) | **6.5** Más lugares editables de la web | S | — |
 | ⏸️ Pospuesta por los dueños (25/09) | **6.6** Reseñas de clientes | M | Decisión: solo cargadas por los dueños o también formulario público |
 
 Orden sugerido: 8.2 → 2.2 → 2.1 → 2.4 → 3.1+3.2 → 6.1 → 6.5 → 6.6. Cada tarea es un PR aparte.
@@ -281,7 +281,15 @@ el negocio.
 
 ---
 
-### 🟢 6.5 · Más lugares editables de la web
+### ✅ 6.5 · Más lugares editables de la web (PR #30)
+
+**Hecho así:** migración `20261006100000_mas_textos_web.sql` con 15 textos nuevos en 3 secciones nuevas de /admin → Web
+(**Barra de arriba**, **Menú**, **Carrito y formulario**) y en Inicio y Pedido recibido: links y botón de la barra (misma
+clave en `.topnav` y `#mobileNav`), botones del inicio, "Scrolleá para hornear ↓", "El menú", la segunda línea del título
+del menú (`#menuTitle` ahora tiene `#menuTitleCantidad`, que arma el catálogo, y `menu.titulo`, editable), "1. Elegí el
+tamaño de tu caja", títulos y botón del carrito y del formulario, la ayuda del WhatsApp y el título de "pedido recibido".
+Quedaron fijos, por decisión de los dueños, los textos que arma `cinniminies.js` (carrito vacío, errores, "Confirmar pedido")
+y los que dependen del catálogo (subtítulo del menú, opciones de caja).
 
 **Hoy (Etapa 7).** `contenido_web` (clave, sección, orden, etiqueta, ayuda, tipo, valor, original; checks por tipo; los
 admins solo pueden actualizar `valor`) → viaja en `/api/catalogo` → `cinniminies.js` (`aplicarContenido`) lo aplica sobre
