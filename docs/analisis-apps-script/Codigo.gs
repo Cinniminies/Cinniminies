@@ -12,6 +12,10 @@
  * La clave de export se guarda en las propiedades del script (menú
  * "📊 Análisis → Configurar clave…"). Nunca va escrita en este código.
  *
+ * Diseño: "🎨 Aplicar diseño" pinta todo con los colores de la marca, arma la pestaña
+ * "Tablero" (tarjetas y gráficos) y le da estilo a "Resumen". Las pestañas datos_* se
+ * vuelven a pintar solas en cada actualización.
+ *
  * Instalación y cómo rotar la clave: docs/analisis-apps-script/README.md.
  */
 
@@ -20,6 +24,19 @@ const PROP_CLAVE = 'EXPORT_KEY';
 const HOJA_ESTADO = 'datos_estado';
 const HOJA_RESUMEN = 'Resumen';
 const ZONA = 'America/Montevideo';
+
+const HOJA_TABLERO = 'Tablero';
+const HOJA_GRAFICOS = 'graficos_datos';
+
+// Colores de la web (cinniminies.css)
+const COLOR = {
+  crema: '#FBF3E1', cremaSuave: '#F7E7C8', card: '#FFFBF2', cafe: '#3A2417', cafeSuave: '#6B4631',
+  canela: '#D98F3E', canelaClara: '#F0B873', tostada: '#8B4226', rojo: '#B3401A', naranjaSuave: '#FCE3C2',
+};
+const FUENTE = 'Plus Jakarta Sans';
+const FUENTE_TITULOS = 'Fraunces';
+// Columnas con escala de color (más oscuro = más alto)
+const CON_ESCALA = ['vendido', 'ganancia_bruta', 'ganancia'];
 
 const FORMATOS = {
   fecha: 'dd/mm/yyyy',
@@ -39,6 +56,7 @@ function onOpen() {
     .addItem('Configurar clave…', 'configurarClave')
     .addItem('Activar actualización cada hora', 'activarCadaHora')
     .addItem('Crear pestaña Resumen', 'crearResumen')
+    .addItem('🎨 Aplicar diseño', 'aplicarDiseno')
     .addToUi();
 }
 
@@ -151,7 +169,6 @@ function escribirVista_(ss, tabla) {
   });
   hoja.getRange(1, 1, valores.length, cols).setValues(valores);
 
-  hoja.getRange(1, 1, 1, cols).setFontWeight('bold').setBackground('#f3e9dc');
   hoja.setFrozenRows(1);
   tabla.columnas.forEach(function (c, j) {
     const rango = hoja.getRange(2, j + 1, hoja.getMaxRows() - 1, 1);
@@ -162,6 +179,7 @@ function escribirVista_(ss, tabla) {
     nombrarRango_(ss, tabla.vista + '_' + c.nombre, hoja.getRange(2, j + 1, hoja.getMaxRows() - 1, 1));
   });
 
+  estiloDatos_(hoja, tabla.vista, tabla.columnas, filas);
   proteger_(hoja);
 }
 
@@ -203,9 +221,13 @@ function escribirEstado_(ss, estado) {
   hoja.clear();
   const valores = [['vista', 'descripción', 'filas', 'actualizado', 'error']].concat(estado);
   hoja.getRange(1, 1, valores.length, 5).setValues(valores);
-  hoja.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#f3e9dc');
   hoja.getRange(2, 4, Math.max(estado.length, 1), 1).setNumberFormat(FORMATOS.fechahora);
   hoja.setFrozenRows(1);
+  estiloDatos_(hoja, 'estado', ['vista', 'descripción', 'filas', 'actualizado', 'error']
+    .map(function (n) { return { nombre: n, tipo: 'texto' }; }), estado.length);
+  hoja.setConditionalFormatRules([SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied('=$E2<>""').setBackground(COLOR.naranjaSuave).setFontColor(COLOR.rojo)
+    .setRanges([hoja.getRange(2, 1, Math.max(estado.length, 1), 5)]).build()]);
   proteger_(hoja);
 }
 
@@ -226,12 +248,7 @@ function crearResumen() {
     ui.alert('Ya hay una pestaña "' + HOJA_RESUMEN + '". Renombrala o borrala si querés crearla de nuevo.');
     return;
   }
-  // Las fórmulas van con la sintaxis en inglés (coma como separador). En una planilla en
-  // español eso da #ERROR!, así que se usa en_US mientras se escriben y después se vuelve
-  // a la configuración de la planilla (las fórmulas se muestran con ";" como siempre).
-  const regional = ss.getSpreadsheetLocale();
-  if (regional !== 'en_US') ss.setSpreadsheetLocale('en_US');
-  try {
+  conRegionIngles_(ss, function () {
     const h = ss.insertSheet(HOJA_RESUMEN, 0);
     const titulo = function (celda, texto) {
       h.getRange(celda).setValue(texto).setFontWeight('bold').setFontSize(12);
@@ -286,8 +303,236 @@ function crearResumen() {
     h.setFrozenRows(2);
     h.autoResizeColumns(1, 20);
     ss.setActiveSheet(h);
+    estiloResumen_(ss);
+  });
+}
+
+// ---------------------------------------------------------------- diseño
+
+/**
+ * Colores, franjas, formato condicional y gráficos. Se puede correr las veces que haga falta:
+ * rehace el Tablero (no editarlo a mano) y vuelve a pintar Resumen sin tocar sus fórmulas.
+ */
+function aplicarDiseno() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.toast('Aplicando el diseño…', 'Cinniminies', 30);
+  actualizarTodo(); // trae datos frescos y pinta las pestañas datos_*
+  try {
+    const tema = ss.getSpreadsheetTheme();
+    if (tema) tema.setFontFamily(FUENTE);
+  } catch (e) { /* sin temas: queda la fuente por defecto */ }
+  conRegionIngles_(ss, function () {
+    if (ss.getSheetByName(HOJA_RESUMEN)) estiloResumen_(ss);
+    crearTablero_(ss);
+  });
+  ordenarPestanas_(ss);
+  ss.setActiveSheet(ss.getSheetByName(HOJA_TABLERO));
+  ss.toast('Listo. El Tablero se rehace con "🎨 Aplicar diseño"; no lo edites a mano.', 'Cinniminies', 10);
+}
+
+// Las fórmulas del script van con sintaxis en inglés (coma como separador). En una planilla en
+// español eso da #ERROR!, así que se usa en_US mientras se escriben y después se vuelve a la
+// configuración de la planilla (las fórmulas se muestran con ";" como siempre).
+function conRegionIngles_(ss, fn) {
+  const regional = ss.getSpreadsheetLocale();
+  if (regional !== 'en_US') ss.setSpreadsheetLocale('en_US');
+  try {
+    return fn();
   } finally {
     SpreadsheetApp.flush();
     if (regional !== 'en_US') ss.setSpreadsheetLocale(regional);
   }
+}
+
+function letra_(n) {
+  let s = '';
+  for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s;
+  return s;
+}
+
+// Pestañas datos_*: encabezado canela, franjas, filtro, negativos en rojo, escala de color y
+// resaltado de lo que requiere atención (ventas pendientes, insumos para reponer).
+function estiloDatos_(hoja, vista, columnas, filas) {
+  const cols = columnas.length;
+  const alto = Math.max(filas, 1) + 1;
+  const tabla = hoja.getRange(1, 1, alto, cols);
+  const cuerpo = hoja.getRange(2, 1, alto - 1, cols);
+  const col = function (nombre) {
+    const i = columnas.map(function (c) { return c.nombre; }).indexOf(nombre);
+    return i < 0 ? null : i + 1;
+  };
+
+  hoja.getBandings().forEach(function (b) { b.remove(); });
+  if (hoja.getFilter()) hoja.getFilter().remove();
+  hoja.setTabColor(COLOR.cafeSuave);
+
+  tabla.setFontFamily(FUENTE).setFontSize(10).setFontColor(COLOR.cafe).setVerticalAlignment('middle');
+  tabla.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, true, false)
+    .setHeaderRowColor(COLOR.cafe).setFirstRowColor(COLOR.card).setSecondRowColor(COLOR.crema);
+  hoja.getRange(1, 1, 1, cols).setFontColor(COLOR.card).setFontWeight('bold');
+  hoja.setRowHeight(1, 30);
+  tabla.createFilter();
+
+  const reglas = [];
+  const regla = function () { return SpreadsheetApp.newConditionalFormatRule(); };
+  columnas.forEach(function (c, j) {
+    const r = hoja.getRange(2, j + 1, alto - 1, 1);
+    if (c.tipo === 'dinero') {
+      reglas.push(regla().whenNumberLessThan(0).setFontColor(COLOR.rojo).setBold(true).setRanges([r]).build());
+    }
+    if (CON_ESCALA.indexOf(c.nombre) >= 0) {
+      reglas.push(regla().setGradientMinpoint(COLOR.card).setGradientMaxpoint(COLOR.canelaClara).setRanges([r]).build());
+    }
+  });
+  if (vista === 'ventas' && col('estado_pago')) {
+    reglas.push(regla().whenFormulaSatisfied('=$' + letra_(col('estado_pago')) + '2="pendiente"')
+      .setBackground(COLOR.naranjaSuave).setRanges([cuerpo]).build());
+  }
+  if (vista === 'stock' && col('reponer')) {
+    reglas.push(regla().whenFormulaSatisfied('=$' + letra_(col('reponer')) + '2')
+      .setBackground(COLOR.naranjaSuave).setFontColor(COLOR.tostada).setRanges([cuerpo]).build());
+  }
+  if (vista === 'gastos' && col('es_gasto')) {
+    reglas.push(regla().whenFormulaSatisfied('=NOT($' + letra_(col('es_gasto')) + '2)')
+      .setFontColor(COLOR.cafeSuave).setItalic(true).setRanges([cuerpo]).build());
+  }
+  hoja.setConditionalFormatRules(reglas);
+  hoja.autoResizeColumns(1, cols);
+}
+
+// Resumen: títulos, encabezados de cada tabla, franjas y negativos en rojo. No toca las fórmulas.
+function estiloResumen_(ss) {
+  const h = ss.getSheetByName(HOJA_RESUMEN);
+  h.setTabColor(COLOR.tostada);
+  h.getBandings().forEach(function (b) { b.remove(); });
+  h.getRange('A1:T60').setFontFamily(FUENTE).setFontColor(COLOR.cafe).setBackground(COLOR.card);
+  ['A1', 'D1', 'L1', 'R1'].forEach(function (c) {
+    h.getRange(c).setFontFamily(FUENTE_TITULOS).setFontSize(15).setFontWeight('bold').setFontColor(COLOR.tostada);
+  });
+  h.setRowHeight(1, 34);
+  // Totales
+  h.getRange('A2:A12').setFontColor(COLOR.cafeSuave);
+  h.getRange('B2:B12').setFontWeight('bold').setHorizontalAlignment('right');
+  h.getRange('A2:B12').setBorder(null, null, true, null, false, true, COLOR.cremaSuave, SpreadsheetApp.BorderStyle.SOLID);
+  // Tablas de QUERY: encabezado + franjas (hasta 40 filas)
+  [['D2:J40'], ['L2:P40'], ['R2:T12']].forEach(function (t) {
+    h.getRange(t[0]).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, true, false)
+      .setHeaderRowColor(COLOR.canela).setFirstRowColor(COLOR.card).setSecondRowColor(COLOR.crema);
+    h.getRange(t[0].replace(/\d+$/, '2')).setFontColor(COLOR.card).setFontWeight('bold'); // fila de encabezados
+  });
+  h.setConditionalFormatRules([SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0)
+    .setFontColor(COLOR.rojo).setBold(true)
+    .setRanges([h.getRange('B3:B12'), h.getRange('F3:J40'), h.getRange('N3:P40'), h.getRange('T3:T12')]).build()]);
+  h.setColumnWidth(3, 24);
+  h.setColumnWidth(11, 24);
+  h.setColumnWidth(17, 24);
+}
+
+// Tablero: tarjetas con los totales y cuatro gráficos. Los gráficos leen de una pestaña oculta
+// (graficos_datos) con consultas sobre los rangos con nombre, así se actualizan solos.
+function crearTablero_(ss) {
+  const aux = ss.getSheetByName(HOJA_GRAFICOS) || ss.insertSheet(HOJA_GRAFICOS);
+  aux.clear();
+  aux.getRange('A1').setFormula('=QUERY({ventas_sabores_sabor, ventas_sabores_unidades}, ' +
+    '"select Col1, sum(Col2) where Col1 is not null group by Col1 order by sum(Col2) desc ' +
+    'label Col1 \'Sabor\', sum(Col2) \'Rolls\'", 0)');
+  aux.getRange('D1').setFormula('=QUERY({ventas_cliente, ventas_total, ventas_tipo}, ' +
+    '"select Col1, sum(Col2) where Col1 is not null and Col3 = \'venta\' group by Col1 ' +
+    'order by sum(Col2) desc limit 10 label Col1 \'Cliente\', sum(Col2) \'Total\'", 0)');
+  aux.getRange('G1').setFormula('=QUERY({resumen_mensual_mes, resumen_mensual_vendido, ' +
+    'resumen_mensual_ganancia_bruta, resumen_mensual_compras}, "select * where Col1 is not null order by Col1 ' +
+    'label Col1 \'Mes\', Col2 \'Vendido\', Col3 \'Ganancia bruta\', Col4 \'Compras\'", 0)');
+  aux.getRange('G2:G100').setNumberFormat(FORMATOS.mes);
+  aux.hideSheet();
+  proteger_(aux);
+
+  let h = ss.getSheetByName(HOJA_TABLERO);
+  if (h) {
+    h.getCharts().forEach(function (c) { h.removeChart(c); });
+    h.getRange('A1:Z80').breakApart();
+    h.clear();
+  } else {
+    h = ss.insertSheet(HOJA_TABLERO, 0);
+  }
+  h.setTabColor(COLOR.canela);
+  h.setHiddenGridlines(true);
+  h.getRange('A1:Z80').setBackground(COLOR.crema).setFontFamily(FUENTE).setFontColor(COLOR.cafe);
+  h.setColumnWidth(1, 24);
+  for (let c = 2; c <= 11; c++) h.setColumnWidth(c, 112);
+
+  h.getRange('B1').setValue('Cinniminies · Tablero').setFontFamily(FUENTE_TITULOS).setFontSize(22)
+    .setFontWeight('bold').setFontColor(COLOR.tostada);
+  h.setRowHeight(1, 46);
+  h.getRange('B2').setFormula('="Actualizado " & TEXT(MAX(datos_estado!D2:D), "dd/mm/yyyy hh:mm") & ' +
+    '" · se actualiza sola cada hora"').setFontColor(COLOR.cafeSuave).setFontSize(9);
+
+  // Tarjetas: [título, fórmula, aclaración]
+  const tarjetas = [
+    ['Vendido', '=SUM(resumen_mensual_vendido)', 'todo el período'],
+    ['Ganancia bruta', '=SUM(resumen_mensual_ganancia_bruta)', 'ventas − costos'],
+    ['Pendiente de cobro', '=SUM(resumen_mensual_pendiente)', 'ventas sin cobrar'],
+    ['Resultado', '=SUM(resumen_mensual_resultado)', 'vendido − compras − gastos'],
+    ['Stock', '=SUM(stock_valor)', 'ingredientes y packaging'],
+  ];
+  tarjetas.forEach(function (t, i) {
+    const c = 2 + i * 2;
+    const caja = h.getRange(4, c, 3, 2);
+    caja.setBackground(COLOR.card)
+      .setBorder(true, true, true, true, false, false, COLOR.cremaSuave, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+    h.getRange(4, c, 1, 2).merge().setValue(t[0]).setFontSize(9).setFontWeight('bold').setFontColor(COLOR.canela);
+    h.getRange(5, c, 1, 2).merge().setFormula(t[1]).setNumberFormat('$#,##0').setFontFamily(FUENTE_TITULOS)
+      .setFontSize(20).setFontWeight('bold').setFontColor(COLOR.cafe);
+    h.getRange(6, c, 1, 2).merge().setValue(t[2]).setFontSize(8).setFontColor(COLOR.cafeSuave);
+  });
+  h.getRange('B4:K6').setHorizontalAlignment('center').setVerticalAlignment('middle');
+  h.setRowHeight(4, 26);
+  h.setRowHeight(5, 42);
+  h.setRowHeight(6, 22);
+  h.setConditionalFormatRules([SpreadsheetApp.newConditionalFormatRule().whenNumberLessThan(0)
+    .setFontColor(COLOR.rojo).setRanges([h.getRange('B5:K5')]).build()]);
+
+  const estilo = function (titulo) {
+    return {
+      title: titulo,
+      titleTextStyle: { color: COLOR.cafe, fontName: FUENTE, fontSize: 13, bold: true },
+      backgroundColor: COLOR.card,
+      legend: { position: 'bottom', textStyle: { color: COLOR.cafeSuave, fontName: FUENTE } },
+      width: 548,
+      height: 320,
+    };
+  };
+  const grafico = function (tipo, rangos, fila, columna, opciones) {
+    let b = h.newChart().setChartType(tipo).setNumHeaders(1)
+      .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS).setPosition(fila, columna, 0, 0);
+    rangos.forEach(function (r) { b = b.addRange(aux.getRange(r)); });
+    Object.keys(opciones).forEach(function (k) { b = b.setOption(k, opciones[k]); });
+    h.insertChart(b.build());
+  };
+  const ejes = { hAxis: { format: 'MMM yy', textStyle: { color: COLOR.cafeSuave } },
+    vAxis: { format: '$#,##0', textStyle: { color: COLOR.cafeSuave }, gridlines: { color: COLOR.cremaSuave } } };
+
+  grafico(Charts.ChartType.COLUMN, ['G1:I100'], 8, 2,
+    Object.assign(estilo('Vendido y ganancia por mes'), ejes, { colors: [COLOR.canela, COLOR.tostada] }));
+  grafico(Charts.ChartType.PIE, ['A1:B30'], 8, 7,
+    Object.assign(estilo('Rolls vendidos por sabor'), { pieHole: 0.45,
+      colors: [COLOR.canela, COLOR.tostada, COLOR.canelaClara, COLOR.cafeSuave, COLOR.cremaSuave, COLOR.cafe],
+      pieSliceTextStyle: { color: COLOR.card, fontName: FUENTE } }));
+  grafico(Charts.ChartType.BAR, ['D1:E11'], 25, 2,
+    Object.assign(estilo('Top 10 clientes'), { colors: [COLOR.canela], legend: { position: 'none' },
+      hAxis: { format: '$#,##0', textStyle: { color: COLOR.cafeSuave }, gridlines: { color: COLOR.cremaSuave } },
+      vAxis: { textStyle: { color: COLOR.cafe } } }));
+  grafico(Charts.ChartType.LINE, ['G1:H100', 'J1:J100'], 25, 7,
+    Object.assign(estilo('Ventas y compras por mes'), ejes,
+      { colors: [COLOR.canela, COLOR.cafeSuave], lineWidth: 3, pointSize: 6, curveType: 'function' }));
+}
+
+// Tablero y Resumen adelante; datos al final.
+function ordenarPestanas_(ss) {
+  [HOJA_TABLERO, HOJA_RESUMEN].forEach(function (nombre, i) {
+    const hoja = ss.getSheetByName(nombre);
+    if (hoja) {
+      ss.setActiveSheet(hoja);
+      ss.moveActiveSheet(i + 1);
+    }
+  });
 }
