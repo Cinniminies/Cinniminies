@@ -605,6 +605,13 @@ El checkout **ya existe** (ver 2.4). Esta etapa lo conecta a la base:
 - [ ] Cuando funcione, sacar el POST a `GOOGLE_SHEETS_URL` y desactivar ese Apps Script, con OK de los dueños.
 - [ ] Revisar primero el sheet "Cinniminies - Pedidos Web (para importar)" y el Apps Script de pedidos, para no perder nada que ya estén usando.
 
+### Etapa 7 (después de la 6) — Panel para editar la web pública
+Pedido de los dueños (TO-DO del 25/09): modificar desde /admin los textos, imágenes, etc. de la web, sin tocar código.
+- [ ] Relevar qué partes de `index.html` cambian seguido (hero, "Dónde encontrarnos", horarios, contacto, redes, fotos) y proponerlo antes de construir.
+- [ ] Guardarlo en la base (por ejemplo una tabla `contenido_web` clave → texto/imagen) y servirlo con el mismo patrón que `/api/catalogo` (cache de CDN y respaldo con lo escrito en `index.html`).
+- [ ] Pantalla en /admin para editarlo, con las imágenes en Supabase Storage (como las fotos de sabores).
+- **Aceptación:** cambiar un texto y una imagen desde /admin y verlos en la web sin deploy.
+
 ---
 
 ## 8. Qué NO hacer

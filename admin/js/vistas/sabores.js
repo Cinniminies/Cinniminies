@@ -4,6 +4,40 @@ import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { seccionPrecios } from '../componentes.js';
 import { irA } from '../app.js';
 
+// Fotos: se achican en el navegador (lado mayor 1200 px, WebP o JPEG) y se suben al bucket público
+// "sabores" de Supabase Storage. En la base queda la URL pública; también vale una ruta del sitio (img/…).
+const BUCKET = 'sabores';
+const LADO_MAX = 1200;
+const srcFoto = (f) => (!f ? null : /^https?:\/\//.test(f) ? f : `/${f.replace(/^\/+/, '')}`);
+const rutaEnBucket = (url) => url?.match(/\/storage\/v1\/object\/public\/sabores\/(.+)$/)?.[1] ?? null;
+
+async function achicar(archivo) {
+  const bmp = await createImageBitmap(archivo).catch(() => { throw new Error('No se pudo leer la imagen'); });
+  const escala = Math.min(1, LADO_MAX / Math.max(bmp.width, bmp.height));
+  const lienzo = document.createElement('canvas');
+  lienzo.width = Math.round(bmp.width * escala);
+  lienzo.height = Math.round(bmp.height * escala);
+  lienzo.getContext('2d').drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
+  const aBlob = (tipo) => new Promise((ok) => lienzo.toBlob(ok, tipo, 0.82));
+  const webp = await aBlob('image/webp');
+  // Safari viejo no genera WebP y devuelve PNG: ahí va JPEG
+  return webp?.type === 'image/webp' ? webp : aBlob('image/jpeg');
+}
+
+async function subirFoto(archivo, base) {
+  const blob = await achicar(archivo);
+  const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+  const nombre = `${(base || 'sabor').toLowerCase().replace(/[^a-z0-9-]+/g, '-')}-${Date.now()}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(nombre, blob, { contentType: blob.type, cacheControl: '31536000' });
+  if (error) throw new Error(`No se pudo subir la foto: ${error.message}`);
+  return sb.storage.from(BUCKET).getPublicUrl(nombre).data.publicUrl;
+}
+
+async function borrarFotoDelBucket(url) {
+  const ruta = rutaEnBucket(url);
+  if (ruta) await sb.storage.from(BUCKET).remove([decodeURIComponent(ruta)]).catch(() => {});
+}
+
 export async function mostrar(cont, { id }) {
   return id ? ficha(cont, id === 'nuevo' ? null : id) : lista(cont);
 }
@@ -14,8 +48,9 @@ async function lista(cont) {
     q(sb.from('v_costo_sabor').select('sabor_id,costo_roll,precio_unidad')),
   ]);
   const costoDe = Object.fromEntries(costos.map((c) => [c.sabor_id, c]));
+  const eliminados = sabores.filter((s) => s.eliminado);
   vaciar(cont,
-    h('ul', { class: 'lista' }, sabores.map((s) => h('li', {}, h('a', { class: 'fila', href: `#/sabores/${s.id}` },
+    h('ul', { class: 'lista' }, sabores.filter((s) => !s.eliminado).map((s) => h('li', {}, h('a', { class: 'fila', href: `#/sabores/${s.id}` },
       h('div', { class: 'princ' },
         h('div', { class: 't1' }, s.nombre, ' ',
           s.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo'), ' ',
@@ -24,7 +59,13 @@ async function lista(cont) {
           ? `Costo ${pesos(costoDe[s.id].costo_roll)} por roll · unidad ${pesos(costoDe[s.id].precio_unidad)}`
           : 'Sin receta')),
       h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
-    h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/sabores/nuevo' }, '+ Nuevo sabor')));
+    h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/sabores/nuevo' }, '+ Nuevo sabor')),
+    eliminados.length ? h('details', { class: 'plegable', style: 'margin-top:1.25rem' },
+      h('summary', {}, `Eliminados (${eliminados.length})`),
+      h('p', { class: 'ayuda' }, 'Tienen ventas o tandas, así que se guardan para el historial. Entrá para restaurarlos.'),
+      h('ul', { class: 'lista' }, eliminados.map((s) => h('li', {}, h('a', { class: 'fila', href: `#/sabores/${s.id}` },
+        h('div', { class: 'princ' }, h('div', { class: 't1' }, s.nombre)),
+        h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')))))) : null);
 }
 
 async function ficha(cont, id) {
@@ -84,7 +125,7 @@ async function ficha(cont, id) {
     calcularCosto();
   }
 
-  const conReceta = cat.sabores.filter((s) => s.id !== id && recetas.some((r) => r.sabor_id === s.id));
+  const conReceta = cat.sabores.filter((s) => s.id !== id && !s.eliminado && recetas.some((r) => r.sabor_id === s.id));
   const copiar = h('select', {
     onchange: (e) => {
       if (!e.target.value) return;
@@ -101,6 +142,7 @@ async function ficha(cont, id) {
   guardar.onclick = () => conBoton(guardar, async () => {
     if (!datos.nombre.trim()) throw new Error('Poné el nombre');
     if (!(Number(datos.rolls_por_tanda) > 0)) throw new Error('Los rolls por tanda tienen que ser más de 0');
+    if (datos.eliminado && (datos.activo || datos.visible_web)) throw new Error('Primero restaurá el sabor (arriba)');
     const fila = {
       nombre: datos.nombre.trim(),
       nombre_corto: datos.nombre_corto?.trim() || null,
@@ -120,6 +162,7 @@ async function ficha(cont, id) {
       p_sabor: guardado.id,
       p_items: receta.filter((r) => r.insumo_id && r.cantidad > 0).map((r) => ({ insumo_id: r.insumo_id, cantidad: r.cantidad })),
     });
+    if (sabor?.foto && sabor.foto !== fila.foto) await borrarFotoDelBucket(sabor.foto);
     invalidarCatalogo();
     toast(id ? 'Sabor guardado' : 'Sabor creado');
     irA(`#/sabores/${guardado.id}`);
@@ -128,20 +171,67 @@ async function ficha(cont, id) {
   const texto = (clave, attrs = {}) => h('input', { ...attrs, value: datos[clave] ?? '', oninput: (e) => { datos[clave] = e.target.value; } });
   const [vendidos, tandas] = usos;
   const usado = vendidos + tandas > 0;
-  let borrar = null;
-  if (id && !usado) {
-    borrar = h('button', { class: 'btn peligro', type: 'button' }, 'Borrar sabor');
-    borrar.onclick = () => conBoton(borrar, async () => {
-      if (!confirm(`¿Borrar "${sabor.nombre}"? Todavía no se vendió ni se hizo ninguna tanda.`)) return;
-      await q(sb.from('precios').delete().eq('sabor_id', id));
-      await q(sb.from('sabores').delete().eq('id', id));
+  let eliminar = null;
+  if (id && !sabor.eliminado) {
+    eliminar = h('button', { class: 'btn peligro', type: 'button' }, 'Eliminar sabor');
+    eliminar.onclick = () => conBoton(eliminar, async () => {
+      const aviso = usado
+        ? `¿Eliminar "${sabor.nombre}"? Tiene ${plural(vendidos, 'venta')} y ${plural(tandas, 'tanda')}: esas quedan en el historial, `
+          + 'pero el sabor desaparece de la lista, de la carga y de la web. Se puede restaurar.'
+        : `¿Eliminar "${sabor.nombre}" para siempre? Se borran también su receta y sus precios.`;
+      if (!confirm(aviso)) return;
+      const r = await rpc('eliminar_sabor', { p_sabor: id });
+      if (r === 'borrado') await borrarFotoDelBucket(sabor.foto);
       invalidarCatalogo();
-      toast('Sabor borrado');
+      toast(r === 'borrado' ? 'Sabor borrado' : 'Sabor eliminado (se puede restaurar)');
       irA('#/sabores');
     });
   }
+  let avisoEliminado = null;
+  if (sabor?.eliminado) {
+    const restaurar = h('button', { class: 'btn primario', type: 'button' }, 'Restaurar sabor');
+    restaurar.onclick = () => conBoton(restaurar, async () => {
+      await q(sb.from('sabores').update({ eliminado: false }).eq('id', id));
+      invalidarCatalogo();
+      toast('Sabor restaurado: quedó inactivo, activalo si lo vas a vender');
+      irA(`#/sabores/${id}`);
+    });
+    avisoEliminado = h('div', { class: 'card' },
+      h('p', { style: 'margin-top:0' }, h('strong', {}, 'Sabor eliminado. '),
+        'No aparece en la carga ni en la web; sus ventas y tandas siguen en el historial.'),
+      restaurar);
+  }
+
+  // ---- foto
+  const vistaFoto = h('div', { class: 'foto-sabor' });
+  const archivo = h('input', { type: 'file', accept: 'image/*', hidden: true });
+  const subir = h('button', { class: 'btn chico', type: 'button', onclick: () => archivo.click() });
+  const quitar = h('button', { class: 'btn chico', type: 'button', onclick: () => { datos.foto = ''; dibujarFoto(); } }, 'Quitar');
+  function dibujarFoto() {
+    vaciar(vistaFoto, datos.foto
+      ? h('img', { src: srcFoto(datos.foto), alt: `Foto de ${datos.nombre || 'el sabor'}` })
+      : h('div', { class: 'foto-vacia' }, (datos.nombre || '?').charAt(0).toUpperCase()));
+    subir.textContent = datos.foto ? 'Cambiar foto' : 'Subir foto';
+    quitar.hidden = !datos.foto;
+    rutaFoto.value = datos.foto || '';
+  }
+  archivo.onchange = () => conBoton(subir, async () => {
+    const f = archivo.files[0];
+    archivo.value = '';
+    if (!f) return;
+    subir.textContent = 'Subiendo…';
+    try {
+      datos.foto = await subirFoto(f, datos.slug || datos.nombre);
+      toast('Foto subida: tocá Guardar para que quede');
+    } finally {
+      dibujarFoto();
+    }
+  });
+  const rutaFoto = texto('foto', { placeholder: 'img/roll-pistacho.webp' });
+  rutaFoto.addEventListener('change', dibujarFoto);
 
   vaciar(cont,
+    avisoEliminado,
     h('div', { class: 'card' },
       h('h1', { style: 'margin-top:0' }, sabor?.nombre || 'Nuevo sabor'),
       campo('Nombre', texto('nombre', { placeholder: 'Pistacho' })),
@@ -157,9 +247,16 @@ async function ficha(cont, id) {
         h('div', { class: 'fila-campos' },
           campo('Identificador web', texto('slug', { placeholder: 'pistacho' })),
           campo('Orden', texto('orden', { type: 'number', inputmode: 'numeric' }))),
-        campo('Foto', texto('foto', { placeholder: 'img/roll-pistacho.webp' })),
-        h('p', { class: 'ayuda' }, 'Ruta de una imagen del sitio (carpeta img/) o un link https. Sin foto, la web muestra la inicial. '
-          + 'En la caja personalizada el sabor se ofrece solo si tiene precio por unidad (Precios).'))),
+        h('p', { class: 'ayuda' }, 'En la caja personalizada de la web el sabor se ofrece solo si tiene precio por unidad.'))),
+
+    h('div', { class: 'card' },
+      h('h3', { style: 'margin-top:0' }, 'Foto para la web'),
+      h('div', { class: 'foto-fila' }, vistaFoto,
+        h('div', {},
+          h('div', { class: 'acciones', style: 'margin-top:0' }, subir, quitar, archivo),
+          h('p', { class: 'ayuda' }, 'Se achica sola antes de subirla. Sin foto, la web muestra la inicial del sabor.'))),
+      h('details', { class: 'plegable' }, h('summary', {}, 'Usar una imagen del sitio o un link'),
+        campo('Ruta o link', rutaFoto))),
 
     h('div', { class: 'card' },
       h('div', { class: 'seccion-cab' }, h('h3', {}, 'Receta por tanda'), copiar),
@@ -167,7 +264,7 @@ async function ficha(cont, id) {
       h('button', { type: 'button', class: 'btn chico', onclick: () => { receta.push({ insumo_id: '', cantidad: 0 }); dibujarReceta(); } }, '+ Ingrediente'),
       costoReceta),
 
-    h('div', { class: 'acciones' }, guardar, borrar),
+    h('div', { class: 'acciones' }, guardar, eliminar),
 
     id ? h('div', { class: 'card', style: 'margin-top:1rem' },
       h('h3', {}, 'Precio por unidad'),
@@ -177,6 +274,8 @@ async function ficha(cont, id) {
         async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); toast('Precio borrado'); irA(`#/sabores/${id}`); }))
       : h('p', { class: 'ayuda' }, 'El precio por unidad se carga después de crear el sabor.'),
 
-    usado && id ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: no se puede borrar, pero se puede desactivar.`) : null);
+    usado && id && !sabor.eliminado ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: `
+      + 'al eliminarlo se oculta de todo pero se conserva para el historial (se puede restaurar).') : null);
   dibujarReceta();
+  dibujarFoto();
 }

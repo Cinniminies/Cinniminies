@@ -31,6 +31,16 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 
 Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.
 
+## Sabores: eliminar y fotos
+
+- **Eliminar sabor** (en la ficha): si nunca se usó, se borra con su receta y precios; si tiene ventas o
+  tandas, queda como *eliminado* (inactivo, fuera de la web y de la lista, en "Eliminados" para
+  restaurarlo). Lo decide la función `eliminar_sabor` de la base.
+- **Foto para la web:** "Subir foto" achica la imagen en el navegador (lado mayor 1200 px, WebP o JPEG) y
+  la sube al bucket público `sabores` de Supabase Storage (solo admins pueden subir o borrar). Se guarda la
+  URL pública en `sabores.foto` al tocar Guardar; al cambiarla o quitarla, la anterior se borra del bucket.
+  También se puede poner una ruta del sitio (`img/…`) o un link.
+
 ## Navegación
 
 - **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más.

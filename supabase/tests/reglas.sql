@@ -259,3 +259,27 @@ begin
 
   raise exception 'TODO OK';
 end $$;
+
+-- eliminar_sabor: borra si nunca se usó (con precios y receta); si tiene ventas o tandas lo marca
+-- como eliminado (inactivo, fuera de la web) y no deja reactivarlo sin restaurarlo.
+do $$
+declare s uuid; r text; canela uuid;
+begin
+  insert into sabores (nombre, slug) values ('PRUEBA borrar', 'prueba-borrar') returning id into s;
+  insert into precios (sabor_id, precio, vigente_desde) values (s, 70, current_date);
+  insert into recetas (sabor_id, insumo_id, cantidad) select s, id, 10 from insumos limit 1;
+  r := eliminar_sabor(s);
+  if r <> 'borrado' or exists (select 1 from sabores where id = s) or exists (select 1 from precios where sabor_id = s) then
+    raise exception 'FALLA borrado: %', r; end if;
+  select id into canela from sabores where slug = 'canela';
+  r := eliminar_sabor(canela);
+  if r <> 'eliminado' or not (select eliminado and not activo and not visible_web from sabores where id = canela) then
+    raise exception 'FALLA eliminado: %', r; end if;
+  if (select catalogo_web()->'sabores') @> '[{"id":"canela"}]' then raise exception 'FALLA web'; end if;
+  begin
+    update sabores set activo = true where id = canela;
+    raise exception 'FALLA check';
+  exception when check_violation then null;
+  end;
+  raise exception 'TODO OK';
+end $$;
