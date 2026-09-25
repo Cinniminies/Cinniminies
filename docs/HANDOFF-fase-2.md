@@ -254,7 +254,8 @@ de Canela y 1 de Oreo, y "¿Qué compro?" muestra los faltantes de esas tandas.
 **Hecho así:** `img/og.jpg` (1200×630, 133 KB) armada con un `<canvas>` desde la foto de portada, con las tipografías y la
 paleta de la web. En `index.html`: description, canonical, Open Graph, `twitter:card` y JSON-LD `Bakery` (solo
 "Paysandú, UY" y el teléfono que ya está en la web, como decidieron los dueños). `robots.txt` (sin `/admin/` ni `/api/`)
-y `sitemap.xml`. Si compran dominio propio: cambiar las URLs absolutas de `index.html`, `robots.txt` y `sitemap.xml`.
+y `sitemap.xml`. Para aparecer en Google (Perfil de Empresa y Search Console), los datos y pasos están en
+[`google-perfil-y-search-console.md`](google-perfil-y-search-console.md). Si compran dominio propio: cambiar las URLs absolutas de `index.html`, `robots.txt` y `sitemap.xml`.
 
 **Hoy.** `index.html` solo tiene `<title>`. Al pasar el link por WhatsApp o Instagram no sale foto ni descripción. No hay
 `robots.txt` ni `sitemap.xml` (/admin ya tiene `noindex`).
