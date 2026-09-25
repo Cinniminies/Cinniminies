@@ -8,6 +8,9 @@
 //   como Vercel, usando las variables de .env.local (SUPABASE_SERVICE_ROLE_KEY, EXPORT_KEY…).
 // - CONTENIDO_PRUEBA=archivo.json: mezcla ese JSON en `contenido` de /api/catalogo (para probar
 //   textos editables sin tocar la base).
+// - /dev/entrar-prueba: inicia sesión en /admin con el usuario de prueba (PRUEBA_ADMIN_EMAIL y
+//   PRUEBA_ADMIN_PASSWORD de .env.local, los escribe migracion/usuario_prueba.py) y va a /admin/.
+//   Así la contraseña no pasa por el chat. Solo existe acá, nunca en Vercel.
 // Ojo: usa la base REAL. Marcar los datos de prueba ("PRUEBA…") y borrarlos al terminar.
 const http = require('http');
 const fs = require('fs');
@@ -28,8 +31,28 @@ const tipos = {
   '.json': 'application/json', '.webmanifest': 'application/manifest+json',
 };
 
+// Página que entra con el usuario de prueba usando el mismo cliente de /admin (misma sesión guardada).
+function entrarPrueba(res) {
+  const { PRUEBA_ADMIN_EMAIL: email, PRUEBA_ADMIN_PASSWORD: password } = process.env;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  if (!email || !password) {
+    res.statusCode = 404;
+    return res.end('<p>Falta el usuario de prueba: correr <code>python3 migracion/usuario_prueba.py crear</code>.</p>');
+  }
+  const datos = JSON.stringify({ email, password }).replace(/</g, '\\u003c');
+  res.end(`<!doctype html><meta charset="utf-8"><title>Entrar (prueba)</title><p id="m">Entrando…</p>
+<script type="module">
+import { sb } from '/admin/js/db.js';
+const { error } = await sb.auth.signInWithPassword(${datos});
+if (error) document.getElementById('m').textContent = 'No se pudo entrar: ' + error.message;
+else location.replace('/admin/#/panel');
+</script>`);
+}
+
 http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/dev/entrar-prueba') return entrarPrueba(res);
   if (u.pathname.startsWith('/api/')) {
     const nombre = u.pathname.slice(5).replace(/\/$/, '');
     req.query = Object.fromEntries(u.searchParams);
@@ -63,7 +86,8 @@ http.createServer(async (req, res) => {
     return;
   }
   let f = path.join(raiz, decodeURIComponent(u.pathname));
-  if (!f.startsWith(raiz)) { res.statusCode = 403; return res.end('403'); }
+  // Nada fuera del repo ni archivos ocultos (.env.local, .git).
+  if (path.relative(raiz, f).split(path.sep).some((p) => p.startsWith('.'))) { res.statusCode = 403; return res.end('403'); }
   if (f.endsWith(path.sep) || f.endsWith('/')) f = path.join(f, 'index.html');
   fs.readFile(f, (err, datos) => {
     if (err) { res.statusCode = 404; return res.end('404'); }

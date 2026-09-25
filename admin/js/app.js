@@ -100,7 +100,7 @@ function marcarPestana(pestana, ruta) {
     if (es) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
 }
-export const sesion = { usuario: null, nombre: null };
+export const sesion = { usuario: null, nombre: null, prueba: false };
 
 // El link del mail vuelve con '#access_token=…' o '#error=…&error_description=…'. supabase-js lee
 // los tokens; acá se guarda el error para mostrarlo y se limpia la URL para el router ('#/…').
@@ -239,6 +239,7 @@ function pantallaLogin(mensaje) {
 async function alCambiarSesion(session) {
   if (!session) {
     sesion.usuario = sesion.nombre = null;
+    document.getElementById('modo-prueba').hidden = true;
     // Supabase puede avisar dos veces que no hay sesión: el mensaje se mantiene hasta que se intenta entrar
     pantallaLogin(mensajeLogin);
     return;
@@ -246,7 +247,7 @@ async function alCambiarSesion(session) {
   if (sesion.usuario === session.user.id && sesion.nombre) return;
   sesion.usuario = session.user.id;
   try {
-    const admin = await q(sb.from('usuarios_admin').select('nombre').eq('user_id', session.user.id).maybeSingle());
+    const admin = await q(sb.from('usuarios_admin').select('nombre, es_prueba').eq('user_id', session.user.id).maybeSingle());
     if (!admin) {
       sesion.usuario = sesion.nombre = null;
       mensajeLogin = 'Tu usuario no tiene acceso a la app.';
@@ -254,6 +255,9 @@ async function alCambiarSesion(session) {
       return;
     }
     sesion.nombre = admin.nombre;
+    sesion.prueba = admin.es_prueba;
+    // El usuario de prueba (migracion/usuario_prueba.py) carga en la base real: que se note.
+    document.getElementById('modo-prueba').hidden = !admin.es_prueba;
     mensajeLogin = null;
   } catch (e) {
     sesion.usuario = null;

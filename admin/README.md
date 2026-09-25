@@ -98,6 +98,10 @@ el código (`{{ .Token }}`): la pantalla de login ya tiene el campo para escribi
 El registro público está desactivado: solo entran los usuarios creados con
 `migracion/crear_admins.py`.
 
+Para probar en local hay un usuario de prueba fijo (`migracion/usuario_prueba.py`, con
+`usuarios_admin.es_prueba`): con `node scripts/servidor-dev.js` andando, `http://127.0.0.1:8777/dev/entrar-prueba`
+entra con él. Mientras está adentro, la barra muestra "Modo prueba": lo que cargue va a la base real.
+
 ### Configuración de Supabase
 
 - **Authentication → URL Configuration** (hecho el 25/09): *Site URL*

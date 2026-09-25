@@ -28,8 +28,8 @@
    **`node scripts/servidor-dev.js`**: sirve la web, /admin y las funciones de `api/` con `.env.local`, como Vercel.
    Usa la **base real**: marcar datos de prueba ("PRUEBA…") y borrarlos al final. En el navegador, interceptar
    `fetch` a Web3Forms para no mandar mails reales a los dueños.
-5. **Límite conocido:** hasta que se haga la tarea **8.2**, no se pueden probar las pantallas de /admin con sesión
-   (el modo automático no dejó crear el usuario temporal de administrador). Por eso 8.2 va primero.
+5. **Usuario de prueba (8.2, hecho):** con el servidor local andando, abrir `http://127.0.0.1:8777/dev/entrar-prueba`
+   entra a /admin como "Prueba" (aviso "Modo prueba"). Detalle en `CONTEXTO-NUEVA-SESION.md`, sección 3.
 
 ---
 
@@ -37,22 +37,32 @@
 
 | Prioridad | Tarea | Esfuerzo | Depende de |
 |---|---|---|---|
-| 🔴 **Urgente** (habilita probar todo lo demás) | **8.2** Usuario de prueba para /admin | S | Que los dueños corran un comando |
+| ✅ Hecho (PR #24) | **8.2** Usuario de prueba para /admin | S | Que los dueños corran un comando |
 | 🟠 **Alta** | **2.2** Cliente existente o nuevo al confirmar un pedido web | S | 8.2 (para probar) |
 | 🟠 **Alta** | **2.1** Aviso push de pedido nuevo en el celular | M | 8.2 · decisión sobre `package.json` |
-| 🟠 **Alta** | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
+| ⏸️ Pospuesta por los dueños (25/09) | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
 | 🟡 **Media** | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
 | 🟡 **Media** | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
 | 🟢 **Baja** | **6.5** Más lugares editables de la web | S | — |
-| 🟢 **Baja** | **6.6** Reseñas de clientes | M | Decisión: solo cargadas por los dueños o también formulario público |
+| ⏸️ Pospuesta por los dueños (25/09) | **6.6** Reseñas de clientes | M | Decisión: solo cargadas por los dueños o también formulario público |
 
 Orden sugerido: 8.2 → 2.2 → 2.1 → 2.4 → 3.1+3.2 → 6.1 → 6.5 → 6.6. Cada tarea es un PR aparte.
+
+**Decisiones de los dueños (25/09):** 8.2 con `es_prueba` y aviso "Modo prueba" · 2.1 con `package.json` y `web-push`,
+`VAPID_SUBJECT` = el mailto: de Lucio (va solo en Vercel, no en el repo) · 2.4 y 6.6 quedan para otra sesión · 6.1: la imagen la arma la sesión
+desde la foto de portada; en los datos del negocio, solo "Paysandú, Uruguay" y el teléfono que ya está en la web ·
+6.5: solo los textos de `index.html`, no los que arma `cinniminies.js`.
 
 ---
 
 ## 2. Tareas
 
-### 🔴 8.2 · Usuario de prueba para /admin
+### ✅ 8.2 · Usuario de prueba para /admin (PR #24)
+
+**Hecho así:** `migracion/usuario_prueba.py crear|borrar` (lo corrió Lucio), columna `usuarios_admin.es_prueba`
+(migración `20261003100000_usuario_prueba.sql`), aviso "Modo prueba" en la barra de /admin, y en `scripts/servidor-dev.js`
+la ruta local `/dev/entrar-prueba`, que inicia sesión con los datos de `.env.local` sin mostrarlos. De paso, el
+servidor local ya no sirve archivos ocultos (antes `/.env.local` se podía pedir desde el navegador).
 
 **Problema.** Para probar /admin hace falta una sesión de administrador. Las sesiones anteriores intentaron crear un
 usuario temporal con la Admin API (service key) y el modo automático lo bloqueó. Entonces no se probaron las
