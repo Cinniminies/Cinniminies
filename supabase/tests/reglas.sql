@@ -382,3 +382,51 @@ begin
 
   raise exception 'TODO OK';
 end $$;
+
+-- Fase 2 · 2.2: cliente del pedido web. La búsqueda por celular, el cliente elegido a mano (manda sobre la
+-- búsqueda, no crea otro y puede guardarse el celular), uno nuevo aunque el celular coincida, y v_pedidos.
+do $$
+declare r jsonb; v jsonb; ped uuid; ana uuid; tel text := '098765432'; clientes_antes int;
+  caja text := '"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
+begin
+  assert cliente_por_telefono(tel) is null, 'el celular de prueba ya es de un cliente';
+  assert cliente_por_telefono('099') is null, 'un contacto corto no coincide';
+  insert into clientes (nombre, contacto) values ('PRUEBA Ana', '@ana') returning id into ana;
+
+  -- Elegido a mano + guardar el celular: la venta es de Ana y no se crea otro cliente
+  r := crear_pedido_web(('{"nombre":"PRUEBA Anita","telefono":"' || tel || '","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h22a');
+  select id into ped from pedidos where codigo = r->>'codigo';
+  assert (select cliente_sugerido_id is null from v_pedidos where id = ped), 'sin sugerido';
+  clientes_antes := (select count(*) from clientes);
+  v := confirmar_pedido(ped, jsonb_build_object('cliente_id', ana, 'guardar_telefono', true));
+  assert (select cliente_id from ventas where id = (v->>'venta_id')::uuid) = ana, 'venta a nombre de Ana';
+  assert (select count(*) from clientes) = clientes_antes, 'no crea cliente';
+  assert (select contacto from clientes where id = ana) = '@ana · ' || tel, 'guarda el celular';
+
+  -- El próximo pedido de ese celular ya sugiere a Ana, con su compra
+  r := crear_pedido_web(('{"nombre":"Otra","telefono":"' || tel || '","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h22b');
+  select id into ped from pedidos where codigo = r->>'codigo';
+  assert (select cliente_sugerido_id = ana and cliente_sugerido = 'PRUEBA Ana' and compras_cliente = 1
+            from v_pedidos where id = ped), 'sugerido';
+  v := confirmar_pedido(ped);
+  assert (select cliente_id from ventas where id = (v->>'venta_id')::uuid) = ana, 'se asocia solo';
+
+  -- Mismo celular pero es otra persona: cliente nuevo con el nombre elegido, contacto y origen por defecto
+  r := crear_pedido_web(('{"nombre":"Hermana","telefono":"' || tel || '","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h22d');
+  select id into ped from pedidos where codigo = r->>'codigo';
+  v := confirmar_pedido(ped, '{"cliente": {"nombre": "PRUEBA Sofi"}}');
+  assert (select c.nombre || '/' || c.contacto || '/' || c.origen from ventas x join clientes c on c.id = x.cliente_id
+           where x.id = (v->>'venta_id')::uuid) = 'PRUEBA Sofi/' || tel || '/Web', 'otro cliente con el mismo celular';
+  assert cliente_por_telefono(tel) = ana, 'la sugerencia sigue siendo la más antigua';
+
+  -- Sin coincidencia ni elección: crea el cliente con el nombre del pedido
+  r := crear_pedido_web(('{"nombre":"PRUEBA Nuevo","telefono":"097111222","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h22c');
+  select id into ped from pedidos where codigo = r->>'codigo';
+  if cliente_por_telefono('097111222') is null then
+    v := confirmar_pedido(ped);
+    assert (select c.nombre || '/' || c.origen from ventas x join clientes c on c.id = x.cliente_id
+             where x.id = (v->>'venta_id')::uuid) = 'PRUEBA Nuevo/Web', 'cliente nuevo';
+  end if;
+
+  raise exception 'TODO OK';
+end $$;

@@ -70,6 +70,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   lo usa y, si falla, se queda con lo escrito en `index.html`. Foto de cada sabor en `sabores.foto`.
 - Etapa 6: `POST /api/pedidos` → `crear_pedido_web()` (precio con `calcular_venta`, límite por IP, campo trampa).
   /admin → Pedidos web confirma (`confirmar_pedido` → venta) o rechaza. Si la API falla, la web sigue como antes.
+  Fase 2 · 2.2: `v_pedidos` trae el cliente sugerido (`cliente_por_telefono`); `confirmar_pedido` acepta
+  `cliente_id` (+ `guardar_telefono`) o `cliente: {nombre, …}` para forzar uno nuevo.
 - Probar funciones de `api/` en local: `node scripts/servidor-dev.js` sirve el sitio y llama a los handlers con
   `.env.local` (no hay `vercel dev`). Interceptar Web3Forms/Sheets en el navegador para no mandar mails reales.
 - Etapa 7: `contenido_web` (textos e imágenes de la web) → viaja en `/api/catalogo` → `data-contenido*` en `index.html`.
@@ -139,7 +141,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
 3. **Lo que sigue está en [`HANDOFF-fase-2.md`](HANDOFF-fase-2.md):** las mejoras elegidas por los dueños, con triage
-   y el contexto de cada una. **Hecho:** 8.2 (usuario de prueba). **Pospuestas por los dueños:** 2.4 (cupos) y 6.6 (reseñas). Las ideas que quedaron para más adelante
+   y el contexto de cada una. **Hecho:** 8.2 (usuario de prueba) y 2.2 (cliente del pedido web). **Pospuestas por los dueños:** 2.4 (cupos) y 6.6 (reseñas);
+   3.1 + 3.2 (plan de horneado) espera un plan con ellos. Las ideas que quedaron para más adelante
    están en [`IDEAS-FUTURAS.md`](IDEAS-FUTURAS.md).
 4. Pendientes sueltos que no entraron en la fase 2 (están en `IDEAS-FUTURAS.md`, sección 1): **evitar que Supabase se
    pause** tras 7 días sin actividad (la web usa el catálogo desde la cache de Vercel, así que las visitas no siempre llegan a la base),

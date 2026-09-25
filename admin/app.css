@@ -239,6 +239,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .auto-lista li button { display: block; width: 100%; text-align: left; padding: .6rem .75rem; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
 .auto-lista li + li { border-top: 1px solid var(--borde); }
 .auto-lista small { color: var(--suave); }
+.cliente-pedido { margin: .75rem 0; padding-top: .75rem; border-top: 1px solid var(--borde); }
+.cliente-pedido p { margin: 0 0 .25rem; }
 .elegido { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .6rem .8rem; border-radius: 10px; background: var(--marca-suave); }
 
 /* Confirmación */
