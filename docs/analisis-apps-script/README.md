@@ -39,6 +39,9 @@ La pestaña **Resumen** (menú → "Crear pestaña Resumen") es un ejemplo con t
 mes, por sabor y top 10 de clientes. Se puede editar libremente; las actualizaciones no la tocan.
 Las pestañas de análisis nuevas van aparte, nunca dentro de `datos_*`.
 
+Si "Por mes", "Por sabor" o "Top 10 clientes" muestran `#ERROR!`, la pestaña se creó con una versión
+vieja del script: pegar el `Codigo.gs` actual, borrar la pestaña Resumen y volver a crearla desde el menú.
+
 ## Instalación (una sola vez)
 
 1. **Clave de export en Vercel.** En el proyecto de Vercel → Settings → Environment Variables,
