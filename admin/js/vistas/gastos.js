@@ -1,6 +1,6 @@
 import { sb, q } from '../db.js';
-import { h, vaciar, chips, campo, grupo, hoyISO, fechaCorta, pesos, toast, conBoton, ETIQUETAS, opciones } from '../util.js';
-import { irA } from '../app.js';
+import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, toast, conBoton, ETIQUETAS, opciones } from '../util.js';
+import { irA, refrescarSi } from '../app.js';
 
 const AYUDA = {
   merma: 'Rolls quemados, muestras regaladas…',
@@ -32,7 +32,7 @@ export async function mostrar(cont) {
     toast(`${ETIQUETAS.gasto[f.tipo]} guardado: ${pesos(f.monto)}`, {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from('gastos').delete().eq('id', r.id)); toast('Deshecho'); irA('#/gastos'); },
+        fn: async () => { await q(sb.from('gastos').delete().eq('id', r.id)); toast('Deshecho'); refrescarSi('#/gastos'); },
       },
     });
     irA('#/gastos');
@@ -40,7 +40,7 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      campo('Fecha', h('input', { type: 'date', value: f.fecha, max: hoyISO(), onchange: (e) => { f.fecha = e.target.value; } })),
+      campoFecha(f.fecha, (v) => { f.fecha = v; }),
       grupo('Tipo', chips(opciones(ETIQUETAS.gasto), null, (t) => {
         f.tipo = t;
         ayuda.textContent = AYUDA[t] || '';

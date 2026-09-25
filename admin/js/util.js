@@ -29,6 +29,9 @@ export function vaciar(el, ...hijos) {
 
 // ---------------------------------------------------------------- formatos
 
+// Para buscar sin importar mayúsculas ni acentos: 'Báez' → 'baez'.
+export const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 // $1.234,50 (sin decimales si es un número entero: $250)
 export function pesos(n) {
   if (n == null || n === '' || Number.isNaN(Number(n))) return '—';
@@ -145,6 +148,18 @@ export function campo(etiqueta, control, ayuda) {
     ayuda ? h('div', { class: 'ayuda' }, ayuda) : null);
 }
 
+// Campo de fecha que avisa cuando no es la de hoy (la app puede quedar abierta de un día al otro).
+export function campoFecha(valor, alCambiar, etiqueta = 'Fecha') {
+  const aviso = h('div', { class: 'ayuda aviso-fecha' });
+  const revisar = (v) => { aviso.textContent = v && v !== hoyISO() ? `Ojo: no es la fecha de hoy (${fechaLarga(v)})` : ''; };
+  const input = h('input', {
+    type: 'date', value: valor, max: hoyISO(), required: true,
+    onchange: (e) => { const v = e.target.value || hoyISO(); revisar(v); alCambiar(v); },
+  });
+  revisar(valor);
+  return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), input, aviso);
+}
+
 export function grupo(etiqueta, control) {
   return h('div', { class: 'campo' }, h('span', { class: 'etq-grupo' }, etiqueta), control);
 }
@@ -154,7 +169,13 @@ export function toast(mensaje, { error = false, accion = null, ms = 4000 } = {})
   const el = document.getElementById('toast');
   clearTimeout(timerToast);
   vaciar(el, h('span', {}, mensaje),
-    accion ? h('button', { type: 'button', onclick: () => { el.hidden = true; accion.fn(); } }, accion.texto) : null);
+    accion ? h('button', {
+      type: 'button',
+      onclick: async () => {
+        el.hidden = true;
+        try { await accion.fn(); } catch (e) { mostrarError(e); }
+      },
+    }, accion.texto) : null);
   el.className = 'toast' + (error ? ' error' : '');
   el.hidden = false;
   timerToast = setTimeout(() => { el.hidden = true; }, accion ? Math.max(ms, 7000) : ms);

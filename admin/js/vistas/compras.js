@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, campo, grupo, hoyISO, fechaCorta, pesos, numero, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, numero, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
-import { irA } from '../app.js';
+import { irA, refrescarSi } from '../app.js';
 
 // Unidades que se pueden elegir según la unidad base del insumo (la primera es la de siempre).
 const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'] };
@@ -80,7 +80,7 @@ export async function mostrar(cont) {
     toast(`Compra guardada: ${pesos(p.total)}`, {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from('compras').delete().eq('id', r.compra_id)); toast('Compra deshecha'); irA('#/compras'); },
+        fn: async () => { await q(sb.from('compras').delete().eq('id', r.compra_id)); toast('Compra deshecha'); refrescarSi('#/compras'); },
       },
     });
     irA('#/compras');
@@ -88,7 +88,7 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      campo('Fecha', h('input', { type: 'date', value: f.fecha, max: hoyISO(), onchange: (e) => { f.fecha = e.target.value; } })),
+      campoFecha(f.fecha, (v) => { f.fecha = v; }),
       campo('Qué', selInsumo),
       campo('Descripción', h('input', { placeholder: 'Harina Uruguay 0000', oninput: (e) => { f.descripcion = e.target.value; } })),
       campo('Proveedor', h('input', { value: f.proveedor, list: 'lista-proveedores', oninput: (e) => { f.proveedor = e.target.value; } })),

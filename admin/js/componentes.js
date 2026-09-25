@@ -1,9 +1,9 @@
-import { h, vaciar, chips, stepper, campo } from './util.js';
+import { h, vaciar, chips, stepper, campo, normalizar } from './util.js';
 
-const normal = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Selector de cliente con autocompletar y alta de cliente nuevo.
 // Valor: { id, nombre, origen, ... } (existente) | { nuevo: true, nombre, contacto, origen } | null.
+// Incluye el <datalist id="lista-origenes"> que usan también los campos de origen de la pantalla.
 export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
   const cont = h('div', { class: 'auto' });
   const datalist = h('datalist', { id: 'lista-origenes' }, origenes.map((o) => h('option', { value: o })));
@@ -27,8 +27,7 @@ export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
           h('button', { type: 'button', class: 'link', onclick: () => { const t = valor.nombre; cambiar(null); dibujar(t, true); } }, 'Buscar')),
         campo('Nombre', entrada('nombre', {})),
         campo('Contacto', entrada('contacto', { placeholder: '099 123 456 o @instagram' })),
-        campo('Cómo llegó', entrada('origen', { list: 'lista-origenes', placeholder: 'IG, Familiar, ITSP…' }))),
-      datalist);
+        campo('Cómo llegó', entrada('origen', { list: 'lista-origenes', placeholder: 'IG, Familiar, ITSP…' }))));
       return;
     }
     const input = h('input', { type: 'search', placeholder: 'Buscar cliente…', value: texto, autocomplete: 'off' });
@@ -36,7 +35,7 @@ export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
     const buscar = () => {
       const t = input.value.trim();
       if (!t) { resultados.hidden = true; return; }
-      const encontrados = lista.filter((c) => normal(c.nombre).includes(normal(t))).slice(0, 6);
+      const encontrados = lista.filter((c) => normalizar(c.nombre).includes(normalizar(t))).slice(0, 6);
       vaciar(resultados,
         encontrados.map((c) => h('li', {}, h('button', { type: 'button', onclick: () => { cambiar(c); dibujar(); } },
           c.nombre, h('small', {}, ` · ${c.origen || 'sin origen'} · ${c.compras} ${c.compras === 1 ? 'compra' : 'compras'}`)))),
@@ -53,7 +52,7 @@ export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
   }
 
   dibujar();
-  return cont;
+  return h('div', {}, cont, datalist);
 }
 
 // Editor de los productos de una venta: una o más líneas (formato + sabores + caja).
