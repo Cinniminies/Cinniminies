@@ -42,7 +42,7 @@ async function ficha(cont, id) {
   if (id && !sabor) throw new Error('El sabor no existe');
   const datos = sabor
     ? { ...sabor }
-    : { nombre: '', nombre_corto: '', slug: '', descripcion: '', etiqueta_web: '', rolls_por_tanda: 12, activo: true, visible_web: false, orden: 10 };
+    : { nombre: '', nombre_corto: '', slug: '', descripcion: '', etiqueta_web: '', foto: '', rolls_por_tanda: 12, activo: true, visible_web: false, orden: 10 };
   const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, Number(c.costo_unitario)]));
   const receta = recetas.filter((r) => r.sabor_id === id).map((r) => ({ insumo_id: r.insumo_id, cantidad: Number(r.cantidad) }));
 
@@ -107,6 +107,7 @@ async function ficha(cont, id) {
       slug: datos.slug?.trim() || null,
       descripcion: datos.descripcion?.trim() || null,
       etiqueta_web: datos.etiqueta_web?.trim() || null,
+      foto: datos.foto?.trim() || null,
       rolls_por_tanda: Number(datos.rolls_por_tanda),
       activo: datos.activo,
       visible_web: datos.visible_web,
@@ -149,13 +150,16 @@ async function ficha(cont, id) {
         campo('Rolls por tanda', h('input', { type: 'number', inputmode: 'numeric', min: 1, value: datos.rolls_por_tanda,
           oninput: (e) => { datos.rolls_por_tanda = e.target.value; calcularCosto(); } }))),
       interruptor('Activo', datos.activo, (v) => { datos.activo = v; }, 'Se puede vender y hacer tandas. Desactivalo en vez de borrarlo.'),
-      interruptor('Visible en la web', datos.visible_web, (v) => { datos.visible_web = v; }, 'Se usa cuando la web lea el catálogo (etapa 5).'),
+      interruptor('Visible en la web', datos.visible_web, (v) => { datos.visible_web = v; }, 'Aparece en la web (necesita el identificador web). La web se actualiza en unos 5 minutos.'),
       h('details', { class: 'plegable' }, h('summary', {}, 'Textos para la web y orden'),
         campo('Etiqueta', texto('etiqueta_web', { placeholder: 'Nuestro producto estrella' })),
         campo('Descripción', h('textarea', { value: datos.descripcion || '', oninput: (e) => { datos.descripcion = e.target.value; } })),
         h('div', { class: 'fila-campos' },
           campo('Identificador web', texto('slug', { placeholder: 'pistacho' })),
-          campo('Orden', texto('orden', { type: 'number', inputmode: 'numeric' }))))),
+          campo('Orden', texto('orden', { type: 'number', inputmode: 'numeric' }))),
+        campo('Foto', texto('foto', { placeholder: 'img/roll-pistacho.webp' })),
+        h('p', { class: 'ayuda' }, 'Ruta de una imagen del sitio (carpeta img/) o un link https. Sin foto, la web muestra la inicial. '
+          + 'En la caja personalizada el sabor se ofrece solo si tiene precio por unidad (Precios).'))),
 
     h('div', { class: 'card' },
       h('div', { class: 'seccion-cab' }, h('h3', {}, 'Receta por tanda'), copiar),

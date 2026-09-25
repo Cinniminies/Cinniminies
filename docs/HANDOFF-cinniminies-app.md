@@ -583,14 +583,16 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   - [x] Totales coinciden. [x] OK de los dueños: **Etapa 4 cerrada el 25/09/2026.**
 
 ### Etapa 5 — Web pública conectada al catálogo
-- [ ] Crear `GET /api/catalogo` (Vercel Function, con cache de CDN de algunos minutos) o una vista pública de solo lectura con RLS. Tiene que devolver sabores visibles (id, nombre, descripción, etiqueta, foto, precio por unidad), formatos visibles y precios vigentes.
-- [ ] En `cinniminies.js`:
-  - reemplazar `BOX_PRICES` y `CUSTOM_FLAVOR_PRICES` por los datos del catálogo;
-  - generar las tarjetas de sabores desde el catálogo en lugar de las fijas de `index.html`;
-  - **si la API falla, usar como respaldo los valores actuales**, para que la web nunca quede sin menú.
-- [ ] Fotos: agregar un campo `foto` en `sabores` (ruta en `img/` o Supabase Storage).
-- [ ] Mantener el diseño actual. Solo cambia la fuente de los datos.
-- **Aceptación:** marcar Nutella como visible hace que aparezca en la web con su precio, sin deploy.
+- [x] `GET /api/catalogo` (Vercel Function, `api/catalogo.js` + `api/_lib/catalogo.js`): llama a `catalogo_web()` con la service key y devuelve sabores visibles (id = identificador web, nombre, descripción, etiqueta, foto, precio por unidad) y formatos visibles con su precio vigente. Cache de CDN de 5 minutos (`s-maxage=300`, `stale-while-revalidate`); si falla, 502 sin cache. `catalogo_web()` solo la puede ejecutar `service_role` (migración `20260928100000_catalogo_web.sql`).
+- [x] En `cinniminies.js`:
+  - `BOX_PRICES`, `CUSTOM_FLAVOR_PRICES` y los límites del personalizado se reemplazan con el catálogo;
+  - las tarjetas de sabores y los tamaños de caja se generan desde el catálogo (eventos delegados), junto con el título ("Tres rolls.") y el texto de tamaños;
+  - **si la API falla o viene vacía, quedan los valores y las tarjetas escritas en `index.html`/`cinniminies.js`**;
+  - un sabor sin precio por unidad se ve, pero no se puede sumar a la caja personalizada.
+- [x] Fotos: campo `foto` en `sabores` (ruta en `img/` o URL https), editable en /admin → Sabores → "Textos para la web". Sin foto, la tarjeta muestra la inicial del sabor.
+- [x] Diseño sin cambios. Probado en Chrome en local: sin API (respaldo) y con un catálogo simulado de 5 sabores (precio de caja distinto, sabor sin foto, sabor sin precio por unidad, total de la caja personalizada).
+- **Aceptación:** marcar Nutella como visible hace que aparezca en la web con su precio, sin deploy (hasta 5 minutos por la cache).
+  - [ ] Probarlo en producción después del merge (Nutella ya tiene identificador `nutella` y precio por unidad $65; falta descripción, etiqueta y foto).
 
 ### Etapa 6 (última, cuando lo pidan) — Pedidos desde la web a la base
 El checkout **ya existe** (ver 2.4). Esta etapa lo conecta a la base:

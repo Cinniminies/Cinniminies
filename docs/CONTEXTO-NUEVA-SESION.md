@@ -16,8 +16,8 @@
 | 3. Catálogo editable, stock y "¿Qué compro?" | ✅ Publicada. Aceptación ("Pistacho") probada en Chrome; **falta que la repitan los dueños** |
 | Correcciones visuales y rediseño de `/admin` | ✅ Publicados (PR #6, #7, #8, #9) |
 | 4. Google Sheet de análisis (solo lectura) | ✅ Cerrada (25/09). Sheet "Cinniminies · Análisis" en el Drive de Lucio, actualización cada hora ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
-| **5. Web pública lee el catálogo** | ⏭️ **Lo que sigue** (ver handoff, sección 7) |
-| 6. Pedidos de la web a la base | Pendiente (la dejaron para el final) |
+| 5. Web pública lee el catálogo | 🔧 Código listo (`/api/catalogo` + `cinniminies.js` con respaldo). **Falta la aceptación:** hacer visible Nutella en /admin y verla en la web |
+| **6. Pedidos de la web a la base** | ⏭️ Lo que sigue, cuando lo pidan (handoff, sección 7) |
 
 Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/admin/.
 
@@ -28,7 +28,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 ### Base de datos (Supabase)
 - **Proyecto:** `cinniminies`, ref `skysdjfxuykrufawhzvn`, región São Paulo, plan gratis, en la organización *cinniminies*.
   Se pausa tras 7 días sin actividad.
-- **Migraciones:** `supabase/migrations/` (12 archivos, todas aplicadas). Cada cambio nuevo = un archivo nuevo
+- **Migraciones:** `supabase/migrations/` (13 archivos, todas aplicadas). Cada cambio nuevo = un archivo nuevo
   con timestamp + aplicarlo con el MCP de Supabase (`apply_migration`). No editar migraciones ya aplicadas.
 - **Reglas de negocio en Postgres** (la app no calcula nada que se guarde):
   - Costos: `costo_insumo`, `costo_tanda`, `costo_roll`, `costo_caja` (incluye papel manteca y stickers).
@@ -65,6 +65,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   Pruebas: `node --test api/_tests/*.test.js`.
 - Variables en Vercel: `EXPORT_KEY` y `SUPABASE_SERVICE_ROLE_KEY` (la URL tiene default).
 - Apps Script del Sheet e instrucciones (instalación, rotar clave) en `docs/analisis-apps-script/`.
+- Etapa 5: `GET /api/catalogo` (público, cache de CDN 5 min) llama a `catalogo_web()`; la web (`cinniminies.js`)
+  lo usa y, si falla, se queda con lo escrito en `index.html`. Foto de cada sabor en `sabores.foto`.
 
 ### Migración del histórico (`migracion/`)
 - `importar.py` (Python sin dependencias) + `xlsx.py`. Ya se usó; no hace falta volver a correrlo.
@@ -124,9 +126,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
-3. Corregi el UI del panel, poniendo mas opciones laterales y sacando algunas de la pagina "MAS"
-4. **Arrancá la Etapa 5** (handoff, sección 7): `GET /api/catalogo` (o vista pública con RLS) y que
-   `cinniminies.js` arme precios y tarjetas desde el catálogo, con los valores actuales como respaldo si la API falla.
-   Mantener el diseño de la web. Seguir el patrón de `api/_lib/` + pruebas en `api/_tests/` de la Etapa 4.
+3. Menú lateral de /admin con todas las secciones (PR #14): si no está en `main`, revisar que se haya mergeado.
+4. **Etapa 5:** confirmar la aceptación (Nutella visible → aparece en la web en ≤ 5 min). **Etapa 6** solo cuando la
+   pidan los dueños: `POST /api/pedidos` validando el carrito en el servidor con `catalogo_web()`.
 5. Seguí el flujo de la sección 3: una rama por tarea, PR directo a `main`, probar en Chrome con usuario temporal,
    dejar la base como estaba.

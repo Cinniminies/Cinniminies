@@ -131,10 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const GOOGLE_SHEETS_PLACEHOLDER = "https://script.google.com/macros/s/AKfycbxycZYHqNEU__ni8iQ8JVANeuuGPf1cAGGxHgZW9k6vmJzfiT_KfUmNfOZN3cNRFCzC/exec";
   const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxycZYHqNEU__ni8iQ8JVANeuuGPf1cAGGxHgZW9k6vmJzfiT_KfUmNfOZN3cNRFCzC/exec";
 
+  // Precios y límites. Estos valores son el RESPALDO: al cargar, la página pide el catálogo a
+  // /api/catalogo (lo que se carga en /admin) y los reemplaza. Si la API falla, quedan estos y las
+  // tarjetas escritas en index.html, así la web nunca se queda sin menú.
   const BOX_PRICES = { 6: 250, 12: 450 };
   const CUSTOM_FLAVOR_PRICES = { canela: 50, dulce: 55, oreo: 60 };
-  const CUSTOM_MIN = 3;
-  const CUSTOM_MAX = 12;
+  let CUSTOM_MIN = 3;
+  let CUSTOM_MAX = 12;
 
   // cart: lista de cajas. Cada caja: { size, flavors: { canela: 2, dulce: 1, ... } }
   // size puede ser 6, 12, o 'custom' (caja personalizada de 3 a 12 unidades)
@@ -347,111 +350,211 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSubmitBtn();
   }
 
-  document.querySelectorAll('.roll-qty').forEach(input => {
-    input.addEventListener('change', () => {
-      let qty = parseInt(input.value, 10);
-      if (!Number.isFinite(qty) || qty < 1) qty = 1;
-      if (qty > CUSTOM_MAX) qty = CUSTOM_MAX;
-      input.value = qty;
-    });
+  // Eventos delegados: las tarjetas se pueden regenerar desde el catálogo.
+  const menuGrid = document.querySelector('.menu-grid');
+
+  menuGrid?.addEventListener('change', (e) => {
+    const input = e.target.closest('.roll-qty');
+    if (!input) return;
+    let qty = parseInt(input.value, 10);
+    if (!Number.isFinite(qty) || qty < 1) qty = 1;
+    if (qty > CUSTOM_MAX) qty = CUSTOM_MAX;
+    input.value = qty;
   });
 
-  document.querySelectorAll('.roll-add').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const card = btn.closest('.roll-card');
-      const qtyInput = card ? card.querySelector('.roll-qty') : null;
-      let requestedQty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
-      if (!Number.isFinite(requestedQty) || requestedQty < 1) requestedQty = 1;
-      if (requestedQty > CUSTOM_MAX) requestedQty = CUSTOM_MAX;
+  menuGrid?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.roll-add');
+    if (!btn || btn.disabled) return;
+    const card = btn.closest('.roll-card');
+    const qtyInput = card ? card.querySelector('.roll-qty') : null;
+    let requestedQty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+    if (!Number.isFinite(requestedQty) || requestedQty < 1) requestedQty = 1;
+    if (requestedQty > CUSTOM_MAX) requestedQty = CUSTOM_MAX;
 
-      let box = currentBox();
-      const selectedSize = getSelectedBoxSize();
-      if (!box || box.size !== selectedSize) {
-        box = { size: selectedSize, flavors: {} };
-        cart.push(box);
-      }
-      const wasComplete = boxIsComplete(box);
-      const remaining = boxCap(box) - boxFilled(box);
-      const qtyToAdd = Math.min(requestedQty, remaining);
+    let box = currentBox();
+    const selectedSize = getSelectedBoxSize();
+    if (!box || box.size !== selectedSize) {
+      box = { size: selectedSize, flavors: {} };
+      cart.push(box);
+    }
+    const wasComplete = boxIsComplete(box);
+    const remaining = boxCap(box) - boxFilled(box);
+    const qtyToAdd = Math.min(requestedQty, remaining);
 
-      box.flavors[btn.dataset.id] = (box.flavors[btn.dataset.id] || 0) + qtyToAdd;
-      box._flavorNames = box._flavorNames || {};
-      box._flavorNames[btn.dataset.id] = btn.dataset.name;
+    box.flavors[btn.dataset.id] = (box.flavors[btn.dataset.id] || 0) + qtyToAdd;
+    box._flavorNames = box._flavorNames || {};
+    box._flavorNames[btn.dataset.id] = btn.dataset.name;
 
-      renderCart();
-      if (qtyInput) qtyInput.value = 1;
+    renderCart();
+    if (qtyInput) qtyInput.value = 1;
 
-      const filled = boxFilled(box);
+    const filled = boxFilled(box);
 
-      if (card) {
-        card.classList.remove('is-added');
-        // forzamos un reflow para que la animación se pueda re-disparar
-        // aunque se haga click varias veces seguidas en la misma tarjeta
-        void card.offsetWidth;
-        card.classList.add('is-added');
-        card.addEventListener('animationend', () => card.classList.remove('is-added'), { once: true });
-      }
+    if (card) {
+      card.classList.remove('is-added');
+      // forzamos un reflow para que la animación se pueda re-disparar
+      // aunque se haga click varias veces seguidas en la misma tarjeta
+      void card.offsetWidth;
+      card.classList.add('is-added');
+      card.addEventListener('animationend', () => card.classList.remove('is-added'), { once: true });
+    }
 
-      if (isCustomBox(box)) {
-        if (filled >= CUSTOM_MAX) {
-          showToast(`¡Caja personalizada completa con ${filled} rolls!`);
-        } else if (filled >= CUSTOM_MIN) {
-          showToast(`${filled} rolls en tu caja, ya podés pedir o seguir sumando`);
-        } else {
-          showToast(`${filled}/${CUSTOM_MIN} mínimo en tu caja personalizada`);
-        }
-      } else if (filled === box.size) {
-        showToast(`¡Caja de ${box.size} completa!`);
+    if (isCustomBox(box)) {
+      if (filled >= CUSTOM_MAX) {
+        showToast(`¡Caja personalizada completa con ${filled} rolls!`);
+      } else if (filled >= CUSTOM_MIN) {
+        showToast(`${filled} rolls en tu caja, ya podés pedir o seguir sumando`);
       } else {
-        showToast(`${filled}/${box.size} en tu caja`);
+        showToast(`${filled}/${CUSTOM_MIN} mínimo en tu caja personalizada`);
       }
+    } else if (filled === box.size) {
+      showToast(`¡Caja de ${box.size} completa!`);
+    } else {
+      showToast(`${filled}/${box.size} en tu caja`);
+    }
 
-      // recién completada esta caja: ofrecemos seguir pidiendo o ir al carrito
-      if (!wasComplete && boxIsComplete(box)) {
-        const message = isCustomBox(box)
-          ? `Tu caja personalizada quedó lista con ${filled} rolls.`
-          : `Tu caja de ${box.size} rolls quedó completa.`;
-        openBoxCompleteModal(message);
-      }
-    });
+    // recién completada esta caja: ofrecemos seguir pidiendo o ir al carrito
+    if (!wasComplete && boxIsComplete(box)) {
+      const message = isCustomBox(box)
+        ? `Tu caja personalizada quedó lista con ${filled} rolls.`
+        : `Tu caja de ${box.size} rolls quedó completa.`;
+      openBoxCompleteModal(message);
+    }
   });
 
   /* ---------- Box picker ---------- */
-  const boxOptions = document.querySelectorAll('.box-option');
+  const boxOptionsEl = document.querySelector('.box-options');
   const boxPickerNote = document.getElementById('boxPickerNote');
-  const flavorPriceEls = document.querySelectorAll('[data-flavor-price]');
 
   function updateFlavorPrices() {
     const isCustom = getSelectedBoxSize() === 'custom';
-    flavorPriceEls.forEach(el => {
-      if (isCustom) {
-        const flavorId = el.dataset.flavorPrice;
-        const price = CUSTOM_FLAVOR_PRICES[flavorId] ?? '';
-        el.textContent = `Precio: $${price} c/u`;
-      } else {
-        el.textContent = 'Precio: Incluido en la caja';
-      }
+    document.querySelectorAll('[data-flavor-price]').forEach(el => {
+      const flavorId = el.dataset.flavorPrice;
+      const price = CUSTOM_FLAVOR_PRICES[flavorId];
+      const sinPrecio = isCustom && price == null;
+      if (!isCustom) el.textContent = 'Precio: Incluido en la caja';
+      else el.textContent = sinPrecio ? 'No disponible en caja personalizada' : `Precio: $${price} c/u`;
+      // un sabor sin precio por unidad no se puede sumar a una caja personalizada
+      const add = el.closest('.roll-card')?.querySelector('.roll-add');
+      if (add) add.disabled = sinPrecio;
     });
   }
 
-  const menuGrid = document.querySelector('.menu-grid');
+  function updateBoxPickerNote() {
+    if (!boxPickerNote) return;
+    boxPickerNote.textContent = getSelectedBoxSize() === 'custom'
+      ? `Sumá entre ${CUSTOM_MIN} y ${CUSTOM_MAX} rolls de los sabores que quieras. Cada sabor tiene su propio precio: mirá el detalle en cada tarjeta.`
+      : 'Ahora sumá los sabores que quieras de la lista de abajo hasta completar tu caja.';
+  }
 
-  boxOptions.forEach(btn => {
-    btn.addEventListener('click', () => {
-      boxOptions.forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      if (boxPickerNote) {
-        boxPickerNote.textContent = btn.dataset.qty === 'custom'
-          ? `Sumá entre ${CUSTOM_MIN} y ${CUSTOM_MAX} rolls de los sabores que quieras. Cada sabor tiene su propio precio: mirá el detalle en cada tarjeta.`
-          : 'Ahora sumá los sabores que quieras de la lista de abajo hasta completar tu caja.';
-      }
-      updateFlavorPrices();
-      updateBoxProgress();
-      menuGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+  boxOptionsEl?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.box-option');
+    if (!btn) return;
+    boxOptionsEl.querySelectorAll('.box-option').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    updateBoxPickerNote();
+    updateFlavorPrices();
+    updateBoxProgress();
+    menuGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   updateFlavorPrices();
   updateBoxProgress();
+
+  /* ---------- Catálogo desde /admin ---------- */
+  // Arma los tamaños de caja y las tarjetas con lo que devuelve /api/catalogo. Si algo falla o
+  // viene vacío, no toca nada: queda lo escrito en index.html y los precios de arriba.
+  const NUMEROS = ['', 'Un', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho', 'Nueve', 'Diez'];
+
+  function el(tag, attrs = {}, ...hijos) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) if (v != null && v !== false) e.setAttribute(k, v === true ? '' : v);
+    e.append(...hijos.filter(x => x != null));
+    return e;
+  }
+
+  function tarjetaSabor(s) {
+    const nombre = `Roll de ${s.nombre}`;
+    const media = el('div', { class: 'roll-card-media' },
+      s.foto
+        ? el('picture', {}, el('img', { src: s.foto, alt: nombre, class: 'roll-photo', loading: 'lazy' }))
+        : el('div', { class: 'roll-photo roll-photo-vacia', role: 'img', 'aria-label': nombre }, s.nombre.charAt(0)),
+      s.etiqueta ? el('span', { class: 'roll-tag' }, s.etiqueta) : null);
+    return el('article', { class: 'roll-card', 'data-flavor': s.id }, media,
+      el('div', { class: 'roll-card-body' },
+        el('h3', {}, nombre),
+        el('p', {}, s.descripcion || ''), // siempre, para que todas las tarjetas tengan la misma altura
+        el('div', { class: 'roll-card-foot' },
+          el('span', { class: 'roll-price', 'data-flavor-price': s.id }, 'Precio: Incluido en la caja'),
+          el('div', { class: 'roll-add-group' },
+            el('input', { type: 'number', class: 'roll-qty', min: 1, max: CUSTOM_MAX, value: 1, inputmode: 'numeric', 'aria-label': `Cantidad de ${nombre}` }),
+            el('button', { class: 'roll-add', 'data-name': nombre, 'data-id': s.id }, 'Agregar al pedido')))));
+  }
+
+  function aplicarCatalogo(cat) {
+    const sabores = (cat?.sabores || []).filter(s => s.id && s.nombre);
+    const cajas = (cat?.formatos || []).filter(f => f.tipo === 'caja_fija' && f.rolls > 0 && f.precio != null)
+      .sort((a, b) => a.rolls - b.rolls);
+    const personalizado = (cat?.formatos || []).find(f => f.tipo === 'personalizado');
+    if (!sabores.length || (!cajas.length && !personalizado) || !menuGrid || !boxOptionsEl) return false;
+
+    for (const k of Object.keys(BOX_PRICES)) delete BOX_PRICES[k];
+    cajas.forEach(f => { BOX_PRICES[f.rolls] = f.precio; });
+    for (const k of Object.keys(CUSTOM_FLAVOR_PRICES)) delete CUSTOM_FLAVOR_PRICES[k];
+    sabores.forEach(s => { if (s.precio_unidad != null) CUSTOM_FLAVOR_PRICES[s.id] = s.precio_unidad; });
+    if (personalizado) {
+      CUSTOM_MIN = personalizado.min_rolls || 1;
+      CUSTOM_MAX = personalizado.max_rolls || Math.max(CUSTOM_MIN, 12);
+    }
+
+    // Tamaños de caja (se mantiene el elegido si sigue existiendo)
+    const elegido = String(getSelectedBoxSize());
+    const opciones = cajas.map(f => el('button', { class: 'box-option', 'data-qty': f.rolls, 'data-price': f.precio },
+      el('span', { class: 'box-qty' }, String(f.rolls)), el('span', { class: 'box-desc' }, 'rolls'),
+      el('span', { class: 'box-cost' }, `$${f.precio}`)));
+    if (personalizado) {
+      opciones.push(el('button', { class: 'box-option', 'data-qty': 'custom' },
+        el('span', { class: 'box-qty' }, `${CUSTOM_MIN} a ${CUSTOM_MAX}`), el('span', { class: 'box-desc' }, 'a tu gusto'),
+        el('span', { class: 'box-cost' }, 'según sabor')));
+    }
+    (opciones.find(b => b.dataset.qty === elegido) || opciones[0]).classList.add('is-active');
+    boxOptionsEl.replaceChildren(...opciones);
+
+    menuGrid.replaceChildren(...sabores.map(tarjetaSabor));
+
+    // Textos que dependen del catálogo
+    const titulo = document.getElementById('menuTitle');
+    if (titulo && NUMEROS[sabores.length]) {
+      titulo.replaceChildren(`${NUMEROS[sabores.length]} ${sabores.length === 1 ? 'roll' : 'rolls'}.`, el('br'), 'Ninguno apurado.');
+    }
+    const sub = document.getElementById('menuSub');
+    if (sub) {
+      const tam = cajas.map(f => f.rolls);
+      const lista = tam.length > 1 ? `${tam.slice(0, -1).join(', ')} o ${tam[tam.length - 1]}` : String(tam[0] ?? '');
+      sub.textContent = [
+        tam.length ? `Se venden por caja de ${lista}` : '',
+        personalizado ? `${tam.length ? ', o armá' : 'Armá'} tu propia caja personalizada de entre ${CUSTOM_MIN} y ${CUSTOM_MAX} rolls` : '',
+      ].join('') + '.';
+    }
+
+    updateBoxPickerNote();
+    updateFlavorPrices();
+    renderCart();
+    return true;
+  }
+
+  (async () => {
+    const corte = new AbortController();
+    const reloj = setTimeout(() => corte.abort(), 5000);
+    try {
+      const r = await fetch('/api/catalogo', { signal: corte.signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!aplicarCatalogo(await r.json())) console.warn('Catálogo vacío: se usa el menú de respaldo');
+    } catch (e) {
+      console.warn('No se pudo leer el catálogo, se usa el menú de respaldo:', e.message);
+    } finally {
+      clearTimeout(reloj);
+    }
+  })();
 
   /* ---------- Generador de ID de pedido ---------- */
   function generateOrderId() {
