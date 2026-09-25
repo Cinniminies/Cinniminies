@@ -56,7 +56,7 @@ export async function mostrar(cont) {
 
     alertas.length ? [
       h('h2', {}, 'Stock para reponer'),
-      h('ul', { class: 'lista' }, alertas.map((a) => h('li', {}, h('a', { class: 'fila', href: '#/compras' },
+      h('ul', { class: 'lista' }, alertas.map((a) => h('li', {}, h('a', { class: 'fila', href: '#/stock' },
         h('div', { class: 'princ' }, h('div', { class: 't1' }, a.nombre)),
         h('span', { class: 'badge alerta' }, `${numero(a.teorico)} / mín. ${numero(a.stock_minimo)} ${a.unidad_base}`))))),
     ] : null,

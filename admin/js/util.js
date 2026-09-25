@@ -41,13 +41,32 @@ export function pesos(n) {
   return (Number(n) < 0 ? '−' : '') + '$' + entero + (resto ? ',' + String(resto).padStart(2, '0') : '');
 }
 
+// "1 venta", "3 ventas" (plural regular por defecto).
+export const plural = (n, uno, varios = `${uno}s`) => `${numero(n, 0)} ${Number(n) === 1 ? uno : varios}`;
+
 export function numero(n, decimales = 2) {
   if (n == null || n === '') return '—';
   return Number(n).toLocaleString('es-UY', { maximumFractionDigits: decimales });
 }
 
+// Cantidad en unidad base con una unidad legible: 5000 g → "5 kg", 250 ml → "250 ml", 12 un → "12 un".
+export function cantidad(n, unidad) {
+  if (n == null || n === '') return '—';
+  const v = Number(n);
+  if (unidad === 'g' && Math.abs(v) >= 1000) return `${numero(v / 1000)} kg`;
+  if (unidad === 'ml' && Math.abs(v) >= 1000) return `${numero(v / 1000)} L`;
+  return `${numero(v)} ${unidad}`;
+}
+
 export function hoyISO() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_HORARIA }).format(new Date());
+}
+
+// De una lista de precios [{ precio, vigente_desde }], el que rige hoy (o null).
+export function precioVigenteDe(filas) {
+  const hoy = hoyISO();
+  const vigentes = filas.filter((f) => f.vigente_desde <= hoy).sort((a, b) => b.vigente_desde.localeCompare(a.vigente_desde));
+  return vigentes.length ? vigentes[0].precio : null;
 }
 
 export function mesISO(fecha = hoyISO()) {
@@ -146,6 +165,13 @@ export function stepper(valor, alCambiar, { min = 0, max = Infinity } = {}) {
 export function campo(etiqueta, control, ayuda) {
   return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), control,
     ayuda ? h('div', { class: 'ayuda' }, ayuda) : null);
+}
+
+// Casilla de sí/no con su texto.
+export function interruptor(etiqueta, valor, alCambiar, ayuda) {
+  return h('label', { class: 'interruptor' },
+    h('input', { type: 'checkbox', checked: !!valor, onchange: (e) => alCambiar(e.target.checked) }),
+    h('span', {}, etiqueta, ayuda ? h('small', {}, ayuda) : null));
 }
 
 // Campo de fecha que avisa cuando no es la de hoy (la app puede quedar abierta de un día al otro).

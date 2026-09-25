@@ -28,6 +28,11 @@ export async function catalogo(forzar = false) {
   return cache;
 }
 
+// Después de editar sabores, formatos o insumos, para que las pantallas de carga los vean.
+export function invalidarCatalogo() {
+  cache = null;
+}
+
 export async function clientes() {
   return q(sb.from('v_clientes').select('*').order('compras', { ascending: false }).order('nombre'));
 }

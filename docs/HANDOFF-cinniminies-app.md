@@ -8,10 +8,9 @@
 > confirmá con los dueños los puntos marcados como **[CONFIRMAR]**. No crees recursos
 > pagos ni borres nada sin preguntar.
 
-> **Estado al 24/09/2026:** Etapa 1 cerrada. **Etapa 2 construida** (rama `feat/etapa-2-admin`):
-> `/admin` con todas las pantallas, probado en Chrome contra la base real. URLs de Auth configuradas el
-> 25/09. Falta: publicar, y la carga en paralelo
-> de los dueños (aceptación).
+> **Estado al 25/09/2026:** Etapas 1 y 2 publicadas (la 2 en su semana de carga en paralelo).
+> **Etapa 3 construida** (rama `feat/etapa-3-catalogo`): catálogo editable, stock con conteos y
+> "¿Qué compro?", con la aceptación probada en Chrome. Falta: que los dueños la repitan.
 
 ---
 
@@ -560,9 +559,10 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
 - Recién después de 2–3 semanas en paralelo, y con su OK, dejan de usar el Apps Script. **No lo borres:** que lo desactiven ellos.
 
 ### Etapa 3 — Catálogo editable
-- [ ] Pantallas de Sabores (con receta), Insumos, Formatos y Precios (con historial).
-- [ ] Stock (teórico, conteos, alertas) y "¿Qué compro?".
+- [x] Pantallas de Sabores (con receta y "copiar receta de…"), Insumos (con lo que lleva cada caja), Formatos y Precios (con historial y precios programados), más Costos y márgenes. Funciones: `guardar_receta`, `guardar_packaging_caja`, `fijar_precio`; la unidad de un insumo usado no se puede cambiar (trigger).
+- [x] Stock (teórico, conteos con desvío, alertas) y "¿Qué compro?" (redondea a la presentación de la última compra). Funciones: `registrar_conteo`, `que_comprar`.
 - **Aceptación:** crear un sabor de prueba ("Pistacho"), cargarle receta y precio, venderlo, verlo en el panel y en el stock, y después desactivarlo. Todo **sin tocar código**.
+  - [x] Hecho en Chrome contra la base real el 25/09 (y después borrado): sabor creado con la receta de Canela + 100 g, precio $70, tanda (−450 g de harina), venta de una Box de 6 (−1 caja), visible en el panel, en alertas y en "¿Qué compro?", desactivado (desaparece de venta y tandas). Falta que lo repitan los dueños.
 
 ### Etapa 4 — Google Sheet de análisis (solo lectura)
 - [ ] Endpoints `GET /api/export/<vista>` (`ventas`, `ventas_sabores`, `costos`, `stock`, `resumen_mensual`, `gastos`, `compras`, `tandas`).

@@ -217,3 +217,18 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .login h1 { text-align: center; }
 .menu-mas .fila { font-size: 1.02rem; padding: .95rem 1rem; }
 .pie { color: var(--suave); font-size: .8rem; text-align: center; margin-top: 1.5rem; }
+
+/* Etapa 3: catálogo y stock */
+.interruptor { display: flex; align-items: flex-start; gap: .6rem; margin-bottom: .9rem; cursor: pointer; }
+.interruptor input { width: 1.35rem; height: 1.35rem; min-height: 0; margin: .1rem 0 0; accent-color: var(--marca); flex: none; }
+.interruptor small { display: block; color: var(--suave); font-size: .78rem; }
+.receta-fila { display: grid; grid-template-columns: 1fr 6.5rem 2rem; gap: .4rem; align-items: center; margin-bottom: .4rem; }
+.receta-fila .unidad { position: relative; }
+.receta-fila .unidad small { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); color: var(--suave); pointer-events: none; }
+.receta-fila .unidad input { padding-right: 2.2rem; }
+.tabla td.num-der, .tabla th.num-der { padding-left: .5rem; white-space: nowrap; }
+.tabla .sub { display: block; color: var(--suave); font-size: .78rem; }
+.desvio-pos { color: var(--alerta); }
+.desvio-neg { color: var(--ok); }
+.seccion-cab { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.seccion-cab h2 { margin-bottom: .6rem; }

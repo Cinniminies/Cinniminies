@@ -1,4 +1,4 @@
-import { h, vaciar, chips, stepper, campo, normalizar } from './util.js';
+import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, hoyISO, conBoton } from './util.js';
 
 
 // Selector de cliente con autocompletar y alta de cliente nuevo.
@@ -162,4 +162,46 @@ export function editorLineas(cat, lineas, alCambiar) {
       return linea;
     }),
   };
+}
+
+// Precios de una combinación (formato, sabor o ambos): el vigente, los programados a futuro y el
+// historial, más un formulario para cargar uno nuevo. Los precios nunca se pisan: se agrega uno con
+// "vigente desde" (las ventas guardadas conservan el precio con el que se cargaron).
+// `filas`: [{ id, precio, vigente_desde }]. `alGuardar(precio, desde)`. `alBorrar(id)` (solo programados).
+export function seccionPrecios(filas, alGuardar, alBorrar, { sinPrecio = 'Sin precio cargado' } = {}) {
+  const hoy = hoyISO();
+  const ordenadas = [...filas].sort((a, b) => b.vigente_desde.localeCompare(a.vigente_desde));
+  const futuras = ordenadas.filter((f) => f.vigente_desde > hoy);
+  const pasadas = ordenadas.filter((f) => f.vigente_desde <= hoy);
+  const [actual, ...anteriores] = pasadas;
+
+  const precio = h('input', { type: 'number', inputmode: 'decimal', min: 0, step: '0.01', placeholder: '$' });
+  const desde = h('input', { type: 'date', value: hoy });
+  const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar precio');
+  guardar.onclick = () => conBoton(guardar, async () => {
+    if (precio.value === '' || Number(precio.value) < 0) throw new Error('Poné el precio');
+    await alGuardar(Number(precio.value), desde.value || hoy);
+  });
+
+  return h('div', {},
+    h('p', {}, actual
+      ? [h('strong', { style: 'font-size:1.2rem' }, pesos(actual.precio)), ` desde el ${fechaLarga(actual.vigente_desde)}`]
+      : h('span', { class: 'ayuda' }, sinPrecio)),
+    futuras.map((f) => {
+      const borrar = h('button', { class: 'btn chico peligro', type: 'button' }, 'Borrar');
+      borrar.onclick = () => conBoton(borrar, async () => {
+        if (confirm(`¿Borrar el precio de ${pesos(f.precio)} programado para el ${fechaLarga(f.vigente_desde)}?`)) await alBorrar(f.id);
+      });
+      return h('div', { class: 'stepper-fila' },
+        h('div', { class: 'nombre' }, h('span', { class: 'badge neutro' }, 'Programado'), ` ${pesos(f.precio)} desde el ${fechaLarga(f.vigente_desde)}`),
+        borrar);
+    }),
+    anteriores.length
+      ? h('details', {}, h('summary', { class: 'ayuda' }, `Precios anteriores (${anteriores.length})`),
+        anteriores.map((f) => h('div', { class: 'ayuda' }, `${pesos(f.precio)} desde el ${fechaLarga(f.vigente_desde)}`)))
+      : null,
+    h('div', { class: 'fila-campos', style: 'margin-top:.75rem' },
+      campo('Precio nuevo', precio), campo('Vigente desde', desde)),
+    h('p', { class: 'ayuda' }, 'Las ventas ya cargadas no cambian. Con una fecha futura, el precio queda programado.'),
+    guardar);
 }

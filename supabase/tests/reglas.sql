@@ -1,7 +1,7 @@
 -- Pruebas de las reglas de negocio (sección 5). Se corren pegándolas en el SQL editor
 -- de Supabase (o con execute_sql). No dejan nada guardado: terminan siempre con un error
 -- que deshace todo. Si el mensaje final es "TODO OK", pasaron.
--- Hay dos bloques `do $$ … $$`: corré uno por vez (el primero corta la ejecución al terminar).
+-- Hay varios bloques `do $$ … $$`: corré uno por vez (cada uno corta la ejecución al terminar).
 
 do $$
 declare
@@ -184,6 +184,78 @@ begin
   assert (select cliente_id from ventas where id = v2) = c1, 'la venta pasó al que queda';
   assert (select contacto from clientes where id = c1) = '098', 'hereda el contacto';
   assert not exists (select 1 from clientes where id = c2), 'el duplicado se borra';
+
+  raise exception 'TODO OK';
+end $$;
+
+-- Catálogo y stock (Etapa 3): el flujo de aceptación con un sabor "Pistacho", precios con
+-- historial, packaging de caja, conteo con desvío, "¿Qué compro?" y unidad protegida.
+do $$
+declare
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  har uuid := (select id from insumos where nombre = 'Harina');
+  man uuid := (select id from insumos where nombre = 'Manteca');
+  caja6 uuid := (select id from insumos where nombre = 'Caja Box de 6');
+  papel uuid := (select id from insumos where nombre = 'Papel manteca');
+  b6 uuid := (select id from formatos where nombre = 'Box de 6');
+  pis uuid;
+  pist uuid;
+  r jsonb;
+  c record;
+  fallo text;
+  n int;
+  id1 uuid;
+  id2 uuid;
+begin
+  -- Sabor nuevo con la receta de Canela + pasta de pistacho
+  insert into insumos (nombre, tipo, unidad_base, costo_referencia) values ('Pasta de pistacho', 'ingrediente', 'g', 1.2) returning id into pist;
+  insert into sabores (nombre, activo) values ('Pistacho', true) returning id into pis;
+  perform guardar_receta(pis, (select jsonb_agg(jsonb_build_object('insumo_id', insumo_id, 'cantidad', cantidad)) from recetas where sabor_id = ca)
+                              || jsonb_build_array(jsonb_build_object('insumo_id', pist, 'cantidad', 100)));
+  assert (select count(*) from recetas where sabor_id = pis) = 9, 'receta copiada + 1';
+  assert round(costo_tanda(pis), 2) = round(costo_tanda(ca) + 120, 2), 'costo con pistacho';
+  begin
+    perform guardar_receta(pis, jsonb_build_array(jsonb_build_object('insumo_id', caja6, 'cantidad', 1)));
+  exception when others then
+    fallo := sqlerrm;
+  end;
+  assert fallo = 'La receta solo puede llevar ingredientes', 'receta con packaging: ' || coalesce(fallo, 'no falló');
+
+  -- Precio: corregir el mismo día no duplica; uno con fecha futura queda programado
+  id1 := fijar_precio(jsonb_build_object('sabor_id', pis, 'precio', 70, 'vigente_desde', '2026-09-01'));
+  id2 := fijar_precio(jsonb_build_object('sabor_id', pis, 'precio', 72, 'vigente_desde', '2026-09-01'));
+  assert id1 = id2 and (select precio from precios where id = id1) = 72, 'corrige el mismo día';
+  perform fijar_precio(jsonb_build_object('sabor_id', pis, 'precio', 80, 'vigente_desde', '2099-01-01'));
+  assert precio_vigente(null, pis) = 72, 'el precio futuro todavía no rige';
+
+  -- Se vende
+  r := registrar_venta(jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('formato_id', b6,
+         'sabores', jsonb_build_array(jsonb_build_object('sabor_id', pis, 'unidades', 6))))));
+  assert (r->>'precio_lista')::numeric = 250, 'box de 6 pistacho';
+
+  -- Packaging de caja
+  perform guardar_packaging_caja(caja6, jsonb_build_array(jsonb_build_object('insumo_id', papel, 'cantidad', 2)));
+  assert (select count(*) from caja_insumos where caja_insumo_id = caja6) = 1, 'packaging reemplazado';
+
+  -- Conteo con desvío (teórico − contado); el teórico arranca del conteo
+  r := registrar_conteo(jsonb_build_object('items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', 700))));
+  assert (r->0->>'contado')::numeric = 700 and (r->0->>'desvio')::numeric = (r->0->>'teorico')::numeric - 700, 'desvío';
+  assert (select teorico from v_stock where insumo_id = har) = 700, 'el teórico arranca del conteo';
+
+  -- ¿Qué compro? 2 tandas de Canela con 700 g de harina: faltan 200 g → 1 bolsa de la última compra
+  select * into c from que_comprar(jsonb_build_object(ca::text, 2)) where insumo_id = har;
+  assert c.necesario = 900 and c.stock = 700 and c.faltante = 200 and c.paquetes = 1
+     and c.costo_estimado = c.precio_presentacion, 'qué compro, harina: ' || row_to_json(c)::text;
+  select count(*) into n from que_comprar(jsonb_build_object(ca::text, 2));
+  assert n = 8, 'un renglón por ingrediente de la receta';
+
+  -- No se puede cambiar la unidad de un insumo usado
+  begin
+    update insumos set unidad_base = 'ml' where id = man;
+  exception when others then
+    fallo := sqlerrm;
+  end;
+  assert fallo like 'No se puede cambiar la unidad de "Manteca"%', 'unidad protegida: ' || coalesce(fallo, 'no falló');
 
   raise exception 'TODO OK';
 end $$;
