@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, grupo, pesos, fechaCorta, fechaLarga, nombreMes, hoyISO, toast, conBoton, debounce,
+  h, vaciar, chips, campo, grupo, pesos, numero, plural, fechaCorta, fechaLarga, nombreMes, hoyISO, toast, conBoton, debounce,
   ETIQUETAS, opciones, linkWhatsapp,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
@@ -47,17 +47,30 @@ async function lista(cont) {
   }
 
   function dibujar(ventas, limitada) {
-    const total = ventas.reduce((a, v) => a + Number(v.total), 0);
+    const suma = (vs) => vs.reduce((a, v) => a + Number(v.total), 0);
+    const pendiente = suma(ventas.filter((v) => v.estado_pago === 'pendiente'));
+    // Agrupadas por día, con el total de cada día
+    const dias = [];
+    for (const v of ventas) {
+      if (!dias.length || dias[dias.length - 1].fecha !== v.fecha) dias.push({ fecha: v.fecha, ventas: [] });
+      dias[dias.length - 1].ventas.push(v);
+    }
     vaciar(resultados,
-      h('p', { class: 'ayuda' }, `${ventas.length} ventas · ${pesos(total)}${limitada ? ' (últimas 50)' : ''}`),
-      ventas.length
-        ? h('ul', { class: 'lista' }, ventas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
-          h('div', { class: 'princ' },
-            h('div', { class: 't1' }, v.cliente || 'Sin cliente', ' ',
-              v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null,
-              v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null),
-            h('div', { class: 't2' }, `${fechaCorta(v.fecha)} · ${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
-          h('span', { class: 'monto' }, pesos(v.total))))))
+      h('div', { class: 'resumen-lista' },
+        h('div', {}, h('span', { class: 'etq' }, limitada ? 'Últimas' : 'Ventas'), h('strong', {}, numero(ventas.length, 0))),
+        h('div', {}, h('span', { class: 'etq' }, 'Total'), h('strong', {}, pesos(suma(ventas)))),
+        h('div', {}, h('span', { class: 'etq' }, 'Pendiente'), h('strong', { class: pendiente ? 'texto-alerta' : null }, pesos(pendiente)))),
+      dias.length
+        ? dias.map((d) => h('section', { class: 'dia' },
+          h('h2', { class: 'dia-cab' }, h('span', {}, fechaCorta(d.fecha)),
+            h('span', { class: 'ayuda' }, `${plural(d.ventas.length, 'venta')} · ${pesos(suma(d.ventas))}`)),
+          h('ul', { class: 'lista' }, d.ventas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
+            h('div', { class: 'princ' },
+              h('div', { class: 't1' }, v.cliente || 'Sin cliente', ' ',
+                v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null,
+                v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null),
+              h('div', { class: 't2' }, `${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
+            h('span', { class: 'monto' }, pesos(v.total))))))))
         : h('p', { class: 'vacio' }, 'No hay ventas con estos filtros.'));
   }
 
@@ -141,8 +154,7 @@ async function detalle(cont, id) {
       h('div', { class: 'acciones' },
         cambiarEstado,
         h('a', { class: 'btn', href: `#/ventas/${id}/editar` }, 'Editar'),
-        borrar)),
-    h('p', { class: 'pie' }, h('a', { href: '#/ventas' }, '← Volver a ventas')));
+        borrar)));
 }
 
 // ---------------------------------------------------------------- editar

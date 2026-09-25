@@ -1,6 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, stepper, pesos, cantidad, debounce } from '../util.js';
 import { catalogo } from '../catalogo.js';
+import { subnavProduccion } from '../componentes.js';
 
 // 5.8 "¿Qué compro?": tandas planeadas por sabor → qué falta comprar contra el stock teórico,
 // redondeado a la presentación de la última compra de cada insumo.
@@ -49,6 +50,7 @@ export async function mostrar(cont) {
   }, 250);
 
   vaciar(cont,
+    subnavProduccion('comprar'),
     h('div', { class: 'card' },
       h('h3', {}, 'Tandas que vas a hacer'),
       sabores.map((s) => h('div', { class: 'stepper-fila' },

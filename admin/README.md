@@ -24,10 +24,24 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/db.js`, `js/catalogo.js` | Cliente de Supabase y catálogo en memoria (sabores, formatos, insumos). |
 | `js/componentes.js` | Selector de cliente con autocompletar y editor de productos (formatos + sabores + caja). |
 | `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), chips, steppers y avisos. |
+| `js/iconos.js` | Íconos de línea (un solo estilo para pestañas, menú y accesos). |
+| `js/graficos.js` | Columnas y barras en HTML, sin librerías: acento para lo que importa y gris de contexto (colores validados para daltonismo en los dos temas), detalle al tocar o con teclado y tabla con los números. |
 | `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Catálogo (etapa 3): catalogo, sabores, insumos, formatos, precios. Stock: stock (con conteos) y comprar ("¿Qué compro?"). |
 | `tests/` | Pruebas de los formatos: `node --test admin/tests/*.test.mjs`. |
 
 Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.
+
+## Navegación
+
+- **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más. En compu y tablet
+  (≥ 900 px) pasan a un menú lateral con "+ Venta" arriba.
+- **Producción** agrupa Tandas, Stock, Compras y ¿Qué compro? con pestañas internas; la pestaña
+  vuelve a la última que se usó.
+- **Más**: Clientes, Gastos y retiros, todo el catálogo y la cuenta, cada uno a un toque.
+- Toda subpantalla tiene **←** arriba (vuelve a la pantalla de la que depende) y el título en la barra.
+- **Inicio**: accesos rápidos, "Para hacer" (cobros pendientes y stock para reponer), resumen del
+  período con variación (el mes en curso se compara con el mismo tramo del mes anterior), gráficos de
+  vendido por mes y rolls por sabor, y la plata acumulada.
 
 ## Probar en local
 

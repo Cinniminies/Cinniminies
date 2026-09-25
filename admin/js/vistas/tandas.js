@@ -2,6 +2,7 @@ import { sb, q, rpc } from '../db.js';
 import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
+import { subnavProduccion } from '../componentes.js';
 
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
 // con la receta del día (snapshot en tanda_consumos).
@@ -36,6 +37,7 @@ export async function mostrar(cont) {
   const produccionPorSabor = produccion.filter((p) => Number(p.tandas) > 0);
 
   vaciar(cont,
+    subnavProduccion('tandas'),
     h('div', { class: 'card' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       grupo('Sabor', chips(cat.saboresActivos.map((s) => ({ valor: s.id, texto: s.nombre })), null,

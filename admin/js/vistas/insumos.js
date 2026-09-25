@@ -148,8 +148,7 @@ async function ficha(cont, id) {
           oninput: (e) => { datos.costo_referencia = e.target.value; } }), ayudaRef)),
       interruptor('Activo', datos.activo, (v) => { datos.activo = v; }, 'Los inactivos no aparecen para comprar, contar ni en recetas nuevas.')),
     seccionCaja,
-    h('div', { class: 'acciones' }, guardar, borrar),
-    h('p', { class: 'pie' }, h('a', { href: '#/insumos' }, '← Volver a insumos')));
+    h('div', { class: 'acciones' }, guardar, borrar));
   dibujarExtra();
   actualizarCaja();
 }
