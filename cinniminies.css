@@ -1087,3 +1087,6 @@ a:hover{ color: var(--canela-hover); }
   .roll-card-foot{ flex-direction: column; align-items: stretch; }
   .roll-add-group{ justify-content: space-between; }
 }
+
+/* Campo trampa para bots del formulario de pedido */
+.campo-trampa{ position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; }

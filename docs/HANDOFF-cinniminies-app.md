@@ -594,16 +594,18 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
 - **Aceptación:** marcar Nutella como visible hace que aparezca en la web con su precio, sin deploy (hasta 5 minutos por la cache).
   - [ ] Probarlo en producción después del merge (Nutella ya tiene identificador `nutella` y precio por unidad $65; falta descripción, etiqueta y foto).
 
-### Etapa 6 (última, cuando lo pidan) — Pedidos desde la web a la base
+### Etapa 6 — Pedidos desde la web a la base
 El checkout **ya existe** (ver 2.4). Esta etapa lo conecta a la base:
-- [ ] Crear `POST /api/pedidos` (Vercel Function):
-  - valida el carrito **en el servidor**, recalculando precios con el catálogo (el total del cliente no se usa tal cual);
-  - guarda el pedido en una tabla `pedidos` + `pedido_cajas` con estado `nuevo`, junto con el ID `CM-AAAA-XXXX`, el contacto, la modalidad, la dirección y el pago.
-  - Anti-spam: honeypot y rate limit por IP.
-- [ ] En `cinniminies.js`, sumar esa llamada a las notificaciones existentes (`Promise.allSettled`). Mantener Web3Forms y WhatsApp.
-- [ ] En `/admin`, una pantalla "Pedidos nuevos": ver, contactar (link `wa.me`), **confirmar**, que lo convierte en venta con snapshots, o rechazar. El cliente se crea o reutiliza por teléfono.
-- [ ] Cuando funcione, sacar el POST a `GOOGLE_SHEETS_URL` y desactivar ese Apps Script, con OK de los dueños.
-- [ ] Revisar primero el sheet "Cinniminies - Pedidos Web (para importar)" y el Apps Script de pedidos, para no perder nada que ya estén usando.
+- [x] `POST /api/pedidos` (`api/pedidos.js` + `api/_lib/pedidos.js`) llama a `crear_pedido_web(p, ip_hash)` (migración `20260930100000_pedidos_web.sql`):
+  - valida el carrito **en la base** con `calcular_venta` (misma regla de precios y rolls que una venta; el total del navegador no se usa). Solo acepta formatos y sabores activos y visibles en la web;
+  - guarda `pedidos` + `pedido_cajas` con estado `nuevo`, el código `CM-AAAA-XXXX` (lo genera la base), contacto, modalidad, dirección, pago y notas. El total es sin envío;
+  - anti-spam: campo trampa `sitio_web` (se responde 200 sin guardar), límite de 5 pedidos cada 15 min por IP (solo se guarda un hash) y tamaños máximos.
+- [x] En `cinniminies.js`: antes de Web3Forms y WhatsApp se guarda el pedido y se usan el código y los precios del servidor. **Si la API falla o tarda más de 8 s, sigue como antes** con un código generado en el navegador. Web3Forms y WhatsApp siguen igual.
+- [x] En /admin, **Pedidos web** (menú lateral → Negocio; en el celular, Más → Negocio; aviso en Inicio → "Para hacer"): ver, WhatsApp (`wa.me` con mensaje), **Confirmar como venta** (`confirmar_pedido`: venta pendiente de cobro con el total que vio el cliente, cliente buscado por teléfono o creado con origen "Web", envío según la regla si fue con entrega) o **Rechazar** con motivo (`rechazar_pedido`).
+- [ ] Sacar el POST a `GOOGLE_SHEETS_URL` y desactivar ese Apps Script, con OK de los dueños. (Hoy `GOOGLE_SHEETS_URL` es igual al valor de ejemplo, así que ese envío ya no se hace; la planilla "Pedidos Web (para importar)" está vacía.)
+- [x] Revisado el sheet "Cinniminies - Pedidos Web (para importar)": solo encabezados, no se pierde nada.
+- Pruebas: bloque de pedidos en `supabase/tests/reglas.sql`; `node --test api/_tests/*.test.js`; checkout en Chrome contra la base real con un servidor local que imita a Vercel (Web3Forms interceptado): pedido guardado con el código del servidor, y con la API caída sigue funcionando.
+- **Aceptación:** un pedido real hecho desde la web aparece en /admin → Pedidos web y al confirmarlo queda como venta con los mismos rolls y precio.
 
 ### Etapa 7 (después de la 6) — Panel para editar la web pública
 Pedido de los dueños (TO-DO del 25/09): modificar desde /admin los textos, imágenes, etc. de la web, sin tocar código.

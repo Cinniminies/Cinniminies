@@ -283,3 +283,47 @@ begin
   end;
   raise exception 'TODO OK';
 end $$;
+
+-- Etapa 6: pedidos web. Precio recalculado, validaciones, límite por IP, confirmar a venta y rechazar.
+do $$
+declare r jsonb; v jsonb; ped uuid; fallo text; n int; ventas_antes int := (select count(*) from ventas);
+begin
+  -- caja de 6 mezclada + personalizada 1 DDL + 2 Oreo = 250 + 55 + 120 = 425 (con los precios del 25/09)
+  r := crear_pedido_web('{"nombre":"PRUEBA Web","telefono":"099 123 456","modalidad":"entrega","direccion":"Calle 1","pago":"Transferencia","notas":"sin nueces",
+    "cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":3,"oreo":3}},{"tipo":"personalizado","sabores":{"dulce":1,"oreo":2}}]}', 'hash-prueba');
+  assert (r->>'total')::numeric = 425, 'total ' || r::text;
+  assert r->>'codigo' ~ '^CM-[0-9]{4}-[A-Z2-9]{4}$', 'codigo ' || (r->>'codigo');
+  assert (select count(*) from pedido_cajas c join pedidos p on p.id = c.pedido_id where p.codigo = r->>'codigo') = 2, 'cajas';
+
+  begin perform crear_pedido_web('{"nombre":"X","telefono":"099123456","modalidad":"retiro","pago":"efectivo","cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":5}}]}'); fallo := 'no';
+  exception when others then fallo := sqlerrm; end;
+  assert fallo like '%lleva 6 rolls y cargaste 5%', 'rolls: ' || fallo;
+  begin perform crear_pedido_web('{"nombre":"X","telefono":"12345","modalidad":"retiro","pago":"efectivo","cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}'); fallo := 'no';
+  exception when others then fallo := sqlerrm; end;
+  assert fallo like '%celular uruguayo%', 'tel: ' || fallo;
+  begin perform crear_pedido_web('{"nombre":"X","telefono":"099123456","modalidad":"retiro","pago":"efectivo","cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":"6"}}]}'); fallo := 'no';
+  exception when others then fallo := sqlerrm; end;
+  assert fallo like '%Cantidad inválida%', 'cantidad texto: ' || fallo;
+
+  for n in 1..4 loop
+    perform crear_pedido_web('{"nombre":"PRUEBA","telefono":"099123456","modalidad":"retiro","pago":"efectivo","cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}', 'hash-prueba');
+  end loop;
+  begin perform crear_pedido_web('{"nombre":"PRUEBA","telefono":"099123456","modalidad":"retiro","pago":"efectivo","cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}', 'hash-prueba'); fallo := 'no';
+  exception when others then fallo := sqlerrm; end;
+  assert fallo like 'Demasiados pedidos%', 'rate: ' || fallo;
+
+  select id into ped from pedidos where codigo = r->>'codigo';
+  v := confirmar_pedido(ped);
+  assert (v->>'precio_cobrado')::numeric = 425, 'cobrado ' || v::text;
+  assert (select entrega || '/' || estado_pago || '/' || origen from ventas where id = (v->>'venta_id')::uuid) = 'envio/pendiente/Web', 'venta';
+  assert (select estado from pedidos where id = ped) = 'confirmado', 'estado';
+  begin perform confirmar_pedido(ped); fallo := 'no'; exception when others then fallo := sqlerrm; end;
+  assert fallo like '%ya está confirmado%', 'doble: ' || fallo;
+  assert (select count(*) from ventas) = ventas_antes + 1, 'una venta';
+
+  select id into ped from pedidos where estado = 'nuevo' limit 1;
+  perform rechazar_pedido(ped, 'sin stock');
+  assert (select estado || '/' || motivo_rechazo from pedidos where id = ped) = 'rechazado/sin stock', 'rechazo';
+
+  raise exception 'TODO OK';
+end $$;

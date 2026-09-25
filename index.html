@@ -291,6 +291,8 @@
         <textarea name="notas" rows="2" placeholder="Alguna aclaración, horario preferido, etc."></textarea>
       </label>
 
+      <!-- Trampa para bots: una persona no lo ve ni lo completa -->
+      <input type="text" name="sitio_web" class="campo-trampa" tabindex="-1" autocomplete="off" aria-hidden="true">
       <input type="hidden" name="order_id" id="formOrderId">
       <input type="hidden" name="order_detail" id="formOrderDetail">
       <input type="hidden" name="subject" value="Nuevo pedido · Cinniminies">

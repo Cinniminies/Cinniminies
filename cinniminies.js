@@ -700,6 +700,31 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Envío del formulario ---------- */
   const formError = document.getElementById('formError');
 
+  // Devuelve { codigo, total, cajas: [{ formato, precio }] } o null si no se pudo guardar.
+  async function guardarPedidoEnBase(pedido) {
+    const corte = new AbortController();
+    const reloj = setTimeout(() => corte.abort(), 8000);
+    try {
+      const r = await fetch('/api/pedidos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pedido),
+        signal: corte.signal
+      });
+      const cuerpo = await r.json().catch(() => null);
+      if (!r.ok || !cuerpo?.codigo) {
+        console.warn('El pedido no quedó en la base, sigue por mail y WhatsApp:', cuerpo?.error || r.status);
+        return null;
+      }
+      return cuerpo;
+    } catch (e) {
+      console.warn('El pedido no quedó en la base, sigue por mail y WhatsApp:', e.message);
+      return null;
+    } finally {
+      clearTimeout(reloj);
+    }
+  }
+
   stepForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     formError.textContent = '';
@@ -735,7 +760,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const orderId = generateOrderId();
+    enviandoPedido = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+
+    // 1) Guardar el pedido en la base (/api/pedidos). La base recalcula los precios y da el código.
+    //    Si falla o tarda, se sigue como siempre con un código generado acá: el pedido nunca se traba.
+    const guardado = await guardarPedidoEnBase({
+      nombre, telefono, direccion, notas,
+      modalidad: esEntrega ? 'entrega' : 'retiro',
+      pago: pago.toLowerCase(),
+      sitio_web: stepForm.sitio_web?.value || '',
+      cajas: cart.map(box => isCustomBox(box)
+        ? { tipo: 'personalizado', sabores: { ...box.flavors } }
+        : { tipo: 'caja_fija', rolls: box.size, sabores: { ...box.flavors } })
+    });
+    const orderId = guardado?.codigo || generateOrderId();
+    const precioCaja = (box, i) => guardado?.cajas?.[i]?.precio ?? boxPrice(box);
 
     const detailLines = cart.map((box, i) => {
       const flavorList = Object.entries(box.flavors)
@@ -743,12 +784,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .join(', ');
       const filled = boxFilled(box);
       const boxLabel = isCustomBox(box)
-        ? `Caja personalizada de ${filled} rolls, $${boxPrice(box)}`
-        : `Caja de ${box.size} rollos, $${boxPrice(box)}`;
+        ? `Caja personalizada de ${filled} rolls, $${precioCaja(box, i)}`
+        : `Caja de ${box.size} rollos, $${precioCaja(box, i)}`;
       return `- ${boxLabel}: ${flavorList}`;
     }).join('\n');
 
-    const total = cartTotal();
+    const total = guardado?.total ?? cartTotal();
 
     const fullDetail = [
       `Pedido: ${orderId}`,
@@ -780,10 +821,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('formOrderId').value = orderId;
     document.getElementById('formOrderDetail').value = fullDetail;
-
-    enviandoPedido = true;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando...';
 
     // Intenta notificar por email (Web3Forms) y anotar en la planilla
     // (Google Sheets) al mismo tiempo. Si alguno falla, no afecta al otro
