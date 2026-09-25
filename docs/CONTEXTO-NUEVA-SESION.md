@@ -70,7 +70,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   lo usa y, si falla, se queda con lo escrito en `index.html`. Foto de cada sabor en `sabores.foto`.
 - Etapa 6: `POST /api/pedidos` → `crear_pedido_web()` (precio con `calcular_venta`, límite por IP, campo trampa).
   /admin → Pedidos web confirma (`confirmar_pedido` → venta) o rechaza. Si la API falla, la web sigue como antes.
-- Probar funciones de `api/` en local: un servidor Node chico que sirve el sitio y llama a los handlers con
+- Probar funciones de `api/` en local: `node scripts/servidor-dev.js` sirve el sitio y llama a los handlers con
   `.env.local` (no hay `vercel dev`). Interceptar Web3Forms/Sheets en el navegador para no mandar mails reales.
 - Etapa 7: `contenido_web` (textos e imágenes de la web) → viaja en `/api/catalogo` → `data-contenido*` en `index.html`.
   Para sumar un lugar editable: fila nueva en `contenido_web` + atributo en `index.html`.
@@ -133,8 +133,11 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
-3. Menú lateral de /admin con todas las secciones (PR #14): si no está en `main`, revisar que se haya mergeado.
-4. **Etapa 7:** confirmar la aceptación. Pendientes sueltos: decidir hosting (Vercel Pro o mover, handoff 3.1),
-   que los dueños archiven el Apps Script de pedidos a Sheets (el checkout ya no lo usa), y la aceptación de la Etapa 2 (carga en paralelo).
-5. Seguí el flujo de la sección 3: una rama por tarea, PR directo a `main`, probar en Chrome con usuario temporal,
+3. **Lo que sigue está en [`HANDOFF-fase-2.md`](HANDOFF-fase-2.md):** las mejoras elegidas por los dueños, con triage
+   (empezar por 🔴 8.2, el usuario de prueba) y el contexto de cada una. Las ideas que quedaron para más adelante
+   están en [`IDEAS-FUTURAS.md`](IDEAS-FUTURAS.md).
+4. Pendientes sueltos que no entraron en la fase 2 (están en `IDEAS-FUTURAS.md`, sección 1): **evitar que Supabase se
+   pause** tras 7 días sin actividad (la web usa el catálogo desde la cache de Vercel, así que las visitas no siempre llegan a la base),
+   decidir hosting, backups propios, SMTP propio, y la aceptación de la Etapa 2 (carga en paralelo).
+5. Seguí el flujo de la sección 3: una rama por tarea, PR directo a `main`, probar con `node scripts/servidor-dev.js`,
    dejar la base como estaba.
