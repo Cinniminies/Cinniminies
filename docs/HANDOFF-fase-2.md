@@ -42,7 +42,7 @@
 | ✅ Hecho (PR #26) | **2.1** Aviso push de pedido nuevo en el celular | M | 8.2 · decisión sobre `package.json` |
 | ⏸️ Pospuesta por los dueños (25/09) | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
 | ⏸️ Pendiente: armar un plan con los dueños (25/09) | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
-| 🟡 **Media** | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
+| ✅ Hecho (PR #27) | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
 | 🟢 **Baja** | **6.5** Más lugares editables de la web | S | — |
 | ⏸️ Pospuesta por los dueños (25/09) | **6.6** Reseñas de clientes | M | Decisión: solo cargadas por los dueños o también formulario público |
 
@@ -132,7 +132,7 @@ se llama desde `api/pedidos.js` después de responder, con `waitUntil` de `@verc
 404/410 y anota otros errores en `ultimo_error`. `package.json` con `web-push` y `@vercel/functions` (+ lock;
 `node_modules/` en `.gitignore`). /admin: interruptor en Más → Cuenta (`admin/js/push.js`) y `push`/`notificationclick`
 en `admin/sw.js`. **Brave** trae apagado el push de Google: la app lo explica en el aviso de error.
-**Falta la aceptación en el iPhone** (con la app instalada), una vez publicado.
+**Aceptada** por Lucio en el iPhone (25/09), con la app instalada.
 
 **Hoy.** Un pedido nuevo llega por mail (Web3Forms, desde el navegador del cliente) y aparece en /admin → Pedidos web y en
 Inicio → "Para hacer". No hay aviso en el celular.
@@ -249,7 +249,12 @@ de Canela y 1 de Oreo, y "¿Qué compro?" muestra los faltantes de esas tandas.
 
 ---
 
-### 🟡 6.1 · SEO y vista previa al compartir el link
+### ✅ 6.1 · SEO y vista previa al compartir el link (PR #27)
+
+**Hecho así:** `img/og.jpg` (1200×630, 133 KB) armada con un `<canvas>` desde la foto de portada, con las tipografías y la
+paleta de la web. En `index.html`: description, canonical, Open Graph, `twitter:card` y JSON-LD `Bakery` (solo
+"Paysandú, UY" y el teléfono que ya está en la web, como decidieron los dueños). `robots.txt` (sin `/admin/` ni `/api/`)
+y `sitemap.xml`. Si compran dominio propio: cambiar las URLs absolutas de `index.html`, `robots.txt` y `sitemap.xml`.
 
 **Hoy.** `index.html` solo tiene `<title>`. Al pasar el link por WhatsApp o Instagram no sale foto ni descripción. No hay
 `robots.txt` ni `sitemap.xml` (/admin ya tiene `noindex`).
