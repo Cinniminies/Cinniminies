@@ -8,9 +8,9 @@
 > confirmá con los dueños los puntos marcados como **[CONFIRMAR]**. No crees recursos
 > pagos ni borres nada sin preguntar.
 
-> **Estado al 25/09/2026:** Etapas 1 y 2 publicadas (la 2 en su semana de carga en paralelo).
-> **Etapa 3 construida** (rama `feat/etapa-3-catalogo`): catálogo editable, stock con conteos y
-> "¿Qué compro?", con la aceptación probada en Chrome. Falta: que los dueños la repitan.
+> **Estado al 25/09/2026:** Etapas 1, 2 y 3 publicadas, más el rediseño de `/admin`. Sigue la
+> **Etapa 4**. Antes de arrancar, leé [`CONTEXTO-NUEVA-SESION.md`](CONTEXTO-NUEVA-SESION.md): resume
+> lo hecho, cómo probar y los pendientes.
 
 ---
 
