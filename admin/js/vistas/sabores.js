@@ -173,7 +173,6 @@ async function ficha(cont, id) {
         async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); toast('Precio borrado'); irA(`#/sabores/${id}`); }))
       : h('p', { class: 'ayuda' }, 'El precio por unidad se carga después de crear el sabor.'),
 
-    usado && id ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: no se puede borrar, pero se puede desactivar.`) : null,
-    h('p', { class: 'pie' }, h('a', { href: '#/sabores' }, '← Volver a sabores')));
+    usado && id ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: no se puede borrar, pero se puede desactivar.`) : null);
   dibujarReceta();
 }

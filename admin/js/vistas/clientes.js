@@ -103,6 +103,5 @@ async function ficha(cont, id) {
       campo('Duplicado', otro),
       h('div', { class: 'acciones', style: 'margin-bottom:1rem' }, fusionar)),
 
-    ventas.length ? null : h('div', { class: 'acciones' }, borrar),
-    h('p', { class: 'pie' }, h('a', { href: '#/clientes' }, '← Volver a clientes')));
+    ventas.length ? null : h('div', { class: 'acciones' }, borrar));
 }

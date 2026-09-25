@@ -1,10 +1,15 @@
 import { sb } from '../db.js';
 import { h, vaciar, campo, toast, conBoton } from '../util.js';
+import { icono } from '../iconos.js';
 import { sesion } from '../app.js';
 
+// Todo lo que no es de uso diario, agrupado. Cada destino está a un toque.
 export async function mostrar(cont) {
-  const item = (href, texto, sub) => h('li', {}, h('a', { class: 'fila', href },
-    h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), sub ? h('div', { class: 't2' }, sub) : null), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
+  const item = (href, ico, texto, sub) => h('li', {}, h('a', { class: 'fila', href },
+    h('span', { class: 'fila-ico' }, icono(ico)),
+    h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), sub ? h('div', { class: 't2' }, sub) : null),
+    icono('derecha', 'icono chev')));
+  const seccion = (titulo, ...items) => [h('h2', { class: 'seccion-titulo' }, titulo), h('ul', { class: 'lista' }, items)];
 
   const clave = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8 });
   const repetir = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8 });
@@ -18,24 +23,30 @@ export async function mostrar(cont) {
     toast('Contraseña guardada: la próxima vez podés entrar con ella');
   });
 
-  const salir = h('button', { class: 'btn peligro bloque', type: 'button' }, 'Salir');
+  const salir = h('button', { class: 'fila', type: 'button' },
+    h('span', { class: 'fila-ico' }, icono('salir')), h('div', { class: 'princ' }, h('div', { class: 't1' }, 'Salir')));
   salir.onclick = () => conBoton(salir, () => sb.auth.signOut());
 
   vaciar(cont,
-    h('ul', { class: 'lista menu-mas' },
-      item('#/compras', 'Compras', 'Ingredientes, packaging y equipamiento'),
-      item('#/gastos', 'Gastos y retiros', 'Mermas, comisiones, retiros de socios'),
-      item('#/clientes', 'Clientes', 'Libreta, historial y duplicados')),
-    h('ul', { class: 'lista menu-mas', style: 'margin-top:1rem' },
-      item('#/stock', 'Stock', 'Lo que hay, alertas y conteos'),
-      item('#/comprar', '¿Qué compro?', 'Según las tandas que vas a hacer'),
-      item('#/catalogo', 'Catálogo', 'Sabores, recetas, insumos, formatos, precios y márgenes')),
-    h('details', { class: 'plegable', style: 'margin-top:1rem' },
-      h('summary', {}, 'Contraseña'),
-      h('p', { class: 'ayuda' }, 'Elegí una contraseña para entrar sin esperar el código por mail.'),
-      campo('Contraseña nueva', clave),
-      campo('Repetila', repetir),
-      h('div', { class: 'acciones', style: 'margin-bottom:1rem' }, guardarClave)),
-    salir,
+    seccion('Negocio',
+      item('#/clientes', 'clientes', 'Clientes', 'Libreta, historial y duplicados'),
+      item('#/gastos', 'gasto', 'Gastos y retiros', 'Mermas, comisiones, retiros de socios')),
+    seccion('Catálogo',
+      item('#/sabores', 'roll', 'Sabores y recetas', 'Activar, ocultar en la web, precio por unidad'),
+      item('#/formatos', 'caja', 'Formatos', 'Cajas, personalizado y unidad'),
+      item('#/precios', 'etiqueta', 'Precios', 'Vigentes, programados e historial'),
+      item('#/insumos', 'bolsa', 'Insumos', 'Ingredientes, packaging y mínimos'),
+      item('#/catalogo', 'grafico', 'Costos y márgenes', 'Costo por roll y margen por caja')),
+    h('h2', { class: 'seccion-titulo' }, 'Cuenta'),
+    h('ul', { class: 'lista' },
+      h('li', {}, h('details', { class: 'fila-detalle' },
+        h('summary', { class: 'fila' }, h('span', { class: 'fila-ico' }, icono('llave')),
+          h('div', { class: 'princ' }, h('div', { class: 't1' }, 'Contraseña'),
+            h('div', { class: 't2' }, 'Para entrar sin esperar el mail'))),
+        h('div', { class: 'fila-cuerpo' },
+          campo('Contraseña nueva', clave),
+          campo('Repetila', repetir),
+          guardarClave))),
+      h('li', {}, salir)),
     h('p', { class: 'pie' }, `Sesión de ${sesion.nombre}`));
 }

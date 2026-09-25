@@ -1,31 +1,73 @@
 import { sb, q } from './db.js';
 import { h, vaciar, campo, toast, conBoton } from './util.js';
+import { icono } from './iconos.js';
 
-// Rutas: '#/ventas/:id' → { vista: 'ventas', id }. Cada vista exporta `mostrar(contenedor, params)`.
+// Rutas: '#/ventas/:id' → { id }. Cada vista exporta `mostrar(contenedor, params)`.
+// [título, módulo, pestaña que se marca, a dónde vuelve "←" (null = es una pantalla principal)]
 const RUTAS = {
-  panel: ['Inicio', () => import('./vistas/panel.js')],
-  venta: ['Nueva venta', () => import('./vistas/venta.js')],
-  ventas: ['Ventas', () => import('./vistas/ventas.js')],
-  tandas: ['Tandas', () => import('./vistas/tandas.js')],
-  compras: ['Compras', () => import('./vistas/compras.js')],
-  gastos: ['Gastos y retiros', () => import('./vistas/gastos.js')],
-  clientes: ['Clientes', () => import('./vistas/clientes.js')],
-  stock: ['Stock', () => import('./vistas/stock.js')],
-  comprar: ['¿Qué compro?', () => import('./vistas/comprar.js')],
-  catalogo: ['Catálogo', () => import('./vistas/catalogo.js')],
-  sabores: ['Sabores', () => import('./vistas/sabores.js')],
-  insumos: ['Insumos', () => import('./vistas/insumos.js')],
-  formatos: ['Formatos', () => import('./vistas/formatos.js')],
-  precios: ['Precios', () => import('./vistas/precios.js')],
-  mas: ['Más', () => import('./vistas/mas.js')],
+  panel: ['Inicio', () => import('./vistas/panel.js'), 'panel', null],
+  venta: ['Nueva venta', () => import('./vistas/venta.js'), 'venta', null],
+  ventas: ['Ventas', () => import('./vistas/ventas.js'), 'ventas', null],
+  tandas: ['Producción', () => import('./vistas/tandas.js'), 'produccion', null],
+  stock: ['Producción', () => import('./vistas/stock.js'), 'produccion', null],
+  compras: ['Producción', () => import('./vistas/compras.js'), 'produccion', null],
+  comprar: ['Producción', () => import('./vistas/comprar.js'), 'produccion', null],
+  mas: ['Más', () => import('./vistas/mas.js'), 'mas', null],
+  gastos: ['Gastos y retiros', () => import('./vistas/gastos.js'), 'mas', '#/mas'],
+  clientes: ['Clientes', () => import('./vistas/clientes.js'), 'mas', '#/mas'],
+  catalogo: ['Costos y márgenes', () => import('./vistas/catalogo.js'), 'mas', '#/mas'],
+  sabores: ['Sabores', () => import('./vistas/sabores.js'), 'mas', '#/mas'],
+  insumos: ['Insumos', () => import('./vistas/insumos.js'), 'mas', '#/mas'],
+  formatos: ['Formatos', () => import('./vistas/formatos.js'), 'mas', '#/mas'],
+  precios: ['Precios', () => import('./vistas/precios.js'), 'mas', '#/mas'],
 };
-// Pantallas que no tienen pestaña propia: se marca "Más".
-const TAB_DE = Object.fromEntries(['compras', 'gastos', 'clientes', 'stock', 'comprar', 'catalogo', 'sabores', 'insumos',
-  'formatos', 'precios'].map((r) => [r, 'mas']));
+// Subpantallas: a dónde vuelve "←" desde una ficha o un formulario.
+function volverDe(ruta, id, accion) {
+  if (ruta === 'ventas' && id && accion === 'editar') return [`#/ventas/${id}`, 'Editar venta'];
+  if (ruta === 'ventas' && id) return ['#/ventas', 'Venta'];
+  if (ruta === 'stock' && id === 'conteo') return ['#/stock', 'Cargar conteo'];
+  const nuevo = { sabores: 'Nuevo sabor', insumos: 'Nuevo insumo', formatos: 'Nuevo formato' };
+  if (id && ['clientes', 'sabores', 'insumos', 'formatos'].includes(ruta)) {
+    return [`#/${ruta}`, id === 'nuevo' ? nuevo[ruta] : RUTAS[ruta][0]];
+  }
+  return [RUTAS[ruta][3], RUTAS[ruta][0]];
+}
+
+// Producción agrupa cuatro pantallas; la pestaña vuelve a la última que se usó.
+export const PRODUCCION = [['tandas', 'Tandas'], ['stock', 'Stock'], ['compras', 'Compras'], ['comprar', '¿Qué compro?']];
+const ultimaProduccion = () => {
+  try { return sessionStorage.getItem('produccion') || 'tandas'; } catch { return 'tandas'; }
+};
+
+const PESTANAS = [
+  ['panel', 'Inicio', 'inicio', () => '#/panel'],
+  ['ventas', 'Ventas', 'ventas', () => '#/ventas'],
+  ['venta', 'Nueva venta', 'nuevo', () => '#/venta'],
+  ['produccion', 'Producción', 'roll', () => `#/${ultimaProduccion()}`],
+  ['mas', 'Más', 'menu', () => '#/mas'],
+];
 
 const vista = document.getElementById('vista');
 const tabs = document.getElementById('tabs');
 const titulo = document.getElementById('titulo');
+const atras = document.getElementById('atras');
+const marca = document.getElementById('marca');
+atras.append(icono('atras'));
+
+// Pestañas (abajo en el celular, a la izquierda en pantallas grandes)
+for (const [clave, texto, ico] of PESTANAS) {
+  tabs.append(h('a', { 'data-tab': clave, class: clave === 'venta' ? 'tab-principal' : null },
+    h('span', { class: 'ico' }, icono(ico)), h('span', { class: 'tab-texto' }, clave === 'venta' ? 'Venta' : texto)));
+}
+function marcarPestana(activa) {
+  for (const a of tabs.querySelectorAll('a')) {
+    const [, , , destino] = PESTANAS.find(([c]) => c === a.dataset.tab);
+    a.href = destino();
+    const es = a.dataset.tab === activa;
+    a.classList.toggle('activo', es);
+    if (es) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  }
+}
 export const sesion = { usuario: null, nombre: null };
 
 // El link del mail vuelve con '#access_token=…' o '#error=…&error_description=…'. supabase-js lee
@@ -52,12 +94,21 @@ const traducir = (msg) => TRADUCCIONES.find(([re]) => re.test(msg))?.[1] || msg;
 let navegacion = 0;
 async function enrutar() {
   if (!sesion.nombre) return;
-  const [nombre = 'panel', ...resto] = location.hash.replace(/^#\/?/, '').split('/');
+  let [nombre = 'panel', ...resto] = location.hash.replace(/^#\/?/, '').split('/');
+  if (nombre === 'produccion') { history.replaceState(null, '', `#/${ultimaProduccion()}`); nombre = ultimaProduccion(); }
   const ruta = RUTAS[nombre] ? nombre : 'panel';
-  const [texto, cargar] = RUTAS[ruta];
+  const [, cargar, pestana] = RUTAS[ruta];
+  const [volver, texto] = volverDe(ruta, resto[0], resto[1]);
   const esta = ++navegacion;
+  if (pestana === 'produccion' && !resto[0]) {
+    try { sessionStorage.setItem('produccion', ruta); } catch { /* sin almacenamiento: vuelve a Tandas */ }
+  }
   titulo.textContent = texto;
-  for (const a of tabs.querySelectorAll('a')) a.classList.toggle('activo', a.dataset.tab === (TAB_DE[ruta] || ruta));
+  document.title = `${texto} · Cinniminies`;
+  atras.hidden = !volver;
+  marca.hidden = !!volver;
+  atras.onclick = () => { location.hash = volver; };
+  marcarPestana(pestana);
   vaciar(vista, h('p', { class: 'cargando' }, 'Cargando…'));
   window.scrollTo(0, 0);
   try {
@@ -65,7 +116,10 @@ async function enrutar() {
     if (esta !== navegacion) return; // el usuario ya se fue a otra pantalla
     const cont = h('div');
     await modulo.mostrar(cont, { id: resto[0], accion: resto[1] });
-    if (esta === navegacion) vaciar(vista, cont);
+    if (esta === navegacion) {
+      vaciar(vista, cont);
+      vista.focus({ preventScroll: true }); // los lectores de pantalla arrancan en el contenido nuevo
+    }
   } catch (e) {
     if (esta !== navegacion) return;
     vaciar(vista, h('div', { class: 'card' }, h('p', { class: 'mensaje-error' }, e.message),
@@ -77,6 +131,8 @@ async function enrutar() {
 
 function pantallaLogin(mensaje) {
   tabs.hidden = true;
+  atras.hidden = true;
+  marca.hidden = false;
   titulo.textContent = '';
   let modo = 'clave';
   const cont = h('div', { class: 'login' });

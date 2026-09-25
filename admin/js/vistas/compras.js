@@ -2,6 +2,7 @@ import { sb, q, rpc } from '../db.js';
 import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, numero, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
+import { subnavProduccion } from '../componentes.js';
 
 // Unidades que se pueden elegir según la unidad base del insumo (la primera es la de siempre).
 const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'] };
@@ -87,6 +88,7 @@ export async function mostrar(cont) {
   });
 
   vaciar(cont,
+    subnavProduccion('compras'),
     h('div', { class: 'card' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       campo('Qué', selInsumo),
