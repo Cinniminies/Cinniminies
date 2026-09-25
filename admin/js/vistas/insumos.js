@@ -32,7 +32,7 @@ async function lista(cont) {
             c?.fuente === 'referencia' ? 'costo de referencia' : null,
             Number(i.stock_minimo) ? `mínimo ${cantidad(i.stock_minimo, i.unidad_base)}` : null,
           ].filter(Boolean).join(' · '))),
-        '›'));
+        h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
     })),
   ];
   vaciar(cont,

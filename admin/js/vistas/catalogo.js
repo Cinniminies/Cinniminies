@@ -8,7 +8,7 @@ export async function mostrar(cont) {
     q(sb.from('v_margen_formato').select('*').order('formato').order('sabor')),
   ]);
   const item = (href, texto, sub) => h('li', {}, h('a', { class: 'fila', href },
-    h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), h('div', { class: 't2' }, sub)), '›'));
+    h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), h('div', { class: 't2' }, sub)), h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
   const margen = (m) => (m == null ? '—' : pesos(m));
 
   vaciar(cont,

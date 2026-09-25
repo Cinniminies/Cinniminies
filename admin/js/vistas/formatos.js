@@ -33,7 +33,7 @@ async function lista(cont) {
           f.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo'), ' ',
           f.visible_web ? h('span', { class: 'badge ok' }, 'En la web') : null),
         h('div', { class: 't2' }, detalle(f))),
-      '›')))),
+      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/formatos/nuevo' }, '+ Nuevo formato')));
 }
 

@@ -23,7 +23,7 @@ async function lista(cont) {
         h('div', { class: 't2' }, costoDe[s.id]?.costo_roll != null
           ? `Costo ${pesos(costoDe[s.id].costo_roll)} por roll · unidad ${pesos(costoDe[s.id].precio_unidad)}`
           : 'Sin receta')),
-      '›')))),
+      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/sabores/nuevo' }, '+ Nuevo sabor')));
 }
 

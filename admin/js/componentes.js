@@ -59,7 +59,7 @@ export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
 // `lineas`: [{ formato_id, cantidad, caja (undefined = la de siempre | null | id), sabores: {sabor_id: unidades} }].
 // El editor modifica ese mismo array (así quien lo usa puede guardar el borrador).
 export function editorLineas(cat, lineas, alCambiar) {
-  const cont = h('div');
+  const cont = h('div', { class: 'editor-lineas' });
   const nueva = () => ({ formato_id: null, cantidad: 1, caja: undefined, sabores: {} });
   if (!lineas.length) lineas.push(nueva());
   let mostrarCajas = lineas.some((l) => l.caja !== undefined);
