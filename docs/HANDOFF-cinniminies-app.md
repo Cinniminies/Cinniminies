@@ -576,8 +576,11 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   - activador cada 1 hora y menú "📊 Actualizar ahora".
 - [x] Pestaña "Resumen" de ejemplo (menú → "Crear pestaña Resumen"): totales, ganancia por mes, por sabor y top clientes.
 - [x] Cómo rotar la clave: `docs/analisis-apps-script/README.md`.
-- [ ] **Falta (dueños):** cargar `SUPABASE_SERVICE_ROLE_KEY` y `EXPORT_KEY` en Vercel, crear el spreadsheet y pegar el script (pasos en el README).
+- [x] Variables cargadas en Vercel, PR #11 en `main` y spreadsheet "Cinniminies · Análisis" creado con el script (25/09). Las 9 pestañas `datos_*` cargan sin errores.
+- [x] Totales del Sheet = panel (25/09): vendido $31.880, cobrado $30.980, pendiente $900, ganancia bruta $20.458,81, compras $14.578,87.
+- [ ] La pestaña Resumen dio `#ERROR!` en las tablas con `QUERY` (planilla en español); arreglado en el PR #12: pegar el script nuevo, borrar Resumen y recrearla.
 - **Aceptación:** los totales del Sheet coinciden con el panel de la app; los dueños lo abren desde el celular (Drive) y ven datos de la última hora.
+  - [x] Totales coinciden. [ ] Abrirlo desde el celular y confirmar que el activador de cada hora corre.
 
 ### Etapa 5 — Web pública conectada al catálogo
 - [ ] Crear `GET /api/catalogo` (Vercel Function, con cache de CDN de algunos minutos) o una vista pública de solo lectura con RLS. Tiene que devolver sabores visibles (id, nombre, descripción, etiqueta, foto, precio por unidad), formatos visibles y precios vigentes.
