@@ -55,7 +55,7 @@ function pantallaLogin(mensaje) {
     const email = h('input', { type: 'email', autocomplete: 'email', required: true, placeholder: 'tu@email.com' });
     const clave = h('input', { type: 'password', autocomplete: 'current-password', required: true });
     const codigo = h('input', { inputmode: 'numeric', autocomplete: 'one-time-code', placeholder: '123456', required: true });
-    const boton = h('button', { class: 'btn primario bloque', type: 'submit' }, modo === 'clave' ? 'Entrar' : 'Mandarme el código');
+    const boton = h('button', { class: 'btn primario bloque', type: 'submit' }, modo === 'clave' ? 'Entrar' : 'Mandarme el link');
     let codigoEnviado = false;
 
     const form = h('form', {
@@ -74,9 +74,10 @@ function pantallaLogin(mensaje) {
             if (error) throw new Error(error.message);
             codigoEnviado = true;
             email.readOnly = true;
-            form.insertBefore(campo('Código que te llegó por mail', codigo, 'También podés tocar el link del mail.'), boton);
-            boton.textContent = 'Entrar';
-            codigo.focus();
+            form.insertBefore(h('p', { class: 'ayuda' },
+              'Listo: revisá tu mail y tocá el link para entrar. Si el mail trae un código, ponelo acá abajo.'), boton);
+            form.insertBefore(campo('Código (opcional)', codigo), boton);
+            boton.textContent = 'Entrar con el código';
           } else {
             const { error } = await sb.auth.verifyOtp({ email: email.value.trim(), token: codigo.value.trim(), type: 'email' });
             if (error) throw new Error('El código no es válido o ya venció');
@@ -93,7 +94,7 @@ function pantallaLogin(mensaje) {
       mensaje ? h('p', { class: 'mensaje-error' }, mensaje) : null,
       form,
       h('p', { class: 'pie' }, modo === 'clave'
-        ? h('button', { class: 'link', type: 'button', onclick: () => { modo = 'codigo'; dibujar(); } }, 'Entrar con un código por mail')
+        ? h('button', { class: 'link', type: 'button', onclick: () => { modo = 'codigo'; dibujar(); } }, 'Entrar con un link por mail')
         : h('button', { class: 'link', type: 'button', onclick: () => { modo = 'clave'; dibujar(); } }, 'Entrar con contraseña')));
   }
 

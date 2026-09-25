@@ -9,8 +9,8 @@
 > pagos ni borres nada sin preguntar.
 
 > **Estado al 24/09/2026:** Etapa 1 cerrada. **Etapa 2 construida** (rama `feat/etapa-2-admin`):
-> `/admin` con todas las pantallas, probado en Chrome contra la base real. Falta: configurar Auth en
-> el dashboard (URLs y código en el mail, ver `admin/README.md`), publicar, y la carga en paralelo
+> `/admin` con todas las pantallas, probado en Chrome contra la base real. URLs de Auth configuradas el
+> 25/09. Falta: publicar, y la carga en paralelo
 > de los dueños (aceptación).
 
 ---
@@ -550,7 +550,7 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   - [x] OK final de los dueños a los números (24/09).
 
 ### Etapa 2 — App de carga (reemplaza la web app de Apps Script)
-- [x] Auth, layout mobile-first con la paleta de 2.3 y PWA instalable. Login con código por mail (funciona dentro de la PWA en iPhone) o contraseña. Detalle en `admin/README.md`.
+- [x] Auth, layout mobile-first con la paleta de 2.3 y PWA instalable. Login con link por mail o contraseña (en iPhone: la primera vez link en Safari, poner contraseña y entrar con ella en la app instalada; sin SMTP propio el mail no puede traer código). Detalle en `admin/README.md`.
 - [x] Pantallas: Panel, Nueva venta (sabores dinámicos), Ventas, Tandas, Compras, Gastos y retiros, Clientes.
 - [x] Guardado vía RPC (snapshots en la base) y deshacer la última carga. Funciones nuevas: `actualizar_venta` (editar; recalcula solo si se cambian los productos), `registrar_compra` (convierte kg/L a la unidad base), `fusionar_clientes`.
 - [x] Tests de las reglas de la sección 5: precio, costo, validación de sabores, envío, snapshots que no cambian al subir un precio (`supabase/tests/reglas.sql`), más los formatos del front (`admin/tests/`).

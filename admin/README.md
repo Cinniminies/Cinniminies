@@ -40,21 +40,27 @@ Usa la base real: lo que se cargue en local queda en Supabase.
 
 Dos formas, en la misma pantalla:
 
-1. **Código por mail:** Supabase manda un código de 6 dígitos (y un link). Se usa el código porque,
-   en el iPhone, la app instalada no comparte la sesión con Safari: el link abriría Safari, no la app.
-2. **Contraseña:** después de entrar la primera vez con el código, cada uno elige su contraseña en
+1. **Link por mail:** Supabase manda un link para entrar. Con el mail que trae Supabase por defecto
+   la plantilla no se puede editar y trae solo el link (sin código).
+2. **Contraseña:** después de entrar la primera vez con el link, cada uno elige su contraseña en
    *Más → Contraseña*.
+
+**En el iPhone:** la app instalada en la pantalla de inicio no comparte la sesión con Safari, y el
+link del mail se abre en Safari. Por eso, la primera vez: entrar con el link en Safari, poner una
+contraseña en *Más → Contraseña* y, en la app instalada, entrar con email y contraseña. En Android
+y en la compu el link funciona directo.
+
+Si más adelante configuran un SMTP propio, se puede editar la plantilla *Magic link or OTP* y sumar
+el código (`{{ .Token }}`): la pantalla de login ya tiene el campo para escribirlo.
 
 El registro público está desactivado: solo entran los usuarios creados con
 `migracion/crear_admins.py`.
 
-### Configuración de Supabase (una vez, en el dashboard)
+### Configuración de Supabase
 
-- **Authentication → URL Configuration**
-  - *Site URL:* `https://cinniminies.vercel.app/admin/`
-  - *Redirect URLs:* `https://cinniminies.vercel.app/admin/**` y `http://localhost:8777/admin/**`
-- **Authentication → Emails → Magic Link:** agregar el código al mail, por ejemplo:
-  `<p>Tu código para entrar: <strong>{{ .Token }}</strong></p>`
+- **Authentication → URL Configuration** (hecho el 25/09): *Site URL*
+  `https://cinniminies.vercel.app/admin/`; *Redirect URLs* `https://cinniminies.vercel.app/admin/**`
+  y `http://localhost:8777/admin/**`.
 - **Envío de mails:** el servicio de mail que trae Supabase solo manda a los miembros de la
-  organización y tiene un límite bajo por hora. Si a alguien no le llega el código, sumalo a la
-  organización de Supabase o configurá un SMTP propio (*Project Settings → Auth → SMTP*).
+  organización y tiene un límite bajo por hora. Si a alguien no le llega el link, sumalo a la
+  organización de Supabase o configurá un SMTP propio (*Authentication → Emails → SMTP Settings*).
