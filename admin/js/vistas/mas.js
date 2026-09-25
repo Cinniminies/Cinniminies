@@ -3,13 +3,15 @@ import { h, vaciar, campo, toast, conBoton } from '../util.js';
 import { icono } from '../iconos.js';
 import { sesion } from '../app.js';
 
-// Todo lo que no es de uso diario, agrupado. Cada destino está a un toque.
+// Todo lo que no es de uso diario, agrupado. Cada destino está a un toque. En pantallas grandes
+// Negocio y Catálogo están en el menú lateral y acá queda solo la cuenta.
 export async function mostrar(cont) {
   const item = (href, ico, texto, sub) => h('li', {}, h('a', { class: 'fila', href },
     h('span', { class: 'fila-ico' }, icono(ico)),
     h('div', { class: 'princ' }, h('div', { class: 't1' }, texto), sub ? h('div', { class: 't2' }, sub) : null),
     icono('derecha', 'icono chev')));
-  const seccion = (titulo, ...items) => [h('h2', { class: 'seccion-titulo' }, titulo), h('ul', { class: 'lista' }, items)];
+  const seccion = (titulo, ...items) => h('div', { class: 'solo-celular' },
+    h('h2', { class: 'seccion-titulo' }, titulo), h('ul', { class: 'lista' }, items));
 
   const clave = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8 });
   const repetir = h('input', { type: 'password', autocomplete: 'new-password', minlength: 8 });

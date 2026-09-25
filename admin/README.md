@@ -33,11 +33,15 @@ Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.
 
 ## Navegación
 
-- **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más. En compu y tablet
-  (≥ 900 px) pasan a un menú lateral con "+ Venta" arriba.
-- **Producción** agrupa Tandas, Stock, Compras y ¿Qué compro? con pestañas internas; la pestaña
-  vuelve a la última que se usó.
-- **Más**: Clientes, Gastos y retiros, todo el catálogo y la cuenta, cada uno a un toque.
+- **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más.
+  - **Producción** agrupa Tandas, Stock, Compras y ¿Qué compro? con pestañas internas; la pestaña
+    vuelve a la última que se usó.
+  - **Más**: Clientes, Gastos y retiros, todo el catálogo y la cuenta, cada uno a un toque.
+- **Compu y tablet (≥ 900 px):** menú lateral con todo a un clic: "+ Venta" arriba, Inicio, Ventas y
+  los grupos Producción (Tandas, Stock, Compras, ¿Qué compro?), Negocio (Clientes, Gastos y retiros) y
+  Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes); abajo, **Cuenta** (contraseña y
+  salir), que es lo único que queda en "Más". Sin las pestañas internas de Producción ni "←" hacia "Más".
+  La lista del menú está en `MENU` (`js/app.js`).
 - Toda subpantalla tiene **←** arriba (vuelve a la pantalla de la que depende) y el título en la barra.
 - **Inicio**: accesos rápidos, "Para hacer" (cobros pendientes y stock para reponer), resumen del
   período con variación (el mes en curso se compara con el mismo tramo del mes anterior), gráficos de
