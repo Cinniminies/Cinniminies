@@ -2,6 +2,38 @@ import { sb } from '../db.js';
 import { h, vaciar, campo, toast, conBoton } from '../util.js';
 import { icono } from '../iconos.js';
 import { sesion } from '../app.js';
+import * as push from '../push.js';
+
+// "Avisarme de pedidos nuevos" en este dispositivo. En iPhone solo funciona con la app agregada a la
+// pantalla de inicio (iOS 16.4+): en Safari común se muestra cómo instalarla.
+function filaAvisos() {
+  const sub = h('div', { class: 't2', style: 'white-space: normal' }, 'En este celular o compu, cuando entra un pedido de la web');
+  const fila = (control) => h('li', {}, h('div', { class: 'fila' }, h('span', { class: 'fila-ico' }, icono('carrito')),
+    h('div', { class: 'princ' }, h('div', { class: 't1' }, 'Avisarme de pedidos nuevos'), sub), control));
+  const soporte = push.soporte();
+  if (soporte !== 'ok') {
+    sub.textContent = soporte === 'instalar'
+      ? 'En iPhone: tocá Compartir → "Agregar a inicio", abrí la app desde ahí y activalos.'
+      : 'Este navegador no permite avisos.';
+    return fila(null);
+  }
+  const casilla = h('input', { type: 'checkbox', 'aria-label': 'Avisarme de pedidos nuevos', disabled: true });
+  push.activos().then((si) => { casilla.checked = si; casilla.disabled = false; }).catch(() => { casilla.disabled = false; });
+  casilla.onchange = async () => {
+    const quiere = casilla.checked;
+    casilla.disabled = true;
+    try {
+      if (quiere) await push.activar(); else await push.desactivar();
+      toast(quiere ? 'Listo: te vamos a avisar de cada pedido nuevo' : 'Avisos desactivados en este dispositivo');
+    } catch (e) {
+      casilla.checked = !quiere;
+      toast(e.message, { error: true });
+    } finally {
+      casilla.disabled = false;
+    }
+  };
+  return fila(h('label', { class: 'interruptor solo' }, casilla));
+}
 
 // Todo lo que no es de uso diario, agrupado. Cada destino está a un toque. En pantallas grandes
 // Negocio y Catálogo están en el menú lateral y acá queda solo la cuenta.
@@ -44,6 +76,7 @@ export async function mostrar(cont) {
       item('#/web', 'etiqueta', 'Textos e imágenes', 'Inicio, dónde encontrarnos, contacto y WhatsApp de la web')),
     h('h2', { class: 'seccion-titulo' }, 'Cuenta'),
     h('ul', { class: 'lista' },
+      filaAvisos(),
       h('li', {}, h('details', { class: 'fila-detalle' },
         h('summary', { class: 'fila' }, h('span', { class: 'fila-ico' }, icono('llave')),
           h('div', { class: 'princ' }, h('div', { class: 't1' }, 'Contraseña'),

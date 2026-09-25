@@ -428,5 +428,35 @@ begin
              where x.id = (v->>'venta_id')::uuid) = 'PRUEBA Nuevo/Web', 'cliente nuevo';
   end if;
 
+-- Fase 2 · 2.1: push_suscripciones. Cada admin guarda (upsert por user_id + endpoint) y ve solo las suyas;
+-- no puede guardar una a nombre de otro, y el mismo navegador con dos cuentas queda en dos filas.
+do $$
+declare yo uuid; otro uuid; fallo text; n int;
+begin
+  select user_id into yo from usuarios_admin where es_prueba;
+  select user_id into otro from usuarios_admin where not es_prueba limit 1;
+  insert into push_suscripciones (user_id, endpoint, p256dh, auth) values (otro, 'https://push.prueba/x', 'k', 'a');
+
+  perform set_config('request.jwt.claims', json_build_object('sub', yo, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  insert into push_suscripciones (endpoint, p256dh, auth) values ('https://push.prueba/x', 'k', 'a');
+  insert into push_suscripciones (endpoint, p256dh, auth) values ('https://push.prueba/x', 'k2', 'a2')
+    on conflict (user_id, endpoint) do update set p256dh = excluded.p256dh;
+  select count(*) into n from push_suscripciones;
+  begin
+    insert into push_suscripciones (user_id, endpoint, p256dh, auth) values (otro, 'https://push.prueba/y', 'k', 'a');
+    fallo := 'no';
+  exception when insufficient_privilege then fallo := 'bloqueado'; end;
+  reset role;
+
+  assert n = 1, 've solo la suya: ' || n;
+  assert fallo = 'bloqueado', 'a nombre de otro: ' || fallo;
+  assert (select count(*) from push_suscripciones where endpoint = 'https://push.prueba/x') = 2, 'una por cuenta';
+  assert (select p256dh from push_suscripciones where user_id = yo and endpoint = 'https://push.prueba/x') = 'k2', 'upsert';
+  begin
+    insert into push_suscripciones (user_id, endpoint, p256dh, auth) values (yo, 'http://inseguro', 'k', 'a');
+    fallo := 'no';
+  exception when check_violation then fallo := 'check'; end;
+  assert fallo = 'check', 'solo https: ' || fallo;
   raise exception 'TODO OK';
 end $$;

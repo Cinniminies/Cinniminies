@@ -266,6 +266,7 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .interruptor { display: flex; align-items: flex-start; gap: .6rem; margin-bottom: .9rem; cursor: pointer; }
 .interruptor input { width: 1.35rem; height: 1.35rem; min-height: 0; margin: .1rem 0 0; accent-color: var(--marca); flex: none; }
 .interruptor small { display: block; color: var(--suave); font-size: .78rem; }
+.interruptor.solo { margin: 0; align-items: center; }
 .receta-fila { display: grid; grid-template-columns: 1fr 6.5rem 2rem; gap: .4rem; align-items: center; margin-bottom: .4rem; }
 .receta-fila .unidad { position: relative; }
 .receta-fila .unidad small { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); color: var(--suave); pointer-events: none; }

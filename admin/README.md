@@ -52,6 +52,10 @@ Cada pedido nuevo muestra a qué cliente va la venta (lee `v_pedidos`): el de la
 "Elegir de la libreta". Se puede elegir uno existente (si no tiene celular, se ofrece guardárselo) o crear
 uno nuevo (precargado con el celular del pedido y origen Web).
 
+**Avisos push** (Más → Cuenta → "Avisarme de pedidos nuevos"): por dispositivo. Guarda la suscripción en
+`push_suscripciones` (`js/push.js`) y `sw.js` muestra el aviso; tocarlo abre Pedidos web. En iPhone solo
+funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari común la fila explica cómo.
+
 ## Web: textos e imágenes (Etapa 7)
 
 **Web → Textos e imágenes** edita lo que dice la web pública (inicio, dónde encontrarnos, contacto, WhatsApp,
