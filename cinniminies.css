@@ -553,7 +553,7 @@ a:hover{ color: var(--canela-hover); }
   max-width: 360px;
   color: var(--cafe);
 }
-.local-list li span{
+.local-list li span:first-child{
   font-family: var(--font-mono);
   font-size: 11px;
   text-transform: uppercase;

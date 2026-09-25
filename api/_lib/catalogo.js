@@ -22,6 +22,14 @@ const foto = (x) => {
   return f && (/^\/?img\/[\w./-]+$/.test(f) || /^https:\/\/[^\s"'<>]+$/.test(f)) ? f : null;
 };
 
+// Textos e imágenes editables (Etapa 7): { clave: texto }. Solo claves "seccion.nombre" y textos cortos;
+// la web los escapa antes de mostrarlos.
+function limpiarContenido(c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return {};
+  return Object.fromEntries(Object.entries(c)
+    .filter(([k, v]) => /^[a-z]+\.[a-z_]+$/.test(k) && typeof v === 'string' && v.length <= 1000));
+}
+
 // Deja solo los campos que usa la web, con los tipos correctos.
 function limpiar(c) {
   return {
@@ -33,6 +41,7 @@ function limpiar(c) {
       foto: foto(s.foto),
       precio_unidad: num(s.precio_unidad),
     })),
+    contenido: limpiarContenido(c?.contenido),
     formatos: (c?.formatos || []).map((f) => ({
       nombre: txt(f.nombre),
       tipo: f.tipo,
@@ -44,4 +53,4 @@ function limpiar(c) {
   };
 }
 
-module.exports = { leerCatalogo, limpiar };
+module.exports = { leerCatalogo, limpiar, limpiarContenido };

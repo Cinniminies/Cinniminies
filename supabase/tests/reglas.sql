@@ -327,3 +327,19 @@ begin
 
   raise exception 'TODO OK';
 end $$;
+
+-- Etapa 7: contenido de la web. Checks por tipo y que llegue al catálogo sin tocar el original.
+do $$
+declare fallos int := 0;
+begin
+  begin update contenido_web set valor = '095226739' where clave = 'contacto.whatsapp'; exception when check_violation then fallos := fallos + 1; end;
+  begin update contenido_web set valor = '@cinni' where clave = 'contacto.instagram'; exception when check_violation then fallos := fallos + 1; end;
+  begin update contenido_web set valor = 'javascript:alert(1)' where clave = 'hero.foto'; exception when check_violation then fallos := fallos + 1; end;
+  begin update contenido_web set valor = '' where clave = 'hero.frase'; exception when check_violation then fallos := fallos + 1; end;
+  assert fallos = 4, 'checks: ' || fallos;
+  update contenido_web set valor = 'https://skysdjfxuykrufawhzvn.supabase.co/storage/v1/object/public/web/x.webp' where clave = 'hero.foto';
+  update contenido_web set valor = 'Otra frase' where clave = 'hero.frase';
+  assert (select catalogo_web()->'contenido'->>'hero.frase') = 'Otra frase', 'catalogo';
+  assert (select original from contenido_web where clave = 'hero.frase') = 'Horneado en Paysandú con exceso de amor.', 'original';
+  raise exception 'TODO OK';
+end $$;

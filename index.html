@@ -46,19 +46,19 @@
     <div class="hero-bg">
       <picture>
         <source srcset="img/hero-bg.webp" type="image/webp">
-        <img src="img/hero-bg.webp" alt="" class="hero-bg-photo">
+        <img src="img/hero-bg.webp" alt="" class="hero-bg-photo" data-contenido-img="hero.foto">
       </picture>
       <div class="hero-bg-fade"></div>
     </div>
 
     <div class="hero-text">
-      <p class="eyebrow">Horneado en Paysandú con exceso de amor.</p>
-      <h1 class="hero-title">
+      <p class="eyebrow" data-contenido="hero.frase">Horneado en Paysandú con exceso de amor.</p>
+      <h1 class="hero-title" data-contenido="hero.titulo">
         El roll<br>
         que se <em>desenrolla</em><br>
         en capas de canela.
       </h1>
-      <p class="hero-sub">
+      <p class="hero-sub" data-contenido="hero.texto">
         Cinniminies es un horno chico en Paysandú donde cada caja se arma a mano.
       </p>
       <div class="hero-actions">
@@ -182,43 +182,43 @@
   <!-- LOCAL -->
   <section class="local" id="local">
     <div class="local-info">
-      <p class="eyebrow">Dónde encontrarnos</p>
-      <h2 class="section-title">Retiro en Paysandú,<br>con aviso previo.</h2>
-      <p class="local-text">
+      <p class="eyebrow" data-contenido="local.frase">Dónde encontrarnos</p>
+      <h2 class="section-title" data-contenido="local.titulo">Retiro en Paysandú,<br>con aviso previo.</h2>
+      <p class="local-text" data-contenido="local.texto">
         No tenemos local, funcionamos por pedido. Escribinos por WhatsApp o por DM en Instagram
         y coordinamos juntos el horario de retiro para el día sábado.
       </p>
       <ul class="local-list">
-        <li><span>Zona</span>Cerca de Barrio Obrero, Paysandú</li>
-        <li><span>¿Cuándo estamos?</span>Los días sábado</li>
-        <li><span>¿A qué hora?</span>Alrededor del mediodia</li>
+        <li><span>Zona</span><span data-contenido="local.zona">Cerca de Barrio Obrero, Paysandú</span></li>
+        <li><span>¿Cuándo estamos?</span><span data-contenido="local.cuando">Los días sábado</span></li>
+        <li><span>¿A qué hora?</span><span data-contenido="local.hora">Alrededor del mediodia</span></li>
 
       </ul>
     </div>
     <div class="local-map">
-      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d250.6050913965069!2d-58.061820849953996!3d-32.319193573440536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95afc97afac7e1a5%3A0x546b41531c68be01!2sBruno%20Goyeneche%20976%2C%2060000%20Paysand%C3%BA%2C%20Departamento%20de%20Paysand%C3%BA!5e0!3m2!1ses-419!2suy!4v1782011792443!5m2!1ses-419!2suy" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <iframe data-contenido-mapa="local.mapa" title="Mapa de la zona de retiro" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d250.6050913965069!2d-58.061820849953996!3d-32.319193573440536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95afc97afac7e1a5%3A0x546b41531c68be01!2sBruno%20Goyeneche%20976%2C%2060000%20Paysand%C3%BA%2C%20Departamento%20de%20Paysand%C3%BA!5e0!3m2!1ses-419!2suy!4v1782011792443!5m2!1ses-419!2suy" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
   </section>
 
   <!-- CONTACTO / FOOTER -->
   <footer class="contact" id="contacto">
     <div class="contact-main">
-      <p class="eyebrow">¿Pedimos?</p>
-      <h2 class="contact-title">Escribinos y coordinamos<br>tu caja para este finde.</h2>
+      <p class="eyebrow" data-contenido="contacto.frase">¿Pedimos?</p>
+      <h2 class="contact-title" data-contenido="contacto.titulo">Escribinos y coordinamos<br>tu caja para este finde.</h2>
       <div class="contact-links">
-        <a href="https://wa.me/59895226739" target="_blank" rel="noopener" class="contact-link is-primary">
+        <a href="https://wa.me/59895226739" target="_blank" rel="noopener" class="contact-link is-primary" data-contenido-whatsapp="contacto.whatsapp">
           WhatsApp
-          <small>Respuesta en el día</small>
+          <small data-contenido="contacto.whatsapp_nota">Respuesta en el día</small>
         </a>
-        <a href="https://instagram.com/cinniminies.pay" target="_blank" rel="noopener" class="contact-link">
+        <a href="https://instagram.com/cinniminies.pay" target="_blank" rel="noopener" class="contact-link" data-contenido-instagram="contacto.instagram">
           Instagram
-          <small>@cinniminies.pay</small>
+          <small data-contenido-instagram-texto="contacto.instagram">@cinniminies.pay</small>
         </a>
       </div>
     </div>
     <div class="contact-bottom">
       <span class="brand small">Cinni<span>minies</span></span>
-      <span>&copy; 2026 · Hecho a mano en Paysandú</span>
+      <span data-contenido="contacto.pie">&copy; 2026 · Hecho a mano en Paysandú</span>
     </div>
   </footer>
 
@@ -311,7 +311,7 @@
         <span class="order-id-label">Tu número de pedido</span>
         <span class="order-id-value" id="orderIdDisplay">CM-0000</span>
       </div>
-      <p class="done-text">Ya nos llegó tu pedido. Te vamos a escribir por WhatsApp para confirmar el horario de retiro. Si querés adelantarte, tocá el botón de abajo.</p>
+      <p class="done-text" data-contenido="pedido.listo">Ya nos llegó tu pedido. Te vamos a escribir por WhatsApp para confirmar el horario de retiro. Si querés adelantarte, tocá el botón de abajo.</p>
       <a href="#" target="_blank" rel="noopener" class="btn-primary cart-whatsapp" id="doneWhatsapp">Escribir por WhatsApp</a>
     </div>
 

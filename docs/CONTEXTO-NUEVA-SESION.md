@@ -17,8 +17,8 @@
 | Correcciones visuales y rediseño de `/admin` | ✅ Publicados (PR #6, #7, #8, #9) |
 | 4. Google Sheet de análisis (solo lectura) | ✅ Cerrada (25/09). Sheet "Cinniminies · Análisis" en el Drive de Lucio, actualización cada hora ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
 | 5. Web pública lee el catálogo | ✅ Publicada y aceptada. Fotos de sabores subidas desde /admin (bucket `sabores`) |
-| 6. Pedidos de la web a la base | 🔧 Código listo (`/api/pedidos`, /admin → Pedidos web). **Falta la aceptación:** un pedido real de punta a punta |
-| 7. Panel para editar la web pública | Pendiente (TO-DO 3, ver handoff) |
+| 6. Pedidos de la web a la base | ✅ Publicada y aceptada |
+| 7. Panel para editar la web pública | 🔧 Código listo (/admin → Web → Textos e imágenes). **Falta la aceptación:** cambiar un texto y una imagen y verlos en la web |
 
 Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/admin/.
 
@@ -29,7 +29,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 ### Base de datos (Supabase)
 - **Proyecto:** `cinniminies`, ref `skysdjfxuykrufawhzvn`, región São Paulo, plan gratis, en la organización *cinniminies*.
   Se pausa tras 7 días sin actividad.
-- **Migraciones:** `supabase/migrations/` (15 archivos, todas aplicadas). Cada cambio nuevo = un archivo nuevo
+- **Migraciones:** `supabase/migrations/` (16 archivos, todas aplicadas). Cada cambio nuevo = un archivo nuevo
   con timestamp + aplicarlo con el MCP de Supabase (`apply_migration`). No editar migraciones ya aplicadas.
 - **Reglas de negocio en Postgres** (la app no calcula nada que se guarde):
   - Costos: `costo_insumo`, `costo_tanda`, `costo_roll`, `costo_caja` (incluye papel manteca y stickers).
@@ -72,6 +72,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   /admin → Pedidos web confirma (`confirmar_pedido` → venta) o rechaza. Si la API falla, la web sigue como antes.
 - Probar funciones de `api/` en local: un servidor Node chico que sirve el sitio y llama a los handlers con
   `.env.local` (no hay `vercel dev`). Interceptar Web3Forms/Sheets en el navegador para no mandar mails reales.
+- Etapa 7: `contenido_web` (textos e imágenes de la web) → viaja en `/api/catalogo` → `data-contenido*` en `index.html`.
+  Para sumar un lugar editable: fila nueva en `contenido_web` + atributo en `index.html`.
 
 ### Migración del histórico (`migracion/`)
 - `importar.py` (Python sin dependencias) + `xlsx.py`. Ya se usó; no hace falta volver a correrlo.
@@ -132,7 +134,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
 3. Menú lateral de /admin con todas las secciones (PR #14): si no está en `main`, revisar que se haya mergeado.
-4. **Etapa 6:** confirmar la aceptación con un pedido real. Después, **Etapa 7** (panel para editar textos e
-   imágenes de la web): relevar con los dueños qué quieren editar antes de construir.
+4. **Etapa 7:** confirmar la aceptación. Pendientes sueltos: decidir hosting (Vercel Pro o mover, handoff 3.1),
+   sacar el envío a `GOOGLE_SHEETS_URL` del checkout con OK de los dueños, y la aceptación de la Etapa 2 (carga en paralelo).
 5. Seguí el flujo de la sección 3: una rama por tarea, PR directo a `main`, probar en Chrome con usuario temporal,
    dejar la base como estaba.
