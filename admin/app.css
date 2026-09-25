@@ -109,6 +109,8 @@ main:focus { outline: none; }
 }
 .tabs .tab-principal .ico svg { width: 1.5rem; height: 1.5rem; }
 .tabs .tab-principal.activo .ico { outline: 3px solid var(--marca-suave); }
+/* Lo que va solo en el menú lateral o solo en el celular */
+.solo-lateral { display: none !important; }
 
 /* ---------- Tarjetas y listas ---------- */
 .chev { color: var(--suave); font-size: 1.35rem; line-height: 1; }
@@ -389,8 +391,19 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
   .tabs .tab-principal.activo { background: var(--marca); color: var(--sobre-marca); }
   .tabs .tab-principal .ico, .tabs .tab-principal.activo .ico { margin: 0; width: 1.5rem; height: 1.5rem; background: none; box-shadow: none; outline: 0; }
   .tabs .tab-principal .ico svg { width: 1.4rem; height: 1.4rem; }
+  /* Menú lateral completo: más compacto y con grupos; si no entra en la pantalla, se desplaza. */
+  .tabs { overflow-y: auto; scrollbar-width: thin; gap: .1rem; padding: .85rem .75rem 1.25rem; }
+  .tabs a { padding: .5rem .85rem; font-size: .92rem; }
+  .tabs .tab-principal { padding: .7rem .85rem; }
+  .tabs-grupo { margin: .9rem .85rem .25rem; font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--suave); }
+  .tabs-grupo:empty, .tabs-grupo[aria-hidden] { margin-top: auto; }
+  .solo-lateral { display: revert !important; }
+  .tabs a.solo-lateral { display: flex !important; }
+  .solo-celular { display: none !important; }
+  /* Tandas, Stock, Compras y ¿Qué compro? ya están en el menú lateral */
+  .vista .subnav { display: none; }
   .guardar { left: var(--ancho-menu); bottom: 0; }
   .guardar .btn { max-width: 756px; }
-  .vista .subnav { margin: -1.5rem -2rem 1.25rem; padding: .6rem 2rem; }
   .graficos { grid-template-columns: 3fr 2fr; }
 }

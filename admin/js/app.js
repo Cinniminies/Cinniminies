@@ -39,13 +39,32 @@ const ultimaProduccion = () => {
   try { return sessionStorage.getItem('produccion') || 'tandas'; } catch { return 'tandas'; }
 };
 
-const PESTANAS = [
-  ['panel', 'Inicio', 'inicio', () => '#/panel'],
-  ['ventas', 'Ventas', 'ventas', () => '#/ventas'],
-  ['venta', 'Nueva venta', 'nuevo', () => '#/venta'],
-  ['produccion', 'Producción', 'roll', () => `#/${ultimaProduccion()}`],
-  ['mas', 'Más', 'menu', () => '#/mas'],
+// Menú. En el celular: 5 pestañas abajo ('ambos' + 'celular'). En pantallas grandes: menú lateral
+// con todas las secciones ('ambos' + 'lateral'), así Producción y lo que estaba en "Más" quedan a un
+// clic y "Más" pasa a ser solo la cuenta.
+// [clave, texto, ícono, destino, dónde, grupo del menú lateral]. "+ Venta" va al medio en el celular
+// y arriba de todo en el menú lateral (por CSS).
+const MENU = [
+  ['panel', 'Inicio', 'inicio', () => '#/panel', 'ambos'],
+  ['ventas', 'Ventas', 'ventas', () => '#/ventas', 'ambos'],
+  ['venta', 'Venta', 'nuevo', () => '#/venta', 'ambos'],
+  ['produccion', 'Producción', 'roll', () => `#/${ultimaProduccion()}`, 'celular'],
+  ['tandas', 'Tandas', 'roll', () => '#/tandas', 'lateral', 'Producción'],
+  ['stock', 'Stock', 'stock', () => '#/stock', 'lateral', 'Producción'],
+  ['compras', 'Compras', 'bolsa', () => '#/compras', 'lateral', 'Producción'],
+  ['comprar', '¿Qué compro?', 'carrito', () => '#/comprar', 'lateral', 'Producción'],
+  ['clientes', 'Clientes', 'clientes', () => '#/clientes', 'lateral', 'Negocio'],
+  ['gastos', 'Gastos y retiros', 'gasto', () => '#/gastos', 'lateral', 'Negocio'],
+  ['sabores', 'Sabores y recetas', 'roll', () => '#/sabores', 'lateral', 'Catálogo'],
+  ['formatos', 'Formatos', 'caja', () => '#/formatos', 'lateral', 'Catálogo'],
+  ['precios', 'Precios', 'etiqueta', () => '#/precios', 'lateral', 'Catálogo'],
+  ['insumos', 'Insumos', 'bolsa', () => '#/insumos', 'lateral', 'Catálogo'],
+  ['catalogo', 'Costos y márgenes', 'grafico', () => '#/catalogo', 'lateral', 'Catálogo'],
+  ['mas', 'Más', 'menu', () => '#/mas', 'celular'],
+  ['cuenta', 'Cuenta', 'llave', () => '#/mas', 'lateral', ' '],
 ];
+const LATERAL = window.matchMedia('(min-width: 900px)');
+const esLateral = () => LATERAL.matches;
 
 const vista = document.getElementById('vista');
 const tabs = document.getElementById('tabs');
@@ -54,16 +73,25 @@ const atras = document.getElementById('atras');
 const marca = document.getElementById('marca');
 atras.append(icono('atras'));
 
-// Pestañas (abajo en el celular, a la izquierda en pantallas grandes)
-for (const [clave, texto, ico] of PESTANAS) {
-  tabs.append(h('a', { 'data-tab': clave, class: clave === 'venta' ? 'tab-principal' : null },
-    h('span', { class: 'ico' }, icono(ico)), h('span', { class: 'tab-texto' }, clave === 'venta' ? 'Venta' : texto)));
+let grupoActual = null;
+for (const [clave, texto, ico, , donde, grupo] of MENU) {
+  if (grupo && grupo !== grupoActual) {
+    tabs.append(h('div', { class: 'tabs-grupo solo-lateral', 'aria-hidden': grupo.trim() ? null : 'true' }, grupo));
+  }
+  grupoActual = grupo || null;
+  tabs.append(h('a', {
+    'data-tab': clave,
+    class: [clave === 'venta' ? 'tab-principal' : '', donde === 'ambos' ? '' : `solo-${donde}`].join(' ').trim() || null,
+  }, h('span', { class: 'ico' }, icono(ico)), h('span', { class: 'tab-texto' }, texto)));
 }
-function marcarPestana(activa) {
+// En el celular se marca la pestaña del grupo (Producción, Más); en el menú lateral, la pantalla.
+function marcarPestana(pestana, ruta) {
   for (const a of tabs.querySelectorAll('a')) {
-    const [, , , destino] = PESTANAS.find(([c]) => c === a.dataset.tab);
+    const [clave, , , destino, donde] = MENU.find(([c]) => c === a.dataset.tab);
     a.href = destino();
-    const es = a.dataset.tab === activa;
+    const es = donde === 'lateral' ? (clave === 'cuenta' ? ruta === 'mas' : clave === ruta)
+      : donde === 'celular' ? clave === pestana
+      : clave === pestana || clave === ruta;
     a.classList.toggle('activo', es);
     if (es) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
@@ -91,24 +119,37 @@ const TRADUCCIONES = [
 ];
 const traducir = (msg) => TRADUCCIONES.find(([re]) => re.test(msg))?.[1] || msg;
 
-let navegacion = 0;
-async function enrutar() {
-  if (!sesion.nombre) return;
+function rutaActual() {
   let [nombre = 'panel', ...resto] = location.hash.replace(/^#\/?/, '').split('/');
   if (nombre === 'produccion') { history.replaceState(null, '', `#/${ultimaProduccion()}`); nombre = ultimaProduccion(); }
-  const ruta = RUTAS[nombre] ? nombre : 'panel';
-  const [, cargar, pestana] = RUTAS[ruta];
-  const [volver, texto] = volverDe(ruta, resto[0], resto[1]);
-  const esta = ++navegacion;
-  if (pestana === 'produccion' && !resto[0]) {
-    try { sessionStorage.setItem('produccion', ruta); } catch { /* sin almacenamiento: vuelve a Tandas */ }
-  }
+  return [RUTAS[nombre] ? nombre : 'panel', resto];
+}
+
+// Barra de arriba (título y "←") y pestaña marcada. Se rehace sola al cambiar el ancho, sin
+// volver a cargar la pantalla (no se pierde lo que se estaba escribiendo).
+function actualizarBarra(ruta, resto) {
+  let [volver, texto] = volverDe(ruta, resto[0], resto[1]);
+  // En el menú lateral, lo que era de "Más" es una pantalla principal: sin "←" a una lista que ya no está.
+  if (esLateral() && volver === '#/mas') volver = null;
+  if (esLateral() && ruta === 'mas') texto = 'Cuenta';
   titulo.textContent = texto;
   document.title = `${texto} · Cinniminies`;
   atras.hidden = !volver;
   marca.hidden = !!volver;
   atras.onclick = () => { location.hash = volver; };
-  marcarPestana(pestana);
+  marcarPestana(RUTAS[ruta][2], ruta);
+}
+
+let navegacion = 0;
+async function enrutar() {
+  if (!sesion.nombre) return;
+  const [ruta, resto] = rutaActual();
+  const [, cargar, pestana] = RUTAS[ruta];
+  const esta = ++navegacion;
+  if (pestana === 'produccion' && !resto[0]) {
+    try { sessionStorage.setItem('produccion', ruta); } catch { /* sin almacenamiento: vuelve a Tandas */ }
+  }
+  actualizarBarra(ruta, resto);
   vaciar(vista, h('p', { class: 'cargando' }, 'Cargando…'));
   window.scrollTo(0, 0);
   try {
@@ -222,6 +263,7 @@ async function alCambiarSesion(session) {
 }
 
 window.addEventListener('hashchange', enrutar);
+LATERAL.addEventListener('change', () => { if (sesion.nombre) actualizarBarra(...rutaActual()); });
 sb.auth.onAuthStateChange((evento, session) => {
   // Diferido: no se puede llamar a Supabase dentro del callback (bloquea el cliente).
   setTimeout(() => alCambiarSesion(session), 0);
