@@ -19,7 +19,7 @@ const telLindo = (t) => `${t.slice(0, 3)} ${t.slice(3, 6)} ${t.slice(6)}`;
 
 export async function mostrar(cont) {
   const [cat, pedidos] = await Promise.all([
-    catalogo(),
+    catalogo(true), // fresco: un pedido puede traer un sabor creado después de abrir la app
     q(sb.from('pedidos').select('*, pedido_cajas(orden, formato_id, precio, sabores)')
       .eq('estado', estado).order('creado_en', { ascending: estado === 'nuevo' }).limit(100)),
   ]);

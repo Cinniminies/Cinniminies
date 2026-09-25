@@ -41,6 +41,12 @@ export async function mostrar(cont) {
 
   function controlImagen(f) {
     let actual = f.valor;
+    // Imagen subida y todavía sin guardar: si se reemplaza o se vuelve a la original, se borra del bucket.
+    let subidaSinGuardar = null;
+    const descartarSubida = () => {
+      if (subidaSinGuardar) borrarFotoDelBucket('web', subidaSinGuardar);
+      subidaSinGuardar = null;
+    };
     const vista = h('div', { class: 'foto-sabor foto-ancha' });
     const archivo = h('input', { type: 'file', accept: 'image/*', hidden: true });
     const subir = h('button', { class: 'btn chico', type: 'button', onclick: () => archivo.click() }, 'Cambiar imagen');
@@ -49,14 +55,16 @@ export async function mostrar(cont) {
       vaciar(vista, h('img', { src: srcFoto(actual), alt: f.etiqueta }));
       volver.hidden = actual === f.original;
     };
-    volver.onclick = () => { actual = f.original; marcar(f, actual); dibujar(); };
+    volver.onclick = () => { descartarSubida(); actual = f.original; marcar(f, actual); dibujar(); };
     archivo.onchange = () => conBoton(subir, async () => {
       const a = archivo.files[0];
       archivo.value = '';
       if (!a) return;
       subir.textContent = 'Subiendo…';
       try {
-        actual = await subirFoto('web', a, f.clave.replace('.', '-'));
+        const nueva = await subirFoto('web', a, f.clave.replace('.', '-'));
+        descartarSubida();
+        actual = subidaSinGuardar = nueva;
         marcar(f, actual);
         toast('Imagen subida: tocá Guardar para que quede');
       } finally {

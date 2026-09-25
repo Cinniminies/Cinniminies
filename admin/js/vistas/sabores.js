@@ -173,7 +173,14 @@ async function ficha(cont, id) {
   const vistaFoto = h('div', { class: 'foto-sabor' });
   const archivo = h('input', { type: 'file', accept: 'image/*', hidden: true });
   const subir = h('button', { class: 'btn chico', type: 'button', onclick: () => archivo.click() });
-  const quitar = h('button', { class: 'btn chico', type: 'button', onclick: () => { datos.foto = ''; dibujarFoto(); } }, 'Quitar');
+  // Foto subida en esta pantalla y todavía sin guardar: si se reemplaza o se quita, se borra del
+  // bucket para no dejar archivos huérfanos.
+  let subidaSinGuardar = null;
+  const descartarSubida = () => {
+    if (subidaSinGuardar) borrarFotoDelBucket('sabores', subidaSinGuardar);
+    subidaSinGuardar = null;
+  };
+  const quitar = h('button', { class: 'btn chico', type: 'button', onclick: () => { descartarSubida(); datos.foto = ''; dibujarFoto(); } }, 'Quitar');
   function dibujarFoto() {
     vaciar(vistaFoto, datos.foto
       ? h('img', { src: srcFoto(datos.foto), alt: `Foto de ${datos.nombre || 'el sabor'}` })
@@ -188,7 +195,9 @@ async function ficha(cont, id) {
     if (!f) return;
     subir.textContent = 'Subiendo…';
     try {
-      datos.foto = await subirFoto('sabores', f, datos.slug || datos.nombre);
+      const nueva = await subirFoto('sabores', f, datos.slug || datos.nombre);
+      descartarSubida();
+      datos.foto = subidaSinGuardar = nueva;
       toast('Foto subida: tocá Guardar para que quede');
     } finally {
       dibujarFoto();

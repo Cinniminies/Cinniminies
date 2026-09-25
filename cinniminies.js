@@ -106,9 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ==========================================================
      CARRITO POR CAJAS + CHECKOUT + ENVÍO DE PEDIDO
-     Modelo: las cajas de 6 y 12 tienen precio fijo por caja completa.
-     La caja "personalizada" admite entre 3 y 12 rolls, cobrados a
-     $50 cada uno, y se considera completa con 3 o más unidades.
+     Modelo: las cajas fijas (6 y 12) tienen precio por caja completa.
+     La caja "personalizada" admite entre CUSTOM_MIN y CUSTOM_MAX rolls,
+     cada uno al precio por unidad de su sabor, y está completa desde el
+     mínimo. Precios y límites salen del catálogo (/api/catalogo).
      ========================================================== */
 
   // ---- CONFIGURACIÓN: reemplazar con tu propia access key de Web3Forms ----
@@ -258,6 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Los nombres y los ids de sabores vienen del catálogo: se escapan antes de armar HTML.
+  const esc = (x) => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
   function renderCart() {
     const rollCount = cartRollCount();
     if (cartFabCount) cartFabCount.textContent = rollCount;
@@ -280,14 +284,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const cap = boxCap(box);
 
       const flavorRows = Object.entries(box.flavors).map(([id, qty]) => `
-        <div class="cart-item" data-box="${boxIndex}" data-flavor="${id}">
+        <div class="cart-item" data-box="${boxIndex}" data-flavor="${esc(id)}">
           <div class="cart-item-info">
-            <span class="cart-item-name">${box._flavorNames[id]}</span>
+            <span class="cart-item-name">${esc(box._flavorNames[id])}</span>
           </div>
           <div class="cart-item-qty">
-            <button class="qty-btn" data-action="dec" data-box="${boxIndex}" data-flavor="${id}" type="button">&minus;</button>
+            <button class="qty-btn" data-action="dec" data-box="${boxIndex}" data-flavor="${esc(id)}" type="button" aria-label="Sacar un ${esc(box._flavorNames[id])}">&minus;</button>
             <span class="qty-value">${qty}</span>
-            <button class="qty-btn" data-action="inc" data-box="${boxIndex}" data-flavor="${id}" type="button" ${filled >= cap ? 'disabled' : ''}>+</button>
+            <button class="qty-btn" data-action="inc" data-box="${boxIndex}" data-flavor="${esc(id)}" type="button" aria-label="Sumar un ${esc(box._flavorNames[id])}" ${filled >= cap ? 'disabled' : ''}>+</button>
           </div>
         </div>
       `).join('');
@@ -539,8 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Vienen en /api/catalogo como { "hero.titulo": "…" }. Cada lugar de index.html tiene un atributo
   // data-contenido*="clave"; lo que no venga queda como está escrito.
   function marcado(texto) {
-    const seguro = texto.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-    return seguro.replace(/\*([^*\n]+)\*/g, '<em>$1</em>').replace(/\r?\n/g, '<br>');
+    return esc(texto).replace(/\*([^*\n]+)\*/g, '<em>$1</em>').replace(/\r?\n/g, '<br>');
   }
 
   function aplicarContenido(c) {
@@ -642,6 +645,13 @@ document.addEventListener('DOMContentLoaded', () => {
     closeBoxCompleteModal();
     goToStep(stepCart);
     openModal();
+  });
+
+  // Escape cierra el popup de caja completa o el carrito (salvo mientras se envía el pedido).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (boxCompleteModal?.classList.contains('is-open')) closeBoxCompleteModal();
+    else if (cartModal?.classList.contains('is-open') && !enviandoPedido) closeModal();
   });
 
   cartContinueBtn?.addEventListener('click', () => {
