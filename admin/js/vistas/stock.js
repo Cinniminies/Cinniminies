@@ -1,5 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton } from '../util.js';
+import { subnavProduccion } from '../componentes.js';
 
 // 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas), alertas y conteos.
 export async function mostrar(cont, { id }) {
@@ -23,11 +24,10 @@ async function resumen(cont) {
   const alertas = stock.filter((s) => s.reponer).length;
 
   vaciar(cont,
+    subnavProduccion('stock'),
     h('p', { class: 'ayuda' }, 'Stock teórico: el último conteo, más lo comprado, menos lo que usaron las tandas y las cajas vendidas después.'),
     alertas ? h('p', {}, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
-    h('div', { class: 'acciones' },
-      h('a', { class: 'btn primario', href: '#/stock/conteo' }, 'Cargar conteo'),
-      h('a', { class: 'btn', href: '#/comprar' }, '¿Qué compro?')),
+    h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/stock/conteo' }, 'Cargar conteo')),
     tabla('ingrediente', 'Ingredientes'),
     tabla('packaging', 'Packaging'));
 }

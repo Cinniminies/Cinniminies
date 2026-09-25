@@ -20,20 +20,16 @@
 <script type="module" src="js/app.js"></script>
 </head>
 <body>
+  <a class="saltar" href="#vista">Ir al contenido</a>
   <header class="barra">
-    <a href="#/panel" class="marca">Cinniminies</a>
-    <span class="barra-titulo" id="titulo"></span>
+    <button type="button" class="atras" id="atras" hidden aria-label="Volver"></button>
+    <a href="#/panel" class="marca" id="marca">Cinniminies</a>
+    <h1 class="barra-titulo" id="titulo"></h1>
   </header>
-  <main id="vista" class="vista" aria-live="polite">
+  <nav class="tabs" id="tabs" aria-label="Secciones" hidden></nav>
+  <main id="vista" class="vista" tabindex="-1">
     <p class="cargando">Cargando…</p>
   </main>
-  <nav class="tabs" id="tabs" hidden>
-    <a href="#/panel" data-tab="panel"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg></span>Inicio</a>
-    <a href="#/ventas" data-tab="ventas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span>Ventas</a>
-    <a href="#/venta" data-tab="venta" class="tab-principal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>Venta</a>
-    <a href="#/tandas" data-tab="tandas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a1.75 1.75 0 0 1 3.5 0a3.5 3.5 0 0 1-7 0a5.25 5.25 0 0 1 10.5 0a7 7 0 0 1-14 0"/></svg></span>Tandas</a>
-    <a href="#/mas" data-tab="mas"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/></svg></span>Más</a>
-  </nav>
-  <div class="toast" id="toast" role="status" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

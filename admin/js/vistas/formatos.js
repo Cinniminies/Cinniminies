@@ -153,7 +153,6 @@ async function ficha(cont, id) {
       campo('Agregar', nuevoEspecial),
     ] : null,
     id && datos.tipo !== 'caja_fija'
-      ? h('p', { class: 'ayuda' }, 'Este formato cobra el precio por unidad de cada sabor: se carga en cada sabor.') : null,
-    h('p', { class: 'pie' }, h('a', { href: '#/formatos' }, '← Volver a formatos')));
+      ? h('p', { class: 'ayuda' }, 'Este formato cobra el precio por unidad de cada sabor: se carga en cada sabor.') : null);
   mostrarCampos();
 }
