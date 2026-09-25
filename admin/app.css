@@ -76,6 +76,9 @@ h3 { font-size: 1rem; margin: 0 0 .5rem; }
 .barra-titulo { font-family: var(--cuerpo); font-size: 1.05rem; font-weight: 600; margin: 0; color: var(--texto);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .marca:not([hidden]) + .barra-titulo { color: var(--suave); font-weight: 500; }
+.modo-prueba { margin-left: auto; flex: none; padding: .2rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 600;
+  background: var(--alerta-suave); color: var(--alerta); }
+.modo-prueba[hidden] { display: none; }
 .atras { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; margin-left: -.6rem;
   background: none; border: 0; border-radius: 50%; color: var(--marca); cursor: pointer; }
 .atras .icono { width: 1.6rem; height: 1.6rem; }

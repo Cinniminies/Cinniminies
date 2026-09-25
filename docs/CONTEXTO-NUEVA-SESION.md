@@ -1,6 +1,6 @@
 # Cinniminies · Contexto para una sesión nueva
 
-> Resumen de lo hecho hasta el **25/09/2026** y cómo seguir. Leelo entero antes de tocar nada.
+> Resumen de lo hecho hasta el **25/09/2026** (fase 2 en curso) y cómo seguir. Leelo entero antes de tocar nada.
 > El plan completo (modelo de datos, reglas de negocio, etapas) está en
 > [`HANDOFF-cinniminies-app.md`](HANDOFF-cinniminies-app.md): este archivo no lo reemplaza, lo pone al día.
 
@@ -79,6 +79,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 - `importar.py` (Python sin dependencias) + `xlsx.py`. Ya se usó; no hace falta volver a correrlo.
   `importar_planilla` se niega a correr si hay datos cargados desde la app.
 - `crear_admins.py`: crea usuarios de `/admin` confirmados, sin mandar mail.
+- `usuario_prueba.py crear|borrar`: el usuario de prueba fijo para probar /admin en local (ver sección 3).
 
 ---
 
@@ -100,11 +101,15 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 1. En esta compu **no hay Node ni pip**. Para revisar JS: bajar Node portátil al scratchpad
    (`curl https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.xz` + `tar -xf`) y usar
    `node --check --input-type=module < archivo.js` y `node --test admin/tests/*.test.mjs`.
-2. Servidor: `python3 -m http.server 8777 --bind 127.0.0.1` en segundo plano (desde la raíz del repo).
-   Para apagarlo **no** usar `pkill -f "http.server 8777"` en el mismo comando que otra cosa (mata esa misma shell):
-   `ps aux | grep "[h]ttp.server 8777" | awk '{print $2}' | xargs -r kill`.
-3. **Usuario temporal:** crear `prueba-admin@cinniminies.test` con contraseña aleatoria vía Auth Admin API
-   (con la service key) + fila en `usuarios_admin`; **borrarlo al terminar**. No usar las cuentas de Pia y Lucio.
+2. Servidor: `node scripts/servidor-dev.js` en segundo plano (desde la raíz del repo, con el Node portátil):
+   sirve la web, /admin y `api/` en `http://127.0.0.1:8777/`, como Vercel. No sirve archivos ocultos (`.env.local`, `.git`).
+3. **Usuario de prueba (fijo, tarea 8.2):** `prueba-admin@cinniminies.test`, nombre "Prueba", con
+   `usuarios_admin.es_prueba = true` (en /admin se ve el aviso "Modo prueba"). Lo creó Lucio con
+   `python3 migracion/usuario_prueba.py crear`, que dejó `PRUEBA_ADMIN_EMAIL` y `PRUEBA_ADMIN_PASSWORD` en `.env.local`.
+   **Para entrar:** abrir `http://127.0.0.1:8777/dev/entrar-prueba` (solo existe en el servidor local): inicia sesión
+   con esos datos y va a /admin, sin que la contraseña pase por el chat. **No borrarlo al terminar.** No usar las
+   cuentas de Pia y Lucio. Si la ruta dice que falta, pedirle al usuario que corra
+   `! cd <repo> && python3 migracion/usuario_prueba.py crear` (también sirve para cambiarle la contraseña).
 4. **Ancho de celular:** la ventana de Chrome no se achica; usar una página temporal `admin/_prueba.html` con un
    `<iframe>` de 390 px (y un `<style>` inyectado para forzar el modo claro). Borrarla al terminar.
 5. **Caché:** Chrome guarda los módulos viejos. Antes de probar, `fetch(archivo, { cache: 'reload' })` de todos
@@ -134,7 +139,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
 3. **Lo que sigue está en [`HANDOFF-fase-2.md`](HANDOFF-fase-2.md):** las mejoras elegidas por los dueños, con triage
-   (empezar por 🔴 8.2, el usuario de prueba) y el contexto de cada una. Las ideas que quedaron para más adelante
+   y el contexto de cada una. **Hecho:** 8.2 (usuario de prueba). **Pospuestas por los dueños:** 2.4 (cupos) y 6.6 (reseñas). Las ideas que quedaron para más adelante
    están en [`IDEAS-FUTURAS.md`](IDEAS-FUTURAS.md).
 4. Pendientes sueltos que no entraron en la fase 2 (están en `IDEAS-FUTURAS.md`, sección 1): **evitar que Supabase se
    pause** tras 7 días sin actividad (la web usa el catálogo desde la cache de Vercel, así que las visitas no siempre llegan a la base),
