@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, stepper, campo, grupo, hoyISO, fechaCorta, numero, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
-import { irA } from '../app.js';
+import { irA, refrescarSi } from '../app.js';
 
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
 // con la receta del día (snapshot en tanda_consumos).
@@ -27,7 +27,7 @@ export async function mostrar(cont) {
     toast(`Tanda guardada: ${numero(r.cantidad)} × ${r.sabor} (${r.rolls} rolls)`, {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from('tandas').delete().eq('id', r.tanda_id)); toast('Tanda deshecha'); irA('#/tandas'); },
+        fn: async () => { await q(sb.from('tandas').delete().eq('id', r.tanda_id)); toast('Tanda deshecha'); refrescarSi('#/tandas'); },
       },
     });
     irA('#/tandas');
@@ -37,7 +37,7 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      campo('Fecha', h('input', { type: 'date', value: f.fecha, max: hoyISO(), onchange: (e) => { f.fecha = e.target.value; } })),
+      campoFecha(f.fecha, (v) => { f.fecha = v; }),
       grupo('Sabor', chips(cat.saboresActivos.map((s) => ({ valor: s.id, texto: s.nombre })), null,
         (v) => { f.sabor_id = v; actualizarRolls(); })),
       h('div', { class: 'stepper-fila' }, h('div', { class: 'nombre' }, 'Tandas'),

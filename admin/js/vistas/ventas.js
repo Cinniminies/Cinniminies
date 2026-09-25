@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, grupo, pesos, fechaCorta, fechaLarga, nombreMes, hoyISO, toast, conBoton,
+  h, vaciar, chips, campo, grupo, pesos, fechaCorta, fechaLarga, nombreMes, hoyISO, toast, conBoton, debounce,
   ETIQUETAS, opciones, linkWhatsapp,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
@@ -21,8 +21,11 @@ export async function mostrar(cont, { id, accion }) {
 async function lista(cont) {
   const meses = await q(sb.from('v_resumen_mensual').select('mes,ventas').gt('ventas', 0).order('mes', { ascending: false }));
   const resultados = h('div');
+  let pedido = 0;
 
   async function cargar() {
+    const este = ++pedido;
+    const texto = filtro.texto.trim();
     let consulta = sb.from('v_ventas')
       .select('id,fecha,cliente,formatos,sabores,total,estado_pago,tipo')
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false });
@@ -32,19 +35,23 @@ async function lista(cont) {
       consulta = consulta.gte('fecha', filtro.mes).lt('fecha', siguiente);
     }
     if (filtro.estado === 'pendientes') consulta = consulta.eq('estado_pago', 'pendiente');
-    if (!filtro.mes && filtro.estado === 'todas') consulta = consulta.limit(50);
-    const ventas = await q(consulta);
-    dibujar(ventas);
+    if (texto) consulta = consulta.ilike('cliente', `%${texto.replace(/[%_\\]/g, '')}%`);
+    const limitada = !filtro.mes && filtro.estado === 'todas' && !texto;
+    if (limitada) consulta = consulta.limit(50);
+    try {
+      const ventas = await q(consulta);
+      if (este === pedido) dibujar(ventas, limitada);
+    } catch (e) {
+      if (este === pedido) vaciar(resultados, h('p', { class: 'mensaje-error' }, e.message));
+    }
   }
 
-  function dibujar(ventas) {
-    const t = filtro.texto.trim().toLowerCase();
-    const visibles = t ? ventas.filter((v) => (v.cliente || '').toLowerCase().includes(t)) : ventas;
-    const total = visibles.reduce((a, v) => a + Number(v.total), 0);
+  function dibujar(ventas, limitada) {
+    const total = ventas.reduce((a, v) => a + Number(v.total), 0);
     vaciar(resultados,
-      h('p', { class: 'ayuda' }, `${visibles.length} ventas · ${pesos(total)}${!filtro.mes && filtro.estado === 'todas' ? ' (últimas 50)' : ''}`),
-      visibles.length
-        ? h('ul', { class: 'lista' }, visibles.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
+      h('p', { class: 'ayuda' }, `${ventas.length} ventas · ${pesos(total)}${limitada ? ' (últimas 50)' : ''}`),
+      ventas.length
+        ? h('ul', { class: 'lista' }, ventas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
           h('div', { class: 'princ' },
             h('div', { class: 't1' }, v.cliente || 'Sin cliente', ' ',
               v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null,
@@ -52,24 +59,23 @@ async function lista(cont) {
             h('div', { class: 't2' }, `${fechaCorta(v.fecha)} · ${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
           h('span', { class: 'monto' }, pesos(v.total))))))
         : h('p', { class: 'vacio' }, 'No hay ventas con estos filtros.'));
-    resultados.ventas = ventas;
   }
 
-  const selMes = h('select', { onchange: (e) => { filtro.mes = e.target.value; cargar().catch(mostrarEn); } },
-    h('option', { value: '' }, 'Últimas'),
+  const buscar = debounce(cargar, 300);
+  const selMes = h('select', { onchange: (e) => { filtro.mes = e.target.value; cargar(); } },
+    h('option', { value: '' }, 'Todos'),
     meses.map((m) => h('option', { value: m.mes }, `${nombreMes(m.mes)} (${m.ventas})`)));
   selMes.value = filtro.mes;
-  const mostrarEn = (e) => vaciar(resultados, h('p', { class: 'mensaje-error' }, e.message));
 
   vaciar(cont,
     h('div', { class: 'fila-campos' },
       campo('Mes', selMes),
       campo('Cliente', h('input', {
         type: 'search', value: filtro.texto, placeholder: 'Buscar…',
-        oninput: (e) => { filtro.texto = e.target.value; if (resultados.ventas) dibujar(resultados.ventas); },
+        oninput: (e) => { filtro.texto = e.target.value; buscar(); },
       }))),
     h('div', { class: 'campo' }, chips([{ valor: 'todas', texto: 'Todas' }, { valor: 'pendientes', texto: 'Pendientes de cobro' }],
-      filtro.estado, (v) => { filtro.estado = v; cargar().catch(mostrarEn); })),
+      filtro.estado, (v) => { filtro.estado = v; cargar(); })),
     resultados);
   await cargar();
 }
@@ -176,12 +182,12 @@ async function editar(cont, id) {
     }
     if (!Object.keys(p).length) { irA(`#/ventas/${id}`); return; }
     if ('cliente' in p) {
+      // Un cliente nuevo lo crea actualizar_venta en la misma transacción
       const c = p.cliente;
       delete p.cliente;
       if (c?.nuevo) {
         if (!c.nombre.trim()) throw new Error('Falta el nombre del cliente nuevo');
-        const nuevo = await q(sb.from('clientes').insert({ nombre: c.nombre.trim(), contacto: c.contacto || null, origen: c.origen || null }).select('id').single());
-        p.cliente_id = nuevo.id;
+        p.cliente = { nombre: c.nombre, contacto: c.contacto, origen: c.origen };
       } else {
         p.cliente_id = c?.id || null;
       }
@@ -195,7 +201,9 @@ async function editar(cont, id) {
     campo('Fecha', h('input', { type: 'date', value: v.fecha, max: hoyISO(), onchange: (e) => { cambios.fecha = e.target.value; } })),
     grupo('Cliente', elegirCliente(clientes, cliente, (c) => {
       cambios.cliente = c;
-      if (c && !c.nuevo && c.origen) { origen.value = c.origen; cambios.origen = c.origen; }
+      // Al cambiar de cliente, la venta toma su origen (lo resuelve actualizar_venta)
+      delete cambios.origen;
+      origen.value = c && !c.nuevo ? c.origen || '' : c?.origen || '';
     }, origenes)),
     grupo('Entrega', chips(opciones(ETIQUETAS.entrega), v.entrega, (e) => {
       cambios.entrega = e;
@@ -212,8 +220,8 @@ async function editar(cont, id) {
     campo('Notas', h('textarea', { value: v.notas || '', oninput: (e) => { cambios.notas = e.target.value; } })),
     h('details', { class: 'plegable', ontoggle: (e) => editor.mostrarCajas(e.target.open) },
       h('summary', {}, 'Cambiar productos'),
-      h('p', { class: 'ayuda' }, 'Si cambiás los productos se recalculan el precio de lista y los costos con los valores de la fecha de la venta. '
-        + 'Si no los tocás, la venta conserva los valores con los que se guardó.'),
+      h('p', { class: 'ayuda' }, 'Si cambiás los productos se recalculan el precio de lista y los costos con los valores de la fecha de la venta '
+        + '(si tenía precio especial, se mantiene). Si no los tocás, la venta conserva los valores con los que se guardó.'),
       editor.el),
     h('p', { class: 'pie' }, h('a', { href: `#/ventas/${id}` }, 'Cancelar'))),
   h('div', { class: 'guardar' }, guardar));

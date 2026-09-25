@@ -150,6 +150,16 @@ begin
          jsonb_build_object('formato_id', b12, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', oreo, 'unidades', 12))))));
   assert (e->>'precio_lista')::numeric = 450 and e->>'formatos' = 'Box de 12' and (e->>'rolls')::int = 12, 'productos nuevos';
 
+  -- Con precio especial, cambiar los productos lo conserva (no vuelve al de lista sin avisar)
+  e := actualizar_venta((r->>'venta_id')::uuid, '{"precio_especial": 400}');
+  e := actualizar_venta((r->>'venta_id')::uuid, jsonb_build_object('lineas', jsonb_build_array(
+         jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 6))))));
+  assert (e->>'precio_lista')::numeric = 250 and (e->>'precio_cobrado')::numeric = 400, 'conserva el precio especial';
+
+  -- Pasar la venta a un cliente nuevo: se crea en la misma operación y la venta toma su origen
+  e := actualizar_venta((r->>'venta_id')::uuid, '{"cliente": {"nombre": "Prueba B", "origen": "Web"}}');
+  assert e->>'cliente' = 'Prueba B' and e->>'origen' = 'Web', 'cliente nuevo al editar';
+
   -- Compras: conversión a la unidad base del insumo
   r := registrar_compra(jsonb_build_object('insumo_id', har, 'cantidad', 5, 'unidad', 'kg', 'total', 200));
   assert (r->>'cantidad_base')::numeric = 5000, 'kg a g';

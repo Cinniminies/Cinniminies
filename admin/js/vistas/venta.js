@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, grupo, pesos, hoyISO, toast, conBoton, debounce, mostrarError, ETIQUETAS, opciones,
+  h, vaciar, chips, campo, campoFecha, grupo, pesos, hoyISO, toast, conBoton, debounce, mostrarError, ETIQUETAS, opciones,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
@@ -39,7 +39,6 @@ function payload() {
 }
 
 function formulario(cont, cat, clientes, origenes) {
-  let calculo = null;
   let pedido = 0;
   const resumen = h('div', { class: 'card resumen' });
   const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar venta');
@@ -51,7 +50,6 @@ function formulario(cont, cat, clientes, origenes) {
     p.lineas = editor.valor();
     const este = ++pedido;
     if (editor.vacio()) {
-      calculo = null;
       vaciar(resumen, h('p', { class: 'vacio', style: 'padding:0' }, 'Elegí el formato y los sabores.'));
       guardar.textContent = 'Guardar venta';
       return;
@@ -59,7 +57,6 @@ function formulario(cont, cat, clientes, origenes) {
     try {
       const r = await rpc('calcular_venta', { p });
       if (este !== pedido) return;
-      calculo = r;
       const total = Number(r.precio_cobrado) + Number(r.cobro_envio);
       vaciar(resumen,
         h('div', { class: 'r' }, h('span', {}, `Lista (${r.rolls} rolls)`), h('span', {}, pesos(r.precio_lista))),
@@ -73,7 +70,6 @@ function formulario(cont, cat, clientes, origenes) {
       guardar.textContent = `Guardar venta · ${pesos(total)}`;
     } catch (e) {
       if (este !== pedido) return;
-      calculo = null;
       vaciar(resumen, h('p', { class: 'aviso' }, e.message));
       guardar.textContent = 'Guardar venta';
     }
@@ -117,8 +113,7 @@ function formulario(cont, cat, clientes, origenes) {
   });
 
   vaciar(cont, h('div', { class: 'con-guardar' },
-    campo('Fecha', h('input', { type: 'date', value: estado.fecha, max: hoyISO(), required: true,
-      onchange: (e) => { estado.fecha = e.target.value || hoyISO(); recalcular(); } })),
+    campoFecha(estado.fecha, (v) => { estado.fecha = v; recalcular(); }),
     grupo('Cliente', selector),
     editor.el,
     grupo('Entrega', chips([

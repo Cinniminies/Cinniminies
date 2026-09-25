@@ -2,7 +2,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  // Flujo "implicit" a propósito: el link del mail puede abrirse en otro navegador (en iPhone, Safari
+  // en vez de la app instalada) y PKCE solo funciona en el mismo navegador que lo pidió.
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' },
 });
 
 // Devuelve los datos de una consulta o tira un Error con el mensaje de la base

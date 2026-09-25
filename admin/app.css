@@ -188,6 +188,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .resumen .r.gan { color: var(--ok); font-weight: 600; }
 .resumen .aviso { color: var(--alerta); font-size: .9rem; }
 .mensaje-error { color: var(--alerta); font-size: .9rem; margin: .5rem 0; }
+.aviso-fecha { color: var(--alerta); }
+.aviso-fecha:empty { display: none; }
 
 /* Autocompletar */
 .auto { position: relative; }

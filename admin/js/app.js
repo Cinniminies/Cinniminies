@@ -1,5 +1,5 @@
 import { sb, q } from './db.js';
-import { h, vaciar, campo, toast, mostrarError, conBoton } from './util.js';
+import { h, vaciar, campo, toast, conBoton } from './util.js';
 
 // Rutas: '#/ventas/:id' → { vista: 'ventas', id }. Cada vista exporta `mostrar(contenedor, params)`.
 const RUTAS = {
@@ -18,6 +18,27 @@ const vista = document.getElementById('vista');
 const tabs = document.getElementById('tabs');
 const titulo = document.getElementById('titulo');
 export const sesion = { usuario: null, nombre: null };
+
+// El link del mail vuelve con '#access_token=…' o '#error=…&error_description=…'. supabase-js lee
+// los tokens; acá se guarda el error para mostrarlo y se limpia la URL para el router ('#/…').
+let mensajeLogin = null;
+if (location.hash && !location.hash.startsWith('#/')) {
+  const params = new URLSearchParams(location.hash.slice(1));
+  if (params.get('error')) {
+    mensajeLogin = params.get('error_code') === 'otp_expired'
+      ? 'El link venció o ya se usó. Pedí uno nuevo.'
+      : `No se pudo entrar: ${params.get('error_description') || params.get('error')}`;
+    history.replaceState(null, '', location.pathname);
+  }
+}
+
+const TRADUCCIONES = [
+  [/signups not allowed|user not found/i, 'Ese email no tiene acceso a la app.'],
+  [/rate limit|only request this after/i, 'Se mandaron demasiados mails. Esperá un rato y probá de nuevo, o entrá con contraseña.'],
+  [/invalid login credentials/i, 'Email o contraseña incorrectos.'],
+  [/email not confirmed/i, 'Ese email todavía no está confirmado.'],
+];
+const traducir = (msg) => TRADUCCIONES.find(([re]) => re.test(msg))?.[1] || msg;
 
 let navegacion = 0;
 async function enrutar() {
@@ -62,16 +83,17 @@ function pantallaLogin(mensaje) {
       class: 'card',
       onsubmit: (e) => {
         e.preventDefault();
+        mensajeLogin = null;
         conBoton(boton, async () => {
           if (modo === 'clave') {
             const { error } = await sb.auth.signInWithPassword({ email: email.value.trim(), password: clave.value });
-            if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Email o contraseña incorrectos' : error.message);
+            if (error) throw new Error(traducir(error.message));
           } else if (!codigoEnviado) {
             const { error } = await sb.auth.signInWithOtp({
               email: email.value.trim(),
               options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname },
             });
-            if (error) throw new Error(error.message);
+            if (error) throw new Error(traducir(error.message));
             codigoEnviado = true;
             email.readOnly = true;
             form.insertBefore(h('p', { class: 'ayuda' },
@@ -107,7 +129,8 @@ function pantallaLogin(mensaje) {
 async function alCambiarSesion(session) {
   if (!session) {
     sesion.usuario = sesion.nombre = null;
-    pantallaLogin();
+    // Supabase puede avisar dos veces que no hay sesión: el mensaje se mantiene hasta que se intenta entrar
+    pantallaLogin(mensajeLogin);
     return;
   }
   if (sesion.usuario === session.user.id && sesion.nombre) return;
@@ -115,18 +138,21 @@ async function alCambiarSesion(session) {
   try {
     const admin = await q(sb.from('usuarios_admin').select('nombre').eq('user_id', session.user.id).maybeSingle());
     if (!admin) {
-      sesion.nombre = null;
-      await sb.auth.signOut();
-      pantallaLogin('Tu usuario no tiene acceso a la app.');
+      sesion.usuario = sesion.nombre = null;
+      mensajeLogin = 'Tu usuario no tiene acceso a la app.';
+      await sb.auth.signOut(); // dispara SIGNED_OUT → pantallaLogin(mensajeLogin)
       return;
     }
     sesion.nombre = admin.nombre;
+    mensajeLogin = null;
   } catch (e) {
-    mostrarError(e);
+    sesion.usuario = null;
+    vaciar(vista, h('div', { class: 'card' }, h('p', { class: 'mensaje-error' }, `No se pudo conectar: ${e.message}`),
+      h('button', { class: 'btn', onclick: async () => alCambiarSesion((await sb.auth.getSession()).data.session) }, 'Reintentar')));
     return;
   }
   tabs.hidden = false;
-  if (!location.hash) location.hash = '#/panel';
+  if (!location.hash.startsWith('#/')) history.replaceState(null, '', location.pathname + '#/panel');
   enrutar();
 }
 
@@ -142,4 +168,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 export function irA(hash) {
   if (location.hash === hash) enrutar();
   else location.hash = hash;
+}
+
+// Vuelve a dibujar la pantalla solo si el usuario sigue en ella (para los "Deshacer" de los avisos,
+// que se pueden tocar después de haber cambiado de pantalla).
+export function refrescarSi(hash) {
+  if (location.hash === hash) enrutar();
 }

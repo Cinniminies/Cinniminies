@@ -1,10 +1,9 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, campo, pesos, fechaCorta, toast, conBoton, linkWhatsapp } from '../util.js';
+import { h, vaciar, campo, pesos, fechaCorta, toast, conBoton, linkWhatsapp, normalizar } from '../util.js';
 import { clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { irA } from '../app.js';
 
 let busqueda = '';
-const normal = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export async function mostrar(cont, { id }) {
   return id ? ficha(cont, id) : lista(cont);
@@ -14,8 +13,8 @@ async function lista(cont) {
   const todos = (await leerClientes()).sort((a, b) => Number(b.total_comprado) - Number(a.total_comprado));
   const resultados = h('ul', { class: 'lista' });
   const dibujar = () => {
-    const t = normal(busqueda.trim());
-    const visibles = t ? todos.filter((c) => normal(c.nombre).includes(t) || normal(c.contacto).includes(t)) : todos;
+    const t = normalizar(busqueda.trim());
+    const visibles = t ? todos.filter((c) => normalizar(c.nombre).includes(t) || normalizar(c.contacto).includes(t)) : todos;
     vaciar(resultados, visibles.map((c) => h('li', {}, h('a', { class: 'fila', href: `#/clientes/${c.id}` },
       h('div', { class: 'princ' },
         h('div', { class: 't1' }, c.nombre),
