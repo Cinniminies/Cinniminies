@@ -47,6 +47,11 @@ La web guarda cada pedido en `pedidos` (vía `/api/pedidos`). En **Pedidos web**
 WhatsApp al cliente, **Confirmar como venta** (queda pendiente de cobro, con el total que vio el cliente) o
 **Rechazar**. Los pedidos nuevos aparecen también en Inicio → "Para hacer".
 
+Cada pedido nuevo muestra a qué cliente va la venta (lee `v_pedidos`): el de la libreta con ese celular
+(`cliente_por_telefono`, últimos 8 dígitos) con sus compras y "Es otro cliente", o "Cliente nuevo" con
+"Elegir de la libreta". Se puede elegir uno existente (si no tiene celular, se ofrece guardárselo) o crear
+uno nuevo (precargado con el celular del pedido y origen Web).
+
 ## Web: textos e imágenes (Etapa 7)
 
 **Web → Textos e imágenes** edita lo que dice la web pública (inicio, dónde encontrarnos, contacto, WhatsApp,

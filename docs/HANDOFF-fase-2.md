@@ -38,10 +38,10 @@
 | Prioridad | Tarea | Esfuerzo | Depende de |
 |---|---|---|---|
 | ✅ Hecho (PR #24) | **8.2** Usuario de prueba para /admin | S | Que los dueños corran un comando |
-| 🟠 **Alta** | **2.2** Cliente existente o nuevo al confirmar un pedido web | S | 8.2 (para probar) |
+| ✅ Hecho (PR #25) | **2.2** Cliente existente o nuevo al confirmar un pedido web | S | 8.2 (para probar) |
 | 🟠 **Alta** | **2.1** Aviso push de pedido nuevo en el celular | M | 8.2 · decisión sobre `package.json` |
 | ⏸️ Pospuesta por los dueños (25/09) | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
-| 🟡 **Media** | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
+| ⏸️ Pendiente: armar un plan con los dueños (25/09) | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
 | 🟡 **Media** | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
 | 🟢 **Baja** | **6.5** Más lugares editables de la web | S | — |
 | ⏸️ Pospuesta por los dueños (25/09) | **6.6** Reseñas de clientes | M | Decisión: solo cargadas por los dueños o también formulario público |
@@ -90,7 +90,13 @@ recorrer Pedidos web y Web → Textos e imágenes.
 
 ---
 
-### 🟠 2.2 · Cliente existente o nuevo al confirmar un pedido web
+### ✅ 2.2 · Cliente existente o nuevo al confirmar un pedido web (PR #25)
+
+**Hecho así:** migraciones `20261004100000_cliente_pedido_web.sql` (`cliente_por_telefono`, `v_pedidos`,
+`confirmar_pedido` con `cliente_id` y `guardar_telefono`) y `20261004110000_confirmar_pedido_cliente_nuevo.sql`
+(`p.cliente = {nombre, contacto?, origen?}` para crear uno nuevo aunque el celular coincida, por ejemplo un celular
+compartido). /admin → Pedidos web muestra el cliente y deja cambiarlo con `elegirCliente`; un cliente nuevo sale
+precargado con el celular del pedido y origen Web. Prueba en `reglas.sql` (bloque "Fase 2 · 2.2").
 
 **Hoy.** `confirmar_pedido(p_pedido, p)` (migración `20260930100000_pedidos_web.sql`) busca el cliente por los **últimos 8
 dígitos** del contacto (`right(regexp_replace(contacto, '\D', '', 'g'), 8) = right(ped.telefono, 8)`) y, si no lo encuentra,
@@ -198,7 +204,10 @@ rechaza con el mensaje y la web ofrece el sábado siguiente. /admin muestra 12/1
 
 ---
 
-### 🟡 3.1 + 3.2 · Plan de horneado y "¿Qué compro?" según los pedidos
+### ⏸️ 3.1 + 3.2 · Plan de horneado y "¿Qué compro?" según los pedidos
+
+> **Pendiente (25/09):** los dueños pospusieron la 2.4 y prefieren armar primero un plan para esta tarea (con o sin
+> fecha de entrega) antes de construirla.
 
 **Hoy.** Producción → "¿Qué compro?" (`admin/js/vistas/comprar.js`) le pide al usuario cuántas tandas de cada sabor va
 a hacer y llama a `que_comprar(p jsonb)` (migración `20260926100000_catalogo_y_stock.sql`). `p` es
