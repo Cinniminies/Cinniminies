@@ -14,3 +14,6 @@ supabase/.branches/
 
 # Python
 __pycache__/
+
+# Dependencias de api/ (npm install)
+node_modules/

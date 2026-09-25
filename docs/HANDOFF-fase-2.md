@@ -13,7 +13,7 @@
    (secciones 4 y 5). Revisar `git log` y `gh pr list` por si hubo cambios después del 25/09.
 2. **Arquitectura en una línea:** Supabase (Postgres + Auth + Storage, ref `skysdjfxuykrufawhzvn`) con toda la lógica de
    negocio en funciones SQL · `/admin` (HTML + módulos ES, sin build) · web pública (`index.html` + `cinniminies.js`) ·
-   funciones de Vercel en `api/` (Node, CommonJS, **sin `package.json` todavía**) · Sheet de análisis con Apps Script.
+   funciones de Vercel en `api/` (Node, CommonJS; desde la 2.1 con un `package.json` mínimo, sin build) · Sheet de análisis con Apps Script.
 3. **Reglas de trabajo** (sección 3 del contexto):
    - Una rama por tarea desde `main` actualizado y **PR directo contra `main`** (nunca encadenar PRs). Vercel publica `main`.
    - Todo en español rioplatense: código, comentarios, UI, commits y docs.
@@ -39,7 +39,7 @@
 |---|---|---|---|
 | ✅ Hecho (PR #24) | **8.2** Usuario de prueba para /admin | S | Que los dueños corran un comando |
 | ✅ Hecho (PR #25) | **2.2** Cliente existente o nuevo al confirmar un pedido web | S | 8.2 (para probar) |
-| 🟠 **Alta** | **2.1** Aviso push de pedido nuevo en el celular | M | 8.2 · decisión sobre `package.json` |
+| ✅ Hecho (PR #26) | **2.1** Aviso push de pedido nuevo en el celular | M | 8.2 · decisión sobre `package.json` |
 | ⏸️ Pospuesta por los dueños (25/09) | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
 | ⏸️ Pendiente: armar un plan con los dueños (25/09) | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
 | 🟡 **Media** | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
@@ -122,7 +122,17 @@ un cliente existente y la venta queda a su nombre, sin crear otro.
 
 ---
 
-### 🟠 2.1 · Aviso push de pedido nuevo en el celular
+### ✅ 2.1 · Aviso push de pedido nuevo en el celular (PR #26)
+
+**Hecho así:** claves con `scripts/generar-vapid.js` (las cargó Lucio en Vercel: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+`VAPID_SUBJECT`; la pública también en `admin/js/config.js`). Tabla `push_suscripciones` (migración
+`20261005100000_push_suscripciones.sql`) con **unique (user_id, endpoint)** y RLS "las propias", sin funciones security
+definer: /admin hace upsert directo y el servidor manda **un aviso por endpoint**. `api/_lib/push.js` (`avisarPedidoNuevo`)
+se llama desde `api/pedidos.js` después de responder, con `waitUntil` de `@vercel/functions`; borra las suscripciones con
+404/410 y anota otros errores en `ultimo_error`. `package.json` con `web-push` y `@vercel/functions` (+ lock;
+`node_modules/` en `.gitignore`). /admin: interruptor en Más → Cuenta (`admin/js/push.js`) y `push`/`notificationclick`
+en `admin/sw.js`. **Brave** trae apagado el push de Google: la app lo explica en el aviso de error.
+**Falta la aceptación en el iPhone** (con la app instalada), una vez publicado.
 
 **Hoy.** Un pedido nuevo llega por mail (Web3Forms, desde el navegador del cliente) y aparece en /admin → Pedidos web y en
 Inicio → "Para hacer". No hay aviso en el celular.

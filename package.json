@@ -1,0 +1,9 @@
+{
+  "name": "cinniminies",
+  "private": true,
+  "description": "Dependencias de las funciones de api/ (Vercel las instala solo; no hay build).",
+  "dependencies": {
+    "@vercel/functions": "^3.9.9",
+    "web-push": "^3.6.7"
+  }
+}
