@@ -226,58 +226,68 @@ function crearResumen() {
     ui.alert('Ya hay una pestaña "' + HOJA_RESUMEN + '". Renombrala o borrala si querés crearla de nuevo.');
     return;
   }
-  const h = ss.insertSheet(HOJA_RESUMEN, 0);
-  const titulo = function (celda, texto) {
-    h.getRange(celda).setValue(texto).setFontWeight('bold').setFontSize(12);
-  };
+  // Las fórmulas van con la sintaxis en inglés (coma como separador). En una planilla en
+  // español eso da #ERROR!, así que se usa en_US mientras se escriben y después se vuelve
+  // a la configuración de la planilla (las fórmulas se muestran con ";" como siempre).
+  const regional = ss.getSpreadsheetLocale();
+  if (regional !== 'en_US') ss.setSpreadsheetLocale('en_US');
+  try {
+    const h = ss.insertSheet(HOJA_RESUMEN, 0);
+    const titulo = function (celda, texto) {
+      h.getRange(celda).setValue(texto).setFontWeight('bold').setFontSize(12);
+    };
 
-  // Totales: tienen que coincidir con "Inicio" de la app (período "Todo").
-  titulo('A1', 'Totales');
-  h.getRange('A2:B12').setValues([
-    ['Actualizado', '=MAX(datos_estado!D2:D)'],
-    ['Vendido', '=SUM(resumen_mensual_vendido)'],
-    ['Cobrado', '=SUM(resumen_mensual_cobrado)'],
-    ['Pendiente de cobro', '=SUM(resumen_mensual_pendiente)'],
-    ['Costo de producción', '=SUM(resumen_mensual_costo_produccion)'],
-    ['Costo de cajas', '=SUM(resumen_mensual_costo_caja)'],
-    ['Ganancia bruta', '=SUM(resumen_mensual_ganancia_bruta)'],
-    ['Compras', '=SUM(resumen_mensual_compras)'],
-    ['Gastos', '=SUM(resumen_mensual_gastos)'],
-    ['Retiros de socios', '=SUM(resumen_mensual_retiros)'],
-    ['Stock valorizado', '=SUM(stock_valor)'],
-  ]);
-  h.getRange('B2').setNumberFormat(FORMATOS.fechahora);
-  h.getRange('B3:B12').setNumberFormat(FORMATOS.dinero);
+    // Totales: tienen que coincidir con "Inicio" de la app (período "Todo").
+    titulo('A1', 'Totales');
+    h.getRange('A2:B12').setValues([
+      ['Actualizado', '=MAX(datos_estado!D2:D)'],
+      ['Vendido', '=SUM(resumen_mensual_vendido)'],
+      ['Cobrado', '=SUM(resumen_mensual_cobrado)'],
+      ['Pendiente de cobro', '=SUM(resumen_mensual_pendiente)'],
+      ['Costo de producción', '=SUM(resumen_mensual_costo_produccion)'],
+      ['Costo de cajas', '=SUM(resumen_mensual_costo_caja)'],
+      ['Ganancia bruta', '=SUM(resumen_mensual_ganancia_bruta)'],
+      ['Compras', '=SUM(resumen_mensual_compras)'],
+      ['Gastos', '=SUM(resumen_mensual_gastos)'],
+      ['Retiros de socios', '=SUM(resumen_mensual_retiros)'],
+      ['Stock valorizado', '=SUM(stock_valor)'],
+    ]);
+    h.getRange('B2').setNumberFormat(FORMATOS.fechahora);
+    h.getRange('B3:B12').setNumberFormat(FORMATOS.dinero);
 
-  titulo('D1', 'Por mes');
-  h.getRange('D2').setFormula(
-    '=QUERY({resumen_mensual_mes, resumen_mensual_ventas, resumen_mensual_vendido, ' +
-    'resumen_mensual_ganancia_bruta, resumen_mensual_compras, resumen_mensual_gastos, ' +
-    'resumen_mensual_resultado}, "select * where Col1 is not null order by Col1 desc ' +
-    'label Col1 \'Mes\', Col2 \'Ventas\', Col3 \'Vendido\', Col4 \'Ganancia bruta\', ' +
-    'Col5 \'Compras\', Col6 \'Gastos\', Col7 \'Resultado\'", 0)');
-  h.getRange('D3:D').setNumberFormat(FORMATOS.mes);
-  h.getRange('F3:J').setNumberFormat(FORMATOS.dinero);
+    titulo('D1', 'Por mes');
+    h.getRange('D2').setFormula(
+      '=QUERY({resumen_mensual_mes, resumen_mensual_ventas, resumen_mensual_vendido, ' +
+      'resumen_mensual_ganancia_bruta, resumen_mensual_compras, resumen_mensual_gastos, ' +
+      'resumen_mensual_resultado}, "select * where Col1 is not null order by Col1 desc ' +
+      'label Col1 \'Mes\', Col2 \'Ventas\', Col3 \'Vendido\', Col4 \'Ganancia bruta\', ' +
+      'Col5 \'Compras\', Col6 \'Gastos\', Col7 \'Resultado\'", 0)');
+    h.getRange('D3:D').setNumberFormat(FORMATOS.mes);
+    h.getRange('F3:J').setNumberFormat(FORMATOS.dinero);
 
-  titulo('L1', 'Por sabor');
-  h.getRange('L2').setFormula(
-    '=QUERY({ventas_sabores_sabor, ventas_sabores_unidades, ventas_sabores_ingreso, ' +
-    'ventas_sabores_costo}, "select Col1, sum(Col2), sum(Col3), sum(Col4), sum(Col3) - sum(Col4) ' +
-    'where Col1 is not null group by Col1 order by sum(Col3) desc ' +
-    'label Col1 \'Sabor\', sum(Col2) \'Rolls\', sum(Col3) \'Ingreso\', sum(Col4) \'Costo\', ' +
-    'sum(Col3) - sum(Col4) \'Ganancia\'", 0)');
-  h.getRange('N3:P').setNumberFormat(FORMATOS.dinero);
+    titulo('L1', 'Por sabor');
+    h.getRange('L2').setFormula(
+      '=QUERY({ventas_sabores_sabor, ventas_sabores_unidades, ventas_sabores_ingreso, ' +
+      'ventas_sabores_costo}, "select Col1, sum(Col2), sum(Col3), sum(Col4), sum(Col3) - sum(Col4) ' +
+      'where Col1 is not null group by Col1 order by sum(Col3) desc ' +
+      'label Col1 \'Sabor\', sum(Col2) \'Rolls\', sum(Col3) \'Ingreso\', sum(Col4) \'Costo\', ' +
+      'sum(Col3) - sum(Col4) \'Ganancia\'", 0)');
+    h.getRange('N3:P').setNumberFormat(FORMATOS.dinero);
 
-  titulo('R1', 'Top 10 clientes');
-  h.getRange('R2').setFormula(
-    '=QUERY({ventas_cliente, ventas_total, ventas_tipo}, "select Col1, count(Col2), sum(Col2) ' +
-    'where Col1 is not null and Col3 = \'venta\' group by Col1 order by sum(Col2) desc limit 10 ' +
-    'label Col1 \'Cliente\', count(Col2) \'Compras\', sum(Col2) \'Total\'", 0)');
-  h.getRange('T3:T').setNumberFormat(FORMATOS.dinero);
+    titulo('R1', 'Top 10 clientes');
+    h.getRange('R2').setFormula(
+      '=QUERY({ventas_cliente, ventas_total, ventas_tipo}, "select Col1, count(Col2), sum(Col2) ' +
+      'where Col1 is not null and Col3 = \'venta\' group by Col1 order by sum(Col2) desc limit 10 ' +
+      'label Col1 \'Cliente\', count(Col2) \'Compras\', sum(Col2) \'Total\'", 0)');
+    h.getRange('T3:T').setNumberFormat(FORMATOS.dinero);
 
-  h.getRange('A2:T2').setFontWeight('bold');
-  h.getRange('A3:A12').setFontWeight('normal');
-  h.setFrozenRows(2);
-  h.autoResizeColumns(1, 20);
-  ss.setActiveSheet(h);
+    h.getRange('A2:T2').setFontWeight('bold');
+    h.getRange('A3:A12').setFontWeight('normal');
+    h.setFrozenRows(2);
+    h.autoResizeColumns(1, 20);
+    ss.setActiveSheet(h);
+  } finally {
+    SpreadsheetApp.flush();
+    if (regional !== 'en_US') ss.setSpreadsheetLocale(regional);
+  }
 }

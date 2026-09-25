@@ -15,7 +15,7 @@
 | 2. App de carga `/admin` | ✅ Publicada. **Falta la aceptación:** una semana de carga en paralelo con la planilla y que los números coincidan |
 | 3. Catálogo editable, stock y "¿Qué compro?" | ✅ Publicada. Aceptación ("Pistacho") probada en Chrome; **falta que la repitan los dueños** |
 | Correcciones visuales y rediseño de `/admin` | ✅ Publicados (PR #6, #7, #8, #9) |
-| 4. Google Sheet de análisis (solo lectura) | 🔧 Código listo (endpoints `/api/export` + Apps Script). **Falta que los dueños** carguen las variables en Vercel y armen el Sheet ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
+| 4. Google Sheet de análisis (solo lectura) | ✅ Publicada y funcionando (totales = panel). Falta: Resumen sin `#ERROR!` (PR #12) y verlo desde el celular con el activador por hora ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
 | 5. Web pública lee el catálogo | Pendiente |
 | 6. Pedidos de la web a la base | Pendiente (la dejaron para el final) |
 
