@@ -565,15 +565,18 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   - [x] Hecho en Chrome contra la base real el 25/09 (y después borrado): sabor creado con la receta de Canela + 100 g, precio $70, tanda (−450 g de harina), venta de una Box de 6 (−1 caja), visible en el panel, en alertas y en "¿Qué compro?", desactivado (desaparece de venta y tandas). Falta que lo repitan los dueños.
 
 ### Etapa 4 — Google Sheet de análisis (solo lectura)
-- [ ] Endpoints `GET /api/export/<vista>` (`ventas`, `ventas_sabores`, `costos`, `stock`, `resumen_mensual`, `gastos`, `compras`, `tandas`).
-  - Autenticados con un header `x-export-key` contra una variable de entorno.
-  - Leen con la service key **del lado del servidor**.
-  - Devuelven JSON (o CSV).
-- [ ] Spreadsheet nuevo "Cinniminies · Análisis" con un Apps Script propio:
-  - `actualizarTodo()` llama cada endpoint con `UrlFetchApp` (clave en `PropertiesService`, nunca en el código) y reescribe la pestaña `datos_<vista>` con encabezados, formatos de fecha y $, y protección de solo lectura;
+- [x] Endpoints `GET /api/export/<vista>` (`ventas`, `ventas_sabores`, `costos`, `stock`, `resumen_mensual`, `gastos`, `compras`, `tandas`, más `margenes`) y `GET /api/export` (lista). Código en `api/export/` y `api/_lib/export.js`; pruebas en `api/_tests/`.
+  - Autenticados con un header `x-export-key` contra la variable de entorno `EXPORT_KEY`.
+  - Leen con la service key **del lado del servidor** (`SUPABASE_SERVICE_ROLE_KEY`), paginando de a 1000 filas.
+  - Devuelven JSON con el tipo de cada columna (o CSV con `?formato=csv`).
+  - Vistas nuevas para esto: `v_gastos`, `v_compras`, `v_tandas` (migración `20260927100000_vistas_export.sql`).
+  - Probado el 25/09 contra la base real: los totales coinciden con `v_panel` (vendido $31.880, cobrado $30.980, ganancia bruta $20.458,81, stock $1.591,35).
+- [x] Apps Script para el spreadsheet "Cinniminies · Análisis" en `docs/analisis-apps-script/`:
+  - `actualizarTodo()` llama cada endpoint con `UrlFetchApp` (clave en `PropertiesService`, nunca en el código) y reescribe la pestaña `datos_<vista>` con encabezados, formatos de fecha y $, protección y un rango con nombre por columna (`ventas_total`, …);
   - activador cada 1 hora y menú "📊 Actualizar ahora".
-- [ ] Una pestaña "Resumen" de ejemplo con fórmulas sobre `datos_*`: ganancia por mes, por sabor y top clientes, para que ellos la extiendan.
-- [ ] Documentar en el README cómo rotar la clave.
+- [x] Pestaña "Resumen" de ejemplo (menú → "Crear pestaña Resumen"): totales, ganancia por mes, por sabor y top clientes.
+- [x] Cómo rotar la clave: `docs/analisis-apps-script/README.md`.
+- [ ] **Falta (dueños):** cargar `SUPABASE_SERVICE_ROLE_KEY` y `EXPORT_KEY` en Vercel, crear el spreadsheet y pegar el script (pasos en el README).
 - **Aceptación:** los totales del Sheet coinciden con el panel de la app; los dueños lo abren desde el celular (Drive) y ven datos de la última hora.
 
 ### Etapa 5 — Web pública conectada al catálogo

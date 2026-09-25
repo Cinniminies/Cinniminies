@@ -15,7 +15,7 @@
 | 2. App de carga `/admin` | ✅ Publicada. **Falta la aceptación:** una semana de carga en paralelo con la planilla y que los números coincidan |
 | 3. Catálogo editable, stock y "¿Qué compro?" | ✅ Publicada. Aceptación ("Pistacho") probada en Chrome; **falta que la repitan los dueños** |
 | Correcciones visuales y rediseño de `/admin` | ✅ Publicados (PR #6, #7, #8, #9) |
-| **4. Google Sheet de análisis (solo lectura)** | ⏭️ **Lo que sigue** (ver handoff, sección 7) |
+| 4. Google Sheet de análisis (solo lectura) | 🔧 Código listo (endpoints `/api/export` + Apps Script). **Falta que los dueños** carguen las variables en Vercel y armen el Sheet ([`analisis-apps-script/README.md`](analisis-apps-script/README.md)) |
 | 5. Web pública lee el catálogo | Pendiente |
 | 6. Pedidos de la web a la base | Pendiente (la dejaron para el final) |
 
@@ -28,7 +28,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 ### Base de datos (Supabase)
 - **Proyecto:** `cinniminies`, ref `skysdjfxuykrufawhzvn`, región São Paulo, plan gratis, en la organización *cinniminies*.
   Se pausa tras 7 días sin actividad.
-- **Migraciones:** `supabase/migrations/` (11 archivos, todas aplicadas). Cada cambio nuevo = un archivo nuevo
+- **Migraciones:** `supabase/migrations/` (12 archivos, todas aplicadas). Cada cambio nuevo = un archivo nuevo
   con timestamp + aplicarlo con el MCP de Supabase (`apply_migration`). No editar migraciones ya aplicadas.
 - **Reglas de negocio en Postgres** (la app no calcula nada que se guarde):
   - Costos: `costo_insumo`, `costo_tanda`, `costo_roll`, `costo_caja` (incluye papel manteca y stickers).
@@ -40,7 +40,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   - Trigger que impide cambiar la unidad de un insumo ya usado.
   - `importar_planilla` (solo service_role; se usó una vez para el histórico).
 - **Vistas de reporte:** `v_ventas`, `v_ventas_sabores`, `v_costo_insumo`, `v_costo_sabor`, `v_margen_formato`,
-  `v_stock`, `v_produccion_sabor`, `v_clientes`, `v_resumen_mensual`, `v_panel` (todas `security_invoker`).
+  `v_stock`, `v_produccion_sabor`, `v_clientes`, `v_resumen_mensual`, `v_panel`, y para el export
+  `v_gastos`, `v_compras`, `v_tandas` (todas `security_invoker`).
 - **Seguridad:** RLS en todas las tablas; solo los usuarios de `usuarios_admin` (Pia y Lucio) leen y escriben.
   `anon` no tiene permisos. Registro público desactivado.
 - **Pruebas:** `supabase/tests/reglas.sql`, varios bloques `do $$ … $$` que terminan con `raise exception 'TODO OK'`
@@ -57,6 +58,13 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   En iPhone: la primera vez link en Safari → poner contraseña en Más → Contraseña → entrar con ella en la app instalada.
   Flujo de auth `implicit` a propósito (PKCE falla si el link se abre en otro navegador).
 - Clave `sb_publishable_…` en `admin/js/config.js`: es pública por diseño.
+
+### Export para el Sheet de análisis (`api/`, Etapa 4)
+- Vercel Functions en Node, CommonJS, sin `package.json`: `api/export/index.js` (lista) y `api/export/[vista].js`.
+  Lógica y lista de vistas con sus columnas/tipos en `api/_lib/export.js` (las carpetas con `_` no se publican).
+  Pruebas: `node --test api/_tests/*.test.js`.
+- Variables en Vercel: `EXPORT_KEY` y `SUPABASE_SERVICE_ROLE_KEY` (la URL tiene default).
+- Apps Script del Sheet e instrucciones (instalación, rotar clave) en `docs/analisis-apps-script/`.
 
 ### Migración del histórico (`migracion/`)
 - `importar.py` (Python sin dependencias) + `xlsx.py`. Ya se usó; no hace falta volver a correrlo.
@@ -116,8 +124,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
-3. Preguntá a los dueños cómo les fue con la carga en paralelo (Etapa 2) y con "Pistacho" (Etapa 3), antes de
-   dar esas etapas por aceptadas.
+3. Corregi el UI del panel, poniendo mas opciones laterales y sacando algunas de la pagina "MAS"
 4. **Arrancá la Etapa 4** (handoff, sección 7):
    - Endpoints `GET /api/export/<vista>` como Vercel Functions en Node (`api/export/[vista].js`), autenticados con
      el header `x-export-key` contra una variable de entorno, leyendo con la service key del lado del servidor.
