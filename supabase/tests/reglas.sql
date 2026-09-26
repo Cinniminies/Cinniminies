@@ -460,3 +460,17 @@ begin
   assert fallo = 'check', 'solo https: ' || fallo;
   raise exception 'TODO OK';
 end $$;
+
+-- Fase 2 · 6.5: los textos nuevos de la web existen, arrancan en su original, llegan al catálogo y no pueden quedar vacíos.
+do $$
+declare claves text[] := array['nav.menu', 'nav.local', 'nav.contacto', 'nav.pedido', 'hero.boton_menu', 'hero.boton_contacto',
+  'menu.animacion', 'menu.frase', 'menu.titulo', 'menu.paso_caja', 'carrito.titulo', 'carrito.boton', 'form.titulo',
+  'form.ayuda_whatsapp', 'pedido.titulo']; fallo text;
+begin
+  assert (select count(*) from contenido_web where clave = any(claves) and valor = original and tipo = 'texto') = 15, 'filas nuevas';
+  assert (select catalogo_web()->'contenido' ?& claves), 'en el catálogo';
+  begin update contenido_web set valor = '' where clave = 'nav.pedido'; fallo := 'no';
+  exception when check_violation then fallo := 'check'; end;
+  assert fallo = 'check', 'vacío: ' || fallo;
+  raise exception 'TODO OK';
+end $$;

@@ -147,7 +147,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 1. Leé este archivo y el handoff completo. Revisá `git log` y `gh pr list` para ver si hubo cambios después del 25/09.
 2. Conectá el MCP de Supabase y confirmá acceso a `skysdjfxuykrufawhzvn` (`list_tables`, `list_migrations`).
 3. **Lo que sigue está en [`HANDOFF-fase-2.md`](HANDOFF-fase-2.md):** las mejoras elegidas por los dueños, con triage
-   y el contexto de cada una. **Hecho:** 8.2 (usuario de prueba), 2.2 (cliente del pedido web) 2.1 (avisos push, aceptada en el iPhone) y 6.1 (SEO y vista previa del link). **Pospuestas por los dueños:** 2.4 (cupos) y 6.6 (reseñas);
+   y el contexto de cada una. **Hecho:** 8.2 (usuario de prueba), 2.2 (cliente del pedido web) 2.1 (avisos push, aceptada en el iPhone), 6.1 (SEO y vista previa del link) y 6.5 (más textos editables). **Pospuestas por los dueños:** 2.4 (cupos) y 6.6 (reseñas);
    3.1 + 3.2 (plan de horneado) espera un plan con ellos. Las ideas que quedaron para más adelante
    están en [`IDEAS-FUTURAS.md`](IDEAS-FUTURAS.md).
 4. Pendientes sueltos que no entraron en la fase 2 (están en `IDEAS-FUTURAS.md`, sección 1): **evitar que Supabase se

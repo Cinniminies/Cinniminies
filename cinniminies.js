@@ -519,9 +519,10 @@ document.addEventListener('DOMContentLoaded', () => {
     menuGrid.replaceChildren(...sabores.map(tarjetaSabor));
 
     // Textos que dependen del catálogo
-    const titulo = document.getElementById('menuTitle');
-    if (titulo && NUMEROS[sabores.length]) {
-      titulo.replaceChildren(`${NUMEROS[sabores.length]} ${sabores.length === 1 ? 'roll' : 'rolls'}.`, el('br'), 'Ninguno apurado.');
+    // Solo la primera línea ("Tres rolls."): la segunda es editable (menu.titulo).
+    const cantidad = document.getElementById('menuTitleCantidad');
+    if (cantidad && NUMEROS[sabores.length]) {
+      cantidad.textContent = `${NUMEROS[sabores.length]} ${sabores.length === 1 ? 'roll' : 'rolls'}.`;
     }
     const sub = document.getElementById('menuSub');
     if (sub) {
