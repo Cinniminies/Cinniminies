@@ -149,6 +149,12 @@ Responder todas las reseñas, también las no tan buenas, con amabilidad y en po
 | robots.txt | `https://cinniminies.vercel.app/robots.txt` (bloquea `/admin/` y `/api/`, que no tienen que aparecer en Google) |
 | Datos estructurados | `Bakery` (JSON-LD en `index.html`). Se pueden probar en https://search.google.com/test/rich-results |
 | Imagen para compartir | `https://cinniminies.vercel.app/img/og.jpg` |
+| Nombre del sitio | `Cinniminies` (JSON-LD `WebSite` en `index.html`). Google lo muestra arriba del resultado en vez de "Vercel" |
+| Ícono en resultados | `/favicon.ico` (48 px) e `img/favicon-144.png`. Google pide cuadrado y múltiplo de 48 px |
+
+**Nombre e ícono en los resultados:** Google no los cambia enseguida. Después de publicar, pedir otra vez la
+indexación de la portada en **Inspección de URLs** y esperar de unos días a unas semanas. Si con un logo más grande
+o más simple (solo el roll, sin letras) se ve mejor en chico, reemplazar esos dos archivos con los mismos nombres.
 
 **Si más adelante compran un dominio propio** (por ejemplo `cinniminies.uy`): agregarlo como propiedad nueva de tipo
 **Dominio**, cambiar las URLs absolutas de `index.html`, `robots.txt` y `sitemap.xml`, y actualizar el sitio web en el
