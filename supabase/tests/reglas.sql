@@ -614,3 +614,47 @@ begin
 
   raise exception 'TODO OK';
 end $$;
+
+-- Plan de horneado · cajas: cajas_plan cuenta las cajas (y papel y sticker) de los pedidos elegidos; el stock
+-- disponible suma lo que ya descontaron los pedidos por hacer; que_comprar suma las cajas que le pasan.
+do $$
+declare
+  b6 uuid := (select id from formatos where nombre = 'Box de 6');
+  b12 uuid := (select id from formatos where nombre = 'Box de 12');
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  c6 uuid := (select caja_insumo_id from formatos where nombre = 'Box de 6');
+  c12 uuid := (select caja_insumo_id from formatos where nombre = 'Box de 12');
+  papel uuid := (select id from insumos where nombre = 'Papel manteca');
+  v uuid;
+  r record;
+begin
+  update ventas set por_hacer = false where por_hacer;   -- se deshace al final
+  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
+         'sin pedidos por hacer, disponible = teórico';
+
+  v := (registrar_venta(jsonb_build_object('entrega', 'retiro', 'medio_pago', 'efectivo', 'estado_pago', 'pagado',
+         'por_hacer', true, 'notas', 'PRUEBA cajas', 'lineas', jsonb_build_array(
+           jsonb_build_object('formato_id', b6, 'cantidad', 2, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12))),
+           jsonb_build_object('formato_id', b12, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12))))))->>'venta_id')::uuid;
+
+  select * into r from cajas_plan() where insumo_id = c6;
+  assert r.necesario = 2, 'Box de 6: 2 cajas, dio ' || r.necesario;
+  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6) + 2,
+         'las cajas del pedido por hacer siguen disponibles';
+  assert (select necesario from cajas_plan() where insumo_id = c12) = 1, 'Box de 12: 1 caja';
+  assert (select necesario from cajas_plan() where insumo_id = papel)
+         = 2 * (select cantidad from caja_insumos where caja_insumo_id = c6 and insumo_id = papel)
+           + (select cantidad from caja_insumos where caja_insumo_id = c12 and insumo_id = papel), 'papel manteca según cada caja';
+  assert not exists (select 1 from cajas_plan(jsonb_build_object('ventas', '[]'::jsonb))), 'sin pedidos elegidos, sin cajas';
+
+  select * into r from que_comprar('{}', jsonb_build_object(c6, 2)) where insumo_id = c6;
+  assert r.necesario = 2 and r.faltante = greatest(2 - greatest((select stock from stock_disponible() where insumo_id = c6), 0), 0),
+         'que_comprar con cajas';
+  assert (select count(*) from que_comprar(jsonb_build_object(ca, 1))) > 0, 'que_comprar sigue andando solo con tandas';
+
+  perform actualizar_venta(v, '{"por_hacer": false}');
+  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
+         'hecho: ya no reserva';
+
+  raise exception 'TODO OK';
+end $$;

@@ -10,7 +10,7 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 - **Reglas de negocio:** en la base (`supabase/migrations/`). La app llama a `calcular_venta`
   (el resumen en vivo), `registrar_venta`, `actualizar_venta`, `registrar_tanda`,
   `registrar_compra`, `fusionar_clientes`, `guardar_receta`, `guardar_packaging_caja`,
-  `fijar_precio`, `registrar_conteo`, `que_comprar`, `plan_horneado` y `registrar_horneado`. El navegador no calcula precios ni costos
+  `fijar_precio`, `registrar_conteo`, `que_comprar`, `plan_horneado`, `cajas_plan` y `registrar_horneado`. El navegador no calcula precios ni costos
   que se guarden (solo muestra una estimación en vivo del costo de una receta mientras se edita).
 - **PWA:** `manifest.webmanifest`, íconos en `icons/` y un `sw.js` mínimo para que sea instalable.
   No funciona sin conexión.
@@ -67,6 +67,9 @@ libres se completan con el sabor elegido.
 El cálculo lo hace `plan_horneado` en la base. "Ver qué comprar" lleva las tandas (con fracciones: una tanda
 mezclada usa una parte de la receta de cada sabor) a ¿Qué compro?, y "Registrar horneado" (`registrar_horneado`)
 carga las tandas y marca los pedidos como hechos.
+Abajo muestra las **cajas de los pedidos** (`cajas_plan`: cajas, papel manteca y stickers) contra el stock disponible,
+que cuenta como disponibles las cajas de los pedidos que todavía no se hicieron; "Ver qué comprar" también las suma.
+Los rolls extra quedan en una sección plegada: por ahora trabajan solo por pedido y venden lo que sobra.
 
 ## Web: textos e imágenes (Etapa 7)
 

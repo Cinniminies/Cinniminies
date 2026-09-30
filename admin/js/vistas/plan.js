@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, stepper, campo, numero, plural, fechaCorta, proximoSabado, toast, conBoton, debounce,
+  h, vaciar, chips, stepper, campo, numero, cantidad, plural, fechaCorta, proximoSabado, toast, conBoton, debounce,
 } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
@@ -9,7 +9,8 @@ import { cargarPlan } from './comprar.js';
 
 // 3.1 + 3.2 Plan de horneado: con las ventas marcadas "Por hacer" (cobradas o no), cuántas tandas hacer.
 // El cálculo lo hace plan_horneado en la base: masa propia (Oreo) aparte; los sabores de masa compartida
-// arman tandas enteras y lo que sobra va a una tanda mezclada, completada con el sabor elegido.
+// arman tandas enteras y lo que sobra va a tandas mezcladas (sin partir un sabor), completadas con el sabor
+// elegido. Las cajas salen de los pedidos (cajas_plan); los rolls que sobran se venden sueltos.
 // Lo elegido acá sobrevive si se sale de la pantalla y se vuelve.
 const estado = { fecha: null, excluidas: new Set(), extra: {}, completar: null };
 
@@ -37,13 +38,15 @@ export async function mostrar(cont) {
   const resultado = h('div');
   let pedido = 0;
   let plan = null;
+  let cajas = [];
 
   const calcular = debounce(async () => {
     const este = ++pedido;
     try {
-      const r = await rpc('plan_horneado', { p: payload() });
+      const [r, c] = await Promise.all([rpc('plan_horneado', { p: payload() }), rpc('cajas_plan', { p: payload() })]);
       if (este !== pedido) return;
       plan = r;
+      cajas = c;
       dibujarResultado();
     } catch (e) {
       if (este === pedido) vaciar(resultado, h('p', { class: 'mensaje-error' }, e.message));
@@ -53,13 +56,14 @@ export async function mostrar(cont) {
   function dibujarResultado() {
     if (!plan.sabores.length) {
       plan = null;
-      vaciar(resultado, h('p', { class: 'vacio' }, 'No hay nada para hornear: elegí pedidos o sumá rolls extra.'));
+      vaciar(resultado, h('p', { class: 'vacio' }, 'No hay nada para hornear: elegí al menos un pedido.'));
       return;
     }
     const hayMezcla = plan.tandas.some((t) => t.tipo === 'mezcla');
     const verComprar = h('button', { class: 'btn', type: 'button' }, 'Ver qué comprar');
     verComprar.onclick = () => {
-      cargarPlan(Object.fromEntries(plan.sabores.map((s) => [s.sabor_id, Number(s.tandas)])));
+      cargarPlan(Object.fromEntries(plan.sabores.map((s) => [s.sabor_id, Number(s.tandas)])),
+        Object.fromEntries(cajas.map((c) => [c.insumo_id, Number(c.necesario)])));
       irA('#/comprar');
     };
     const registrar = h('button', { class: 'btn primario', type: 'button' }, 'Registrar horneado');
@@ -101,6 +105,19 @@ export async function mostrar(cont) {
           h('td', { class: 'num-der' }, `× ${numero(s.tandas)}`)))),
       h('p', { class: 'ayuda' }, '"Receta" es cuántas veces la receta de ese sabor se usa (una tanda mezclada usa una parte de cada una). '
         + 'Con eso se calcula qué comprar y se descuenta el stock al registrar.'),
+      cajas.length ? [
+        h('h2', {}, 'Cajas de los pedidos'),
+        h('table', { class: 'tabla card' },
+          h('tr', {}, h('th', {}, 'Caja y packaging'), h('th', { class: 'num-der' }, 'Necesitás'), h('th', { class: 'num-der' }, 'Tenés'),
+            h('th', { class: 'num-der' }, 'Faltan')),
+          cajas.map((c) => h('tr', {}, h('td', {}, c.insumo),
+            h('td', { class: 'num-der' }, cantidad(c.necesario, c.unidad)),
+            h('td', { class: 'num-der' }, cantidad(c.stock, c.unidad)),
+            h('td', { class: 'num-der' }, Number(c.faltante) > 0
+              ? h('span', { class: 'badge alerta' }, cantidad(c.faltante, c.unidad)) : '—')))),
+        h('p', { class: 'ayuda' }, 'Las cajas que eligieron en cada pedido. "Tenés" es el stock teórico, contando como disponibles '
+          + 'las cajas de los pedidos que todavía no se hicieron.'),
+      ] : null,
       h('div', { class: 'acciones' }, verComprar, registrar));
   }
 
@@ -132,8 +149,9 @@ export async function mostrar(cont) {
       h('h3', {}, 'Pedidos por hacer'),
       h('p', { class: 'ayuda' }, 'Destildá los que no vas a hacer esta vez (por ejemplo, si todavía no pagaron).'),
       listaPedidos),
-    h('div', { class: 'card' },
-      h('h3', {}, 'Rolls extra para vender'),
+    // Por ahora trabajan solo por pedido (se vende lo que sobra de cada tanda): los extra quedan plegados.
+    h('details', { class: 'plegable', open: Object.values(estado.extra).some((n) => n > 0) },
+      h('summary', {}, 'Rolls extra para vender (opcional)'),
       sabores.map((s) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, s.nombre, s.masa_propia ? h('div', { class: 'ayuda' }, 'Masa propia') : null),
         stepper(estado.extra[s.id] || 0, (v) => { estado.extra[s.id] = v; calcular(); }, { min: 0, max: 48, paso: 6 })))),
