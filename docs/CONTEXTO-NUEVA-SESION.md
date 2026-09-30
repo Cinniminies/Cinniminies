@@ -138,6 +138,9 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   "en serio" (handoff 3.1). Mantener `api/` simple para poder portarlo.
 - **Mails:** el SMTP por defecto de Supabase solo manda a miembros de la organización; si a Pia no le llega el
   link, sumarla a la organización o configurar SMTP propio (Gmail con contraseña de aplicación).
+- **"Sin detalle" eliminado (29/09):** Lucio reclasificó a mano la mayoría de las cajas viejas; las últimas 11
+  (72 rolls) se repartieron por estadística (historial del cliente o mezcla de la semana) y el sabor se borró.
+  Criterio en `supabase/migrations/20261007100000_repartir_sin_detalle.sql`.
 - **Sin respuesta de los dueños:** "Cobramos menos de una box de 6" quedó como `comision` (así estaba en la planilla).
 
 ---

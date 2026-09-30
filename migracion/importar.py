@@ -14,7 +14,8 @@ todo en una transacción. Se niega a correr si ya hay datos cargados desde la ap
 Reglas (sección 7, Etapa 1 del handoff):
 - Hojas y columnas se buscan por nombre normalizado, nunca por posición.
 - Precio cobrado, costo de producción y costo de caja se congelan tal como están en la planilla.
-- Cajas sin detalle de sabores -> sabor "Sin detalle". "Box de 6 Oreo" -> un solo sabor.
+- Cajas sin detalle de sabores -> sabor "Sin detalle" (ya no existe: se repartió y borró el 29/09, ver la
+  migración 20261007100000_repartir_sin_detalle.sql). "Box de 6 Oreo" -> un solo sabor.
 - Filas sin formato y ventas de "Dueña 1" -> consumo propio. Fila 110 -> Box de 12 con 12 Canela.
 """
 

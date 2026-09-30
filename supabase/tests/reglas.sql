@@ -12,7 +12,7 @@ declare
   ca uuid := (select id from sabores where nombre = 'Canela');
   ddl uuid := (select id from sabores where nombre = 'Dulce de Leche');
   oreo uuid := (select id from sabores where nombre = 'Oreo');
-  sd uuid := (select id from sabores where nombre = 'Sin detalle');
+  inactivo uuid;
   har uuid := (select id from insumos where nombre = 'Harina');
   r jsonb;
   antes jsonb;
@@ -57,13 +57,15 @@ begin
   assert (r->>'costo_caja')::numeric = 0, 'personalizado sin caja';
 
   -- 5.4 Validaciones que tienen que fallar
+  insert into sabores (nombre, activo, visible_web) values ('PRUEBA inactivo', false, false)
+    returning id into inactivo;
   foreach linea in array array[
     jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 5))),
     jsonb_build_object('formato_id', b6),
     jsonb_build_object('formato_id', pers, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 2))),
     jsonb_build_object('formato_id', pers, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 13))),
     jsonb_build_object('formato_id', b4, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 4))),
-    jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', sd, 'unidades', 6)))
+    jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', inactivo, 'unidades', 6)))
   ] loop
     fallo := null;
     begin
