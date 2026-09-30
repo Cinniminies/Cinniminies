@@ -223,11 +223,15 @@ rechaza con el mensaje y la web ofrece el sábado siguiente. /admin muestra 12/1
   En el Plan se puede destildar un pedido (por ejemplo, si no pagó) sin cambiarle la marca.
 - **Masa propia:** `sabores.masa_propia` (solo Oreo, que lleva las galletitas en la masa; se edita en la ficha
   del sabor). Esos sabores van en tandas propias (`ceil`). Los de masa compartida hacen tandas enteras
-  (`floor`) y lo que sobra de todos va a tandas mezcladas; la última se completa con el sabor elegido (Canela
-  por defecto). Ejemplo: 14 Canela + 3 Nutella + 3 DDL = 1 tanda de Canela + 1 mezclada (Canela 6, Nutella 3, DDL 3).
+  (`floor`) y lo que sobra va a tandas mezcladas, **sin partir un sabor entre dos tandas** (cada sobrante entero,
+  de mayor a menor, en la primera donde entre). El sabor para completar (Canela por defecto) llena los lugares
+  libres; si su sobrante no entra, va en tandas enteras de Canela. Ejemplo: 14 Canela + 3 Nutella + 3 DDL =
+  1 tanda de Canela + 1 mezclada (Canela 6, Nutella 3, DDL 3). Con sabores nuevos, no partir puede costar una
+  tanda más (7 + 7 + 7 de tres sabores sin Canela = 3 tandas).
 - **Insumos:** cada roll usa 1/`rolls_por_tanda` de la receta de su sabor, así que la tanda mezclada del
   ejemplo cuenta como ½ receta de Canela + ¼ de Nutella + ¼ de DDL. Las recetas no se separaron en masa y relleno.
-- **Base:** `plan_horneado(p)` y `registrar_horneado(p)` (migración `20261008100000_plan_horneado.sql`).
+- **Base:** `plan_horneado(p)` y `registrar_horneado(p)` (migraciones `20261008100000_plan_horneado.sql` y
+  `20261008110000_plan_horneado_sin_partir.sql`).
   `registrar_horneado` carga una tanda por sabor con esa fracción (el stock descuenta bien) y marca los pedidos como hechos.
 - **/admin:** Producción → **Plan** (primera pestaña): día de horneado (el sábado que viene), pedidos por hacer
   con casillas, rolls extra (de a 6), tandas y detalle por sabor, "Ver qué comprar" (carga las tandas en

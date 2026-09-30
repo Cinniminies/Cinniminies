@@ -62,7 +62,8 @@ funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari com�
 (se marca al cargar la venta o desde su ficha; los pedidos web confirmados entran solos). El cobro no importa:
 un pedido pagado por adelantado sigue por hacer. Cada pedido se puede destildar para dejarlo afuera esta vez.
 Los sabores con **masa propia** (Oreo; se marca en la ficha del sabor) van en tandas aparte; los demás hacen
-tandas enteras y juntan lo que sobra en una tanda mezclada, que se completa con el sabor elegido.
+tandas enteras y juntan lo que sobra en tandas mezcladas, sin partir un sabor entre dos tandas; los lugares
+libres se completan con el sabor elegido.
 El cálculo lo hace `plan_horneado` en la base. "Ver qué comprar" lleva las tandas (con fracciones: una tanda
 mezclada usa una parte de la receta de cada sabor) a ¿Qué compro?, y "Registrar horneado" (`registrar_horneado`)
 carga las tandas y marca los pedidos como hechos.

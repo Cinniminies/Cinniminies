@@ -525,7 +525,7 @@ begin
          'la venta ya entregada no cuenta';
   assert not exists (select 1 from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'mezcla'), 'sin mezcla';
 
-  -- Solo las elegidas: sin v1 quedan 6 Canela → 1 tanda mezclada (sola Canela, 6 para vender) + Oreo.
+  -- Solo las elegidas: sin v1 quedan 6 Canela → 1 tanda de Canela (6 para vender) + Oreo.
   r := plan_horneado(jsonb_build_object('ventas', jsonb_build_array(v2, v3)));
   assert (r->>'total_tandas')::int = 2, 'elegidas: 2 tandas';
   select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = ca::text;
@@ -558,6 +558,33 @@ begin
   exception when others then null;
   end;
   assert fallo is null, fallo;
+
+  -- Ningún sabor queda partido entre dos tandas: 7 Nutella + 7 DDL → una mezclada con cada uno,
+  -- completadas con Canela (antes quedaba DDL 5 en una y 2 en la otra).
+  update ventas set por_hacer = false where id = v1;
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(
+    jsonb_build_array(jsonb_build_object('sabor_id', nut, 'unidades', 7)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ddl, 'unidades', 7)))) into v1;
+  r := plan_horneado();
+  assert (r->>'total_tandas')::int = 2, 'sin partir: 2 tandas';
+  assert (select count(*) from jsonb_array_elements(r->'tandas') t, jsonb_array_elements(t->'sabores') x
+           where x->>'sabor_id' = ddl::text) = 1, 'DDL en una sola tanda: ' || (r->'tandas');
+  assert (select count(*) from jsonb_array_elements(r->'tandas') t, jsonb_array_elements(t->'sabores') x
+           where x->>'sabor_id' = nut::text) = 1, 'Nutella en una sola tanda';
+
+  -- Si la Canela que sobra no entra en los lugares libres, va en una tanda entera de Canela:
+  -- 14 Canela + 9 Nutella + 3 DDL → 2 × Canela + mezclada (Nutella 9, DDL 3). Canela no queda "mezclada" sola.
+  update ventas set por_hacer = false where id = v1;
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(
+    jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 2), jsonb_build_object('sabor_id', nut, 'unidades', 9)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ddl, 'unidades', 3)))) into v1;
+  r := plan_horneado();
+  assert (r->>'total_tandas')::int = 3, 'canela aparte: 3 tandas';
+  select t into de from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'sola';
+  assert (de->>'cantidad')::int = 2 and de->'sabores'->0->>'sabor_id' = ca::text, '2 × Canela: ' || de;
+  select t into de from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'mezcla';
+  assert jsonb_array_length(de->'sabores') = 2 and (de->>'rolls')::int = 12, 'mezclada Nutella + DDL: ' || de;
 
   -- Sobrantes que no entran en una sola mezcla: 11 Nutella + 11 DDL → 2 mezcladas (22 + 2 Canela).
   update ventas set por_hacer = false where id = v1;
