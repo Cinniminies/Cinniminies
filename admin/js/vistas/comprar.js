@@ -1,11 +1,18 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, stepper, pesos, cantidad, debounce } from '../util.js';
+import { h, vaciar, stepper, pesos, numero, cantidad, debounce } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { subnavProduccion } from '../componentes.js';
 
 // 5.8 "¿Qué compro?": tandas planeadas por sabor → qué falta comprar contra el stock teórico,
 // redondeado a la presentación de la última compra de cada insumo.
-const plan = {};
+let plan = {};
+let desdePlan = false;
+
+// Desde Producción → Plan: las tandas de cada sabor (con fracciones si hay tanda mezclada).
+export function cargarPlan(tandas) {
+  plan = { ...tandas };
+  desdePlan = true;
+}
 
 export async function mostrar(cont) {
   const [cat, recetas] = await Promise.all([catalogo(), q(sb.from('recetas').select('sabor_id'))]);
@@ -53,9 +60,12 @@ export async function mostrar(cont) {
     subnavProduccion('comprar'),
     h('div', { class: 'card' },
       h('h3', {}, 'Tandas que vas a hacer'),
+      desdePlan ? h('p', { class: 'ayuda' }, 'Cargadas desde el ', h('a', { href: '#/plan' }, 'plan de horneado'),
+        '. Una tanda mezclada cuenta como una parte de la receta de cada sabor.') : null,
       sabores.map((s) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, s.nombre),
-        stepper(plan[s.id] || 0, (v) => { plan[s.id] = v; calcular(); }, { min: 0, max: 20 })))),
+        stepper(plan[s.id] || 0, (v) => { plan[s.id] = v; desdePlan = false; calcular(); },
+          { min: 0, max: 20, formato: (v) => numero(v) })))),
     resultado);
   calcular();
 }

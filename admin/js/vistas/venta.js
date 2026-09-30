@@ -9,7 +9,7 @@ import { elegirCliente, editorLineas } from '../componentes.js';
 let estado = null;
 const nuevoEstado = (fecha = hoyISO()) => ({
   fecha, cliente: null, origen: '', entrega: 'retiro', medio_pago: null, estado_pago: 'pagado',
-  tipo: 'venta', precio_especial: '', notas: '', lineas: [], abierto: false,
+  tipo: 'venta', precio_especial: '', notas: '', lineas: [], abierto: false, por_hacer: false,
 });
 
 export async function mostrar(cont) {
@@ -26,6 +26,7 @@ function payload() {
     estado_pago: estado.estado_pago,
     tipo: estado.tipo,
     notas: estado.notas,
+    por_hacer: estado.por_hacer,
     precio_especial: estado.precio_especial === '' ? null : Number(estado.precio_especial),
     lineas: null,
   };
@@ -123,6 +124,8 @@ function formulario(cont, cat, clientes, origenes) {
     ], estado.entrega, (v) => { estado.entrega = v; recalcular(); })),
     grupo('Pago', chips(opciones(ETIQUETAS.medio_pago), estado.medio_pago, (v) => { estado.medio_pago = v; })),
     grupo('Estado', chips(opciones(ETIQUETAS.estado_pago), estado.estado_pago, (v) => { estado.estado_pago = v; })),
+    grupo('Pedido', chips([{ valor: false, texto: 'Ya entregado' }, { valor: true, texto: 'Por hacer' }], estado.por_hacer,
+      (v) => { estado.por_hacer = v; })),
     opcionesMas,
     h('h2', {}, 'Resumen'),
     resumen),
@@ -151,7 +154,8 @@ function confirmacion(cont, cat, r, guardado) {
     h('div', { class: 'tilde' }, '✓'),
     h('h1', {}, 'Venta guardada'),
     h('div', { class: 'monto-grande' }, pesos(total)),
-    h('p', {}, h('strong', {}, cliente?.nombre || ''), ` · ${ETIQUETAS.estado_pago[guardado.estado_pago]}`),
+    h('p', {}, h('strong', {}, cliente?.nombre || ''), ` · ${ETIQUETAS.estado_pago[guardado.estado_pago]}`,
+      guardado.por_hacer ? ' · Por hacer (entra en el plan de horneado)' : ''),
     h('p', { class: 'ayuda' }, detalle),
     h('div', { class: 'acciones', style: 'justify-content:center' }, otra, deshacer)));
   window.scrollTo(0, 0);

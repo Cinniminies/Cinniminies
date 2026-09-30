@@ -12,6 +12,7 @@ const RUTAS = {
   stock: ['Producción', () => import('./vistas/stock.js'), 'produccion', null],
   compras: ['Producción', () => import('./vistas/compras.js'), 'produccion', null],
   comprar: ['Producción', () => import('./vistas/comprar.js'), 'produccion', null],
+  plan: ['Producción', () => import('./vistas/plan.js'), 'produccion', null],
   mas: ['Más', () => import('./vistas/mas.js'), 'mas', null],
   web: ['Textos e imágenes de la web', () => import('./vistas/web.js'), 'mas', '#/mas'],
   pedidos: ['Pedidos web', () => import('./vistas/pedidos.js'), 'mas', '#/mas'],
@@ -35,8 +36,8 @@ function volverDe(ruta, id, accion) {
   return [RUTAS[ruta][3], RUTAS[ruta][0]];
 }
 
-// Producción agrupa cuatro pantallas; la pestaña vuelve a la última que se usó.
-export const PRODUCCION = [['tandas', 'Tandas'], ['stock', 'Stock'], ['compras', 'Compras'], ['comprar', '¿Qué compro?']];
+// Producción agrupa cinco pantallas; la pestaña vuelve a la última que se usó.
+export const PRODUCCION = [['plan', 'Plan'], ['tandas', 'Tandas'], ['stock', 'Stock'], ['compras', 'Compras'], ['comprar', '¿Qué compro?']];
 const ultimaProduccion = () => {
   try { return sessionStorage.getItem('produccion') || 'tandas'; } catch { return 'tandas'; }
 };
@@ -51,6 +52,7 @@ const MENU = [
   ['ventas', 'Ventas', 'ventas', () => '#/ventas', 'ambos'],
   ['venta', 'Venta', 'nuevo', () => '#/venta', 'ambos'],
   ['produccion', 'Producción', 'roll', () => `#/${ultimaProduccion()}`, 'celular'],
+  ['plan', 'Plan de horneado', 'reloj', () => '#/plan', 'lateral', 'Producción'],
   ['tandas', 'Tandas', 'roll', () => '#/tandas', 'lateral', 'Producción'],
   ['stock', 'Stock', 'stock', () => '#/stock', 'lateral', 'Producción'],
   ['compras', 'Compras', 'bolsa', () => '#/compras', 'lateral', 'Producción'],

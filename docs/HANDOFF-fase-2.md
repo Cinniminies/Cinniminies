@@ -41,7 +41,7 @@
 | ✅ Hecho (PR #25) | **2.2** Cliente existente o nuevo al confirmar un pedido web | S | 8.2 (para probar) |
 | ✅ Hecho (PR #26) | **2.1** Aviso push de pedido nuevo en el celular | M | 8.2 · decisión sobre `package.json` |
 | ⏸️ Pospuesta por los dueños (25/09) | **2.4** Cupos por día de horneado | L | 8.2 · decisiones de los dueños (ver tarea) |
-| ⏸️ Pendiente: armar un plan con los dueños (25/09) | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | **2.4** (usa la fecha de entrega de cada pedido) |
+| 🔧 Código listo, falta la aceptación | **3.1 + 3.2** Plan de horneado y "¿Qué compro?" según los pedidos | M | — (sin 2.4: usa las ventas "Por hacer") |
 | ✅ Hecho (PR #27) | **6.1** SEO y vista previa al compartir el link | S | Una imagen 1200×630 |
 | ✅ Hecho (PR #30) | **6.5** Más lugares editables de la web | S | — |
 | ⏸️ Pospuesta por los dueños (25/09) | **6.6** Reseñas de clientes | M | Decisión: solo cargadas por los dueños o también formulario público |
@@ -214,7 +214,30 @@ rechaza con el mensaje y la web ofrece el sábado siguiente. /admin muestra 12/1
 
 ---
 
-### ⏸️ 3.1 + 3.2 · Plan de horneado y "¿Qué compro?" según los pedidos
+### 🔧 3.1 + 3.2 · Plan de horneado y "¿Qué compro?" según los pedidos
+
+**Hecho así (30/09, con lo que definió Lucio):**
+- **Qué pedidos cuentan:** columna nueva `ventas.por_hacer`, independiente del cobro (un pedido pagado por
+  adelantado sigue por hacer; uno entregado sin cobrar, no). `confirmar_pedido` la deja en `true`; en + Venta se
+  elige "Ya entregado" / "Por hacer"; en la ficha, "Marcar hecho" / "Marcar por hacer"; filtro "Por hacer" en Ventas.
+  En el Plan se puede destildar un pedido (por ejemplo, si no pagó) sin cambiarle la marca.
+- **Masa propia:** `sabores.masa_propia` (solo Oreo, que lleva las galletitas en la masa; se edita en la ficha
+  del sabor). Esos sabores van en tandas propias (`ceil`). Los de masa compartida hacen tandas enteras
+  (`floor`) y lo que sobra de todos va a tandas mezcladas; la última se completa con el sabor elegido (Canela
+  por defecto). Ejemplo: 14 Canela + 3 Nutella + 3 DDL = 1 tanda de Canela + 1 mezclada (Canela 6, Nutella 3, DDL 3).
+- **Insumos:** cada roll usa 1/`rolls_por_tanda` de la receta de su sabor, así que la tanda mezclada del
+  ejemplo cuenta como ½ receta de Canela + ¼ de Nutella + ¼ de DDL. Las recetas no se separaron en masa y relleno.
+- **Base:** `plan_horneado(p)` y `registrar_horneado(p)` (migración `20261008100000_plan_horneado.sql`).
+  `registrar_horneado` carga una tanda por sabor con esa fracción (el stock descuenta bien) y marca los pedidos como hechos.
+- **/admin:** Producción → **Plan** (primera pestaña): día de horneado (el sábado que viene), pedidos por hacer
+  con casillas, rolls extra (de a 6), tandas y detalle por sabor, "Ver qué comprar" (carga las tandas en
+  ¿Qué compro?) y "Registrar horneado". Inicio muestra "N pedidos por hacer" con link al plan.
+- Sin fecha de entrega por pedido (2.4 sigue pospuesta): el plan toma todo lo que está por hacer.
+
+**Falta la aceptación:** marcar un par de ventas como "Por hacer", ver el plan, abrir ¿Qué compro? desde ahí y
+registrar el horneado (después se pueden borrar esas tandas en Producción → Tandas).
+
+**Plan original (antes de hablarlo con los dueños):**
 
 > **Pendiente (25/09):** los dueños pospusieron la 2.4 y prefieren armar primero un plan para esta tarea (con o sin
 > fecha de entrega) antes de construirla.

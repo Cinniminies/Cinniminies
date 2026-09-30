@@ -69,6 +69,13 @@ export function precioVigenteDe(filas) {
   return vigentes.length ? vigentes[0].precio : null;
 }
 
+// El sábado que viene (hoy, si es sábado): los días de horneado.
+export function proximoSabado(desde = hoyISO()) {
+  const d = new Date(`${desde}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + ((6 - d.getUTCDay() + 7) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
 export function mesISO(fecha = hoyISO()) {
   return fecha.slice(0, 7) + '-01';
 }
@@ -144,19 +151,20 @@ export function chips(lista, valor, alCambiar, { desmarcable = false } = {}) {
   return cont;
 }
 
-export function stepper(valor, alCambiar, { min = 0, max = Infinity } = {}) {
-  const salida = h('output', {}, valor);
+// `paso`: cuánto suma o resta cada toque. `formato`: cómo se muestra el valor (por ejemplo, con coma decimal).
+export function stepper(valor, alCambiar, { min = 0, max = Infinity, paso = 1, formato = String } = {}) {
+  const salida = h('output', {}, formato(valor));
   const menos = h('button', { type: 'button', 'aria-label': 'Restar' }, '−');
   const mas = h('button', { type: 'button', 'aria-label': 'Sumar' }, '+');
   const cambiar = (nuevo) => {
     valor = Math.min(max, Math.max(min, nuevo));
-    salida.textContent = valor;
+    salida.textContent = formato(valor);
     menos.disabled = valor <= min;
     mas.disabled = valor >= max;
     alCambiar(valor);
   };
-  menos.onclick = () => cambiar(valor - 1);
-  mas.onclick = () => cambiar(valor + 1);
+  menos.onclick = () => cambiar(valor - paso);
+  mas.onclick = () => cambiar(valor + paso);
   menos.disabled = valor <= min;
   mas.disabled = valor >= max;
   return h('div', { class: 'stepper' }, menos, salida, mas);
