@@ -133,6 +133,7 @@ begin
          'cliente', jsonb_build_object('nombre', 'Prueba A', 'contacto', '099'),
          'lineas', jsonb_build_array(jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(
            jsonb_build_object('sabor_id', ca, 'unidades', 6))))));
+  assert not (select por_hacer from ventas where id = (r->>'venta_id')::uuid), 'por defecto no queda por hacer';
   select to_jsonb(v) into antes from v_ventas v where id = (r->>'venta_id')::uuid;
 
   -- Cambiar solo datos (estado, entrega, notas) no toca el snapshot; pasar a envío cobra el envío
@@ -140,6 +141,7 @@ begin
   assert e->>'estado_pago' = 'pendiente' and (e->>'cobro_envio')::numeric = 25, 'datos + envío';
   assert e->>'costo_produccion' = antes->>'costo_produccion' and e->>'precio_cobrado' = antes->>'precio_cobrado',
          'el snapshot no cambia al editar datos';
+  assert not (e->>'por_hacer')::boolean, 'editar otra cosa no toca por_hacer';
 
   -- Precio especial y vuelta al precio de lista
   e := actualizar_venta((r->>'venta_id')::uuid, '{"precio_especial": 200}');
@@ -429,6 +431,11 @@ begin
     assert (select c.nombre || '/' || c.origen from ventas x join clientes c on c.id = x.cliente_id
              where x.id = (v->>'venta_id')::uuid) = 'PRUEBA Nuevo/Web', 'cliente nuevo';
   end if;
+  -- Fase 2 · 3.1: la venta de un pedido web queda por hacer.
+  assert (select por_hacer from ventas where id = (v->>'venta_id')::uuid), 'pedido web confirmado queda por hacer';
+
+  raise exception 'TODO OK';
+end $$;
 
 -- Fase 2 · 2.1: push_suscripciones. Cada admin guarda (upsert por user_id + endpoint) y ve solo las suyas;
 -- no puede guardar una a nombre de otro, y el mismo navegador con dos cuentas queda en dos filas.
@@ -474,5 +481,180 @@ begin
   begin update contenido_web set valor = '' where clave = 'nav.pedido'; fallo := 'no';
   exception when check_violation then fallo := 'check'; end;
   assert fallo = 'check', 'vacío: ' || fallo;
+  raise exception 'TODO OK';
+end $$;
+
+-- Fase 2 · 3.1 + 3.2: plan de horneado. Solo cuentan las ventas por hacer (cobradas o no), las
+-- elegidas; masa propia redondea aparte; masa compartida junta los sobrantes en tandas mezcladas y
+-- completa la última con el sabor elegido; registrar_horneado carga las tandas y marca los pedidos hechos.
+do $$
+declare
+  pers uuid := (select id from formatos where nombre = 'Personalizado');
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  ddl uuid := (select id from sabores where nombre = 'Dulce de Leche');
+  nut uuid := (select id from sabores where nombre = 'Nutella');
+  oreo uuid := (select id from sabores where nombre = 'Oreo');
+  v1 uuid; v2 uuid; v3 uuid;
+  r jsonb;
+  de jsonb;
+  fallo text;
+  venta_de text := $f$
+    select (registrar_venta(jsonb_build_object('entrega', 'retiro', 'medio_pago', 'efectivo',
+      'estado_pago', %L, 'por_hacer', %s, 'notas', 'PRUEBA plan', 'lineas', (
+      select jsonb_agg(jsonb_build_object('formato_id', %L::uuid, 'sabores', c)) from jsonb_array_elements(%L::jsonb) c)
+      ))->>'venta_id')::uuid$f$;   -- cada elemento del último parámetro es una caja Personalizado (3 a 12 rolls)
+begin
+  update ventas set por_hacer = false where por_hacer;   -- se deshace al final
+  assert (select masa_propia from sabores where id = oreo) and not (select masa_propia from sabores where id = ca),
+         'masa propia: solo Oreo';
+
+  -- Aceptación del handoff: 18 Canela + 6 Oreo pedidos y 6 Canela extra → 2 tandas de Canela y 1 de Oreo.
+  execute format(venta_de, 'pagado', 'true', pers, jsonb_build_array(jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12)))) into v1;
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(jsonb_build_array(
+    jsonb_build_object('sabor_id', ca, 'unidades', 6), jsonb_build_object('sabor_id', oreo, 'unidades', 6)))) into v2;
+  -- Entregada sin cobrar: no entra.
+  execute format(venta_de, 'pendiente', 'false', pers, jsonb_build_array(jsonb_build_array(jsonb_build_object('sabor_id', ddl, 'unidades', 12)))) into v3;
+
+  r := plan_horneado(jsonb_build_object('extra', jsonb_build_object(ca, 6)));
+  assert (r->>'total_tandas')::int = 3, 'aceptación: 3 tandas, dio ' || (r->>'total_tandas');
+  select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = ca::text;
+  assert (de->>'pedidos')::int = 18 and (de->>'rolls')::int = 24 and (de->>'tandas')::numeric = 2, 'Canela: ' || de;
+  select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = oreo::text;
+  assert (de->>'rolls')::int = 12 and (de->>'para_vender')::int = 6 and (de->>'tandas')::numeric = 1, 'Oreo: ' || de;
+  assert not exists (select 1 from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = ddl::text),
+         'la venta ya entregada no cuenta';
+  assert not exists (select 1 from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'mezcla'), 'sin mezcla';
+
+  -- Solo las elegidas: sin v1 quedan 6 Canela → 1 tanda de Canela (6 para vender) + Oreo.
+  r := plan_horneado(jsonb_build_object('ventas', jsonb_build_array(v2, v3)));
+  assert (r->>'total_tandas')::int = 2, 'elegidas: 2 tandas';
+  select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = ca::text;
+  assert (de->>'pedidos')::int = 6 and (de->>'rolls')::int = 12, 'elegidas Canela: ' || de;
+
+  -- El ejemplo de los dueños: 14 Canela, 3 Nutella, 3 DDL → 1 tanda de Canela + 1 mezclada
+  -- (Canela 2 + 4 para completar, Nutella 3, DDL 3). Total 2, no 3.
+  update ventas set por_hacer = false where id in (v1, v2);
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(
+    jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 2), jsonb_build_object('sabor_id', nut, 'unidades', 3),
+                      jsonb_build_object('sabor_id', ddl, 'unidades', 3)))) into v1;
+  r := plan_horneado();
+  assert (r->>'total_tandas')::int = 2, 'ejemplo: 2 tandas, dio ' || (r->>'total_tandas');
+  assert (r->>'completar')::uuid = ca, 'completa con Canela por defecto';
+  select t into de from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'mezcla';
+  assert (de->>'rolls')::int = 12 and jsonb_array_length(de->'sabores') = 3, 'mezcla: ' || de;
+  select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = ca::text;
+  assert (de->>'rolls')::int = 18 and (de->>'para_vender')::int = 4 and (de->>'tandas')::numeric = 1.5, 'ejemplo Canela: ' || de;
+  select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = nut::text;
+  assert (de->>'tandas')::numeric = 0.25, 'Nutella usa 1/4 de receta';
+
+  -- Completar con otro sabor.
+  r := plan_horneado(jsonb_build_object('completar', ddl));
+  select s into de from jsonb_array_elements(r->'sabores') s where s->>'sabor_id' = ddl::text;
+  assert (de->>'rolls')::int = 7, 'completar con DDL: ' || de;
+  begin
+    perform plan_horneado(jsonb_build_object('completar', oreo));
+    fallo := 'completar con masa propia debió fallar';
+  exception when others then null;
+  end;
+  assert fallo is null, fallo;
+
+  -- Ningún sabor queda partido entre dos tandas: 7 Nutella + 7 DDL → una mezclada con cada uno,
+  -- completadas con Canela (antes quedaba DDL 5 en una y 2 en la otra).
+  update ventas set por_hacer = false where id = v1;
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(
+    jsonb_build_array(jsonb_build_object('sabor_id', nut, 'unidades', 7)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ddl, 'unidades', 7)))) into v1;
+  r := plan_horneado();
+  assert (r->>'total_tandas')::int = 2, 'sin partir: 2 tandas';
+  assert (select count(*) from jsonb_array_elements(r->'tandas') t, jsonb_array_elements(t->'sabores') x
+           where x->>'sabor_id' = ddl::text) = 1, 'DDL en una sola tanda: ' || (r->'tandas');
+  assert (select count(*) from jsonb_array_elements(r->'tandas') t, jsonb_array_elements(t->'sabores') x
+           where x->>'sabor_id' = nut::text) = 1, 'Nutella en una sola tanda';
+
+  -- Si la Canela que sobra no entra en los lugares libres, va en una tanda entera de Canela:
+  -- 14 Canela + 9 Nutella + 3 DDL → 2 × Canela + mezclada (Nutella 9, DDL 3). Canela no queda "mezclada" sola.
+  update ventas set por_hacer = false where id = v1;
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(
+    jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 2), jsonb_build_object('sabor_id', nut, 'unidades', 9)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ddl, 'unidades', 3)))) into v1;
+  r := plan_horneado();
+  assert (r->>'total_tandas')::int = 3, 'canela aparte: 3 tandas';
+  select t into de from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'sola';
+  assert (de->>'cantidad')::int = 2 and de->'sabores'->0->>'sabor_id' = ca::text, '2 × Canela: ' || de;
+  select t into de from jsonb_array_elements(r->'tandas') t where t->>'tipo' = 'mezcla';
+  assert jsonb_array_length(de->'sabores') = 2 and (de->>'rolls')::int = 12, 'mezclada Nutella + DDL: ' || de;
+
+  -- Sobrantes que no entran en una sola mezcla: 11 Nutella + 11 DDL → 2 mezcladas (22 + 2 Canela).
+  update ventas set por_hacer = false where id = v1;
+  execute format(venta_de, 'pendiente', 'true', pers, jsonb_build_array(
+    jsonb_build_array(jsonb_build_object('sabor_id', nut, 'unidades', 11)),
+    jsonb_build_array(jsonb_build_object('sabor_id', ddl, 'unidades', 11)))) into v2;
+  r := plan_horneado();
+  assert (r->>'total_tandas')::int = 2, 'dos mezcladas';
+  assert (select sum((s->>'rolls')::int) from jsonb_array_elements(r->'sabores') s) = 24, '24 rolls';
+
+  -- Registrar: tandas con la fracción de receta y el pedido pasa a hecho.
+  r := registrar_horneado(jsonb_build_object('fecha', '2026-10-03'));
+  assert (r->>'ventas_hechas')::int = 1 and not (select por_hacer from ventas where id = v2), 'pedido hecho';
+  assert (select count(*) from tandas where fecha = '2026-10-03' and notas = 'Plan de horneado') = 3, 'una tanda por sabor';
+  assert (select cantidad from tandas where fecha = '2026-10-03' and sabor_id = nut and notas = 'Plan de horneado')
+         = round(11 / 12.0, 4), 'fracción de Nutella';
+  begin
+    perform registrar_horneado();
+    fallo := 'sin pedidos debió fallar';
+  exception when others then null;
+  end;
+  assert fallo is null, fallo;
+
+  -- actualizar_venta cambia la marca; v_ventas la muestra.
+  perform actualizar_venta(v2, '{"por_hacer": true}');
+  assert (select por_hacer from v_ventas where id = v2), 'por_hacer en v_ventas';
+
+  raise exception 'TODO OK';
+end $$;
+
+-- Plan de horneado · cajas: cajas_plan cuenta las cajas (y papel y sticker) de los pedidos elegidos; el stock
+-- disponible suma lo que ya descontaron los pedidos por hacer; que_comprar suma las cajas que le pasan.
+do $$
+declare
+  b6 uuid := (select id from formatos where nombre = 'Box de 6');
+  b12 uuid := (select id from formatos where nombre = 'Box de 12');
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  c6 uuid := (select caja_insumo_id from formatos where nombre = 'Box de 6');
+  c12 uuid := (select caja_insumo_id from formatos where nombre = 'Box de 12');
+  papel uuid := (select id from insumos where nombre = 'Papel manteca');
+  v uuid;
+  r record;
+begin
+  update ventas set por_hacer = false where por_hacer;   -- se deshace al final
+  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
+         'sin pedidos por hacer, disponible = teórico';
+
+  v := (registrar_venta(jsonb_build_object('entrega', 'retiro', 'medio_pago', 'efectivo', 'estado_pago', 'pagado',
+         'por_hacer', true, 'notas', 'PRUEBA cajas', 'lineas', jsonb_build_array(
+           jsonb_build_object('formato_id', b6, 'cantidad', 2, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12))),
+           jsonb_build_object('formato_id', b12, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12))))))->>'venta_id')::uuid;
+
+  select * into r from cajas_plan() where insumo_id = c6;
+  assert r.necesario = 2, 'Box de 6: 2 cajas, dio ' || r.necesario;
+  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6) + 2,
+         'las cajas del pedido por hacer siguen disponibles';
+  assert (select necesario from cajas_plan() where insumo_id = c12) = 1, 'Box de 12: 1 caja';
+  assert (select necesario from cajas_plan() where insumo_id = papel)
+         = 2 * (select cantidad from caja_insumos where caja_insumo_id = c6 and insumo_id = papel)
+           + (select cantidad from caja_insumos where caja_insumo_id = c12 and insumo_id = papel), 'papel manteca según cada caja';
+  assert not exists (select 1 from cajas_plan(jsonb_build_object('ventas', '[]'::jsonb))), 'sin pedidos elegidos, sin cajas';
+
+  select * into r from que_comprar('{}', jsonb_build_object(c6, 2)) where insumo_id = c6;
+  assert r.necesario = 2 and r.faltante = greatest(2 - greatest((select stock from stock_disponible() where insumo_id = c6), 0), 0),
+         'que_comprar con cajas';
+  assert (select count(*) from que_comprar(jsonb_build_object(ca, 1))) > 0, 'que_comprar sigue andando solo con tandas';
+
+  perform actualizar_venta(v, '{"por_hacer": false}');
+  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
+         'hecho: ya no reserva';
+
   raise exception 'TODO OK';
 end $$;

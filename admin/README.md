@@ -10,7 +10,7 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 - **Reglas de negocio:** en la base (`supabase/migrations/`). La app llama a `calcular_venta`
   (el resumen en vivo), `registrar_venta`, `actualizar_venta`, `registrar_tanda`,
   `registrar_compra`, `fusionar_clientes`, `guardar_receta`, `guardar_packaging_caja`,
-  `fijar_precio`, `registrar_conteo` y `que_comprar`. El navegador no calcula precios ni costos
+  `fijar_precio`, `registrar_conteo`, `que_comprar`, `plan_horneado`, `cajas_plan` y `registrar_horneado`. El navegador no calcula precios ni costos
   que se guarden (solo muestra una estimación en vivo del costo de una receta mientras se edita).
 - **PWA:** `manifest.webmanifest`, íconos en `icons/` y un `sw.js` mínimo para que sea instalable.
   No funciona sin conexión.
@@ -56,6 +56,21 @@ uno nuevo (precargado con el celular del pedido y origen Web).
 `push_suscripciones` (`js/push.js`) y `sw.js` muestra el aviso; tocarlo abre Pedidos web. En iPhone solo
 funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari común la fila explica cómo.
 
+## Plan de horneado (fase 2 · 3.1 + 3.2)
+
+**Producción → Plan** calcula cuántas tandas hacer para el sábado que viene con las ventas marcadas **Por hacer**
+(se marca al cargar la venta o desde su ficha; los pedidos web confirmados entran solos). El cobro no importa:
+un pedido pagado por adelantado sigue por hacer. Cada pedido se puede destildar para dejarlo afuera esta vez.
+Los sabores con **masa propia** (Oreo; se marca en la ficha del sabor) van en tandas aparte; los demás hacen
+tandas enteras y juntan lo que sobra en tandas mezcladas, sin partir un sabor entre dos tandas; los lugares
+libres se completan con el sabor elegido.
+El cálculo lo hace `plan_horneado` en la base. "Ver qué comprar" lleva las tandas (con fracciones: una tanda
+mezclada usa una parte de la receta de cada sabor) a ¿Qué compro?, y "Registrar horneado" (`registrar_horneado`)
+carga las tandas y marca los pedidos como hechos.
+Abajo muestra las **cajas de los pedidos** (`cajas_plan`: cajas, papel manteca y stickers) contra el stock disponible,
+que cuenta como disponibles las cajas de los pedidos que todavía no se hicieron; "Ver qué comprar" también las suma.
+Los rolls extra quedan en una sección plegada: por ahora trabajan solo por pedido y venden lo que sobra.
+
 ## Web: textos e imágenes (Etapa 7)
 
 **Web → Textos e imágenes** edita lo que dice la web pública (inicio, dónde encontrarnos, contacto, WhatsApp,
@@ -65,11 +80,11 @@ Instagram, texto de pedido recibido) y la foto de fondo del inicio. Cada campo e
 ## Navegación
 
 - **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más.
-  - **Producción** agrupa Tandas, Stock, Compras y ¿Qué compro? con pestañas internas; la pestaña
+  - **Producción** agrupa Plan, Tandas, Stock, Compras y ¿Qué compro? con pestañas internas; la pestaña
     vuelve a la última que se usó.
   - **Más**: Pedidos web, Clientes, Gastos y retiros, todo el catálogo y la cuenta, cada uno a un toque.
 - **Compu y tablet (≥ 900 px):** menú lateral con todo a un clic: "+ Venta" arriba, Inicio, Ventas y
-  los grupos Producción (Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Gastos y retiros) y
+  los grupos Producción (Plan de horneado, Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Gastos y retiros) y
   Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes) y Web (Textos e imágenes); abajo, **Cuenta** (contraseña y
   salir), que es lo único que queda en "Más". Sin las pestañas internas de Producción ni "←" hacia "Más".
   La lista del menú está en `MENU` (`js/app.js`).

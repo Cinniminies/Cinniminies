@@ -1,11 +1,20 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, stepper, pesos, cantidad, debounce } from '../util.js';
+import { h, vaciar, stepper, pesos, numero, cantidad, debounce } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { subnavProduccion } from '../componentes.js';
 
 // 5.8 "¿Qué compro?": tandas planeadas por sabor → qué falta comprar contra el stock teórico,
 // redondeado a la presentación de la última compra de cada insumo.
-const plan = {};
+let plan = {};
+let desdePlan = false;
+let cajas = {};   // { insumo_id: cantidad }: las cajas y el packaging de los pedidos del plan
+
+// Desde Producción → Plan: las tandas de cada sabor (con fracciones si hay tanda mezclada) y las cajas.
+export function cargarPlan(tandas, cajasPlan = {}) {
+  plan = { ...tandas };
+  cajas = { ...cajasPlan };
+  desdePlan = true;
+}
 
 export async function mostrar(cont) {
   const [cat, recetas] = await Promise.all([catalogo(), q(sb.from('recetas').select('sabor_id'))]);
@@ -16,12 +25,12 @@ export async function mostrar(cont) {
   const calcular = debounce(async () => {
     const este = ++pedido;
     const p = Object.fromEntries(Object.entries(plan).filter(([, t]) => t > 0));
-    if (!Object.keys(p).length) {
+    if (!Object.keys(p).length && !Object.keys(cajas).length) {
       vaciar(resultado, h('p', { class: 'vacio' }, 'Elegí cuántas tandas vas a hacer de cada sabor.'));
       return;
     }
     try {
-      const filas = await rpc('que_comprar', { p });
+      const filas = await rpc('que_comprar', { p, p_cajas: cajas });
       if (este !== pedido) return;
       const comprar = filas.filter((f) => Number(f.faltante) > 0);
       const total = comprar.reduce((a, f) => a + Number(f.costo_estimado), 0);
@@ -43,19 +52,27 @@ export async function mostrar(cont) {
             h('td', { class: 'num-der' }, cantidad(f.stock, f.unidad)),
             h('td', { class: 'num-der' }, Number(f.faltante) > 0
               ? h('span', { class: 'badge alerta' }, cantidad(f.faltante, f.unidad)) : '—')))),
-        h('p', { class: 'ayuda' }, '"Tenés" es el stock teórico. Si hace mucho que no cuentan, cargá un conteo en Stock.'));
+        h('p', { class: 'ayuda' }, '"Tenés" es el stock teórico (las cajas de los pedidos por hacer cuentan como disponibles). '
+          + 'Si hace mucho que no cuentan, cargá un conteo en Stock.'));
     } catch (e) {
       if (este === pedido) vaciar(resultado, h('p', { class: 'mensaje-error' }, e.message));
     }
   }, 250);
 
+  const notaCajas = Object.keys(cajas).length ? h('p', { class: 'ayuda' }, 'Incluye las cajas y el packaging de los pedidos del plan. ',
+    h('button', { class: 'link', type: 'button', onclick: () => { cajas = {}; notaCajas.remove(); calcular(); } }, 'Quitarlas')) : null;
+
   vaciar(cont,
     subnavProduccion('comprar'),
     h('div', { class: 'card' },
       h('h3', {}, 'Tandas que vas a hacer'),
+      desdePlan ? h('p', { class: 'ayuda' }, 'Cargadas desde el ', h('a', { href: '#/plan' }, 'plan de horneado'),
+        '. Una tanda mezclada cuenta como una parte de la receta de cada sabor.') : null,
+      notaCajas,
       sabores.map((s) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, s.nombre),
-        stepper(plan[s.id] || 0, (v) => { plan[s.id] = v; calcular(); }, { min: 0, max: 20 })))),
+        stepper(plan[s.id] || 0, (v) => { plan[s.id] = v; desdePlan = false; calcular(); },
+          { min: 0, max: 20, formato: (v) => numero(v) })))),
     resultado);
   calcular();
 }

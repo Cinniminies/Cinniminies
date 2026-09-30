@@ -291,11 +291,11 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 /* Pestañas internas (Producción) */
 .subnav {
   position: sticky; top: calc(var(--alto-barra) + env(safe-area-inset-top)); z-index: 9;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: .3rem;
+  display: grid; grid-auto-flow: column; grid-auto-columns: auto; gap: .3rem; overflow-x: auto; scrollbar-width: none;
   padding: .6rem 1rem; background: var(--bg); border-bottom: 1px solid var(--borde);
 }
 .vista .subnav { margin: -1rem -1rem 1rem; }
-.subnav a { padding: .55rem .2rem; border-radius: 999px; font-size: .84rem; font-weight: 600; text-align: center; white-space: nowrap;
+.subnav a { padding: .55rem .45rem; border-radius: 999px; font-size: .8rem; font-weight: 600; text-align: center; white-space: nowrap;
   color: var(--texto); text-decoration: none; background: var(--card); border: 1px solid var(--borde); }
 .subnav a.activo { background: var(--marca); border-color: var(--marca); color: var(--sobre-marca); }
 

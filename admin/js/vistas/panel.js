@@ -24,7 +24,7 @@ export async function mostrar(cont) {
   const inicioAnterior = mesesAntes(actual, 1);
   const finAnterior = new Date(Date.UTC(Number(inicioAnterior.slice(0, 4)), Number(inicioAnterior.slice(5, 7)) - 1,
     Math.min(dia, new Date(Date.UTC(Number(actual.slice(0, 4)), Number(actual.slice(5, 7)) - 1, 0)).getUTCDate()))).toISOString().slice(0, 10);
-  const [resumen, total, pendientes, alertas, ultimas, tramoAnterior, pedidosNuevos] = await Promise.all([
+  const [resumen, total, pendientes, alertas, ultimas, tramoAnterior, pedidosNuevos, porHacer] = await Promise.all([
     q(sb.from('v_resumen_mensual').select('*').order('mes')),
     q(sb.from('v_panel').select('*').single()),
     q(sb.from('v_ventas').select('id,fecha,cliente,formatos,total').eq('estado_pago', 'pendiente').order('fecha')),
@@ -33,6 +33,7 @@ export async function mostrar(cont) {
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(5)),
     q(sb.from('v_ventas').select('total,ganancia,rolls,tipo').gte('fecha', inicioAnterior).lte('fecha', finAnterior)),
     q(sb.from('pedidos').select('nombre,total').eq('estado', 'nuevo').order('creado_en')),
+    q(sb.from('v_ventas').select('rolls').eq('por_hacer', true)),
   ]);
   const cuentan = tramoAnterior.filter((v) => v.tipo !== 'regalo');
   const mismoTramo = {
@@ -55,6 +56,13 @@ export async function mostrar(cont) {
       h('div', { class: 'tarea-cab' }, icono('carrito'),
         h('div', {}, h('strong', {}, `${plural(pedidosNuevos.length, 'pedido nuevo', 'pedidos nuevos')} de la web`),
           h('div', { class: 'ayuda' }, pedidosNuevos.map((p) => `${p.nombre} ${pesos(p.total)}`).join(' · ')))),
+      icono('derecha', 'icono chev')));
+  }
+  if (porHacer.length) {
+    tareas.push(h('a', { class: 'card tarea tarea-link', href: '#/plan' },
+      h('div', { class: 'tarea-cab' }, icono('roll'),
+        h('div', {}, h('strong', {}, `${plural(porHacer.length, 'pedido', 'pedidos')} por hacer`),
+          h('div', { class: 'ayuda' }, `${plural(porHacer.reduce((a, v) => a + v.rolls, 0), 'roll')} · ver el plan de horneado`))),
       icono('derecha', 'icono chev')));
   }
   if (pendientes.length) {

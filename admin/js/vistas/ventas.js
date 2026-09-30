@@ -27,7 +27,7 @@ async function lista(cont) {
     const este = ++pedido;
     const texto = filtro.texto.trim();
     let consulta = sb.from('v_ventas')
-      .select('id,fecha,cliente,formatos,sabores,total,estado_pago,tipo')
+      .select('id,fecha,cliente,formatos,sabores,total,estado_pago,tipo,por_hacer')
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false });
     if (filtro.mes) {
       const [a, m] = filtro.mes.split('-').map(Number);
@@ -35,6 +35,7 @@ async function lista(cont) {
       consulta = consulta.gte('fecha', filtro.mes).lt('fecha', siguiente);
     }
     if (filtro.estado === 'pendientes') consulta = consulta.eq('estado_pago', 'pendiente');
+    if (filtro.estado === 'por_hacer') consulta = consulta.eq('por_hacer', true);
     if (texto) consulta = consulta.ilike('cliente', `%${texto.replace(/[%_\\]/g, '')}%`);
     const limitada = !filtro.mes && filtro.estado === 'todas' && !texto;
     if (limitada) consulta = consulta.limit(50);
@@ -68,6 +69,7 @@ async function lista(cont) {
             h('div', { class: 'princ' },
               h('div', { class: 't1' }, v.cliente || 'Sin cliente', ' ',
                 v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null,
+                v.por_hacer ? h('span', { class: 'badge neutro' }, 'Por hacer') : null,
                 v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null),
               h('div', { class: 't2' }, `${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
             h('span', { class: 'monto' }, pesos(v.total))))))))
@@ -87,7 +89,8 @@ async function lista(cont) {
         type: 'search', value: filtro.texto, placeholder: 'Buscar…',
         oninput: (e) => { filtro.texto = e.target.value; buscar(); },
       }))),
-    h('div', { class: 'campo' }, chips([{ valor: 'todas', texto: 'Todas' }, { valor: 'pendientes', texto: 'Pendientes de cobro' }],
+    h('div', { class: 'campo' }, chips([{ valor: 'todas', texto: 'Todas' }, { valor: 'pendientes', texto: 'Pendientes de cobro' },
+      { valor: 'por_hacer', texto: 'Por hacer' }],
       filtro.estado, (v) => { filtro.estado = v; cargar(); })),
     resultados);
   await cargar();
@@ -119,6 +122,12 @@ async function detalle(cont, id) {
     toast(pagada ? 'Marcada como pendiente' : 'Marcada como cobrada');
     await detalle(cont, id);
   });
+  const cambiarHecho = h('button', { class: 'btn' }, v.por_hacer ? 'Marcar hecho' : 'Marcar por hacer');
+  cambiarHecho.onclick = () => conBoton(cambiarHecho, async () => {
+    await rpc('actualizar_venta', { p_id: id, p: { por_hacer: !v.por_hacer } });
+    toast(v.por_hacer ? 'Marcado como hecho' : 'Marcado por hacer: entra en el plan de horneado');
+    await detalle(cont, id);
+  });
   const borrar = h('button', { class: 'btn peligro' }, 'Borrar');
   borrar.onclick = () => conBoton(borrar, async () => {
     if (!confirm(`¿Borrar la venta de ${v.cliente || 'sin cliente'} del ${fechaLarga(v.fecha)}? No se puede deshacer.`)) return;
@@ -135,6 +144,7 @@ async function detalle(cont, id) {
       h('p', {},
         h('span', { class: 'badge ' + (pagada ? 'ok' : 'pendiente') }, ETIQUETAS.estado_pago[v.estado_pago]), ' ',
         v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null, ' ',
+        v.por_hacer ? [h('span', { class: 'badge neutro' }, 'Por hacer'), ' '] : null,
         `${ETIQUETAS.entrega[v.entrega]} · ${ETIQUETAS.medio_pago[v.medio_pago] || 'sin medio de pago'}`),
       lineas.map((l) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' },
@@ -153,6 +163,7 @@ async function detalle(cont, id) {
       v.notas ? h('p', {}, h('strong', {}, 'Notas: '), v.notas) : null,
       h('div', { class: 'acciones' },
         cambiarEstado,
+        cambiarHecho,
         h('a', { class: 'btn', href: `#/ventas/${id}/editar` }, 'Editar'),
         borrar)));
 }

@@ -1,7 +1,7 @@
 // Pruebas de los formatos de /admin. Correr con: node --test admin/tests/*.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pesos, numero, cantidad, plural, fechaCorta, fechaLarga, nombreMes, mesISO, linkWhatsapp } from '../js/util.js';
+import { pesos, numero, cantidad, plural, fechaCorta, fechaLarga, nombreMes, mesISO, linkWhatsapp, proximoSabado } from '../js/util.js';
 
 test('pesos: miles con punto, decimales con coma, sin ,00', () => {
   assert.equal(pesos(250), '$250');
@@ -44,4 +44,11 @@ test('plural', () => {
   assert.equal(plural(1, 'venta'), '1 venta');
   assert.equal(plural(3, 'venta'), '3 ventas');
   assert.equal(plural(0, 'tanda'), '0 tandas');
+});
+
+test('proximoSabado: el sábado que viene, o hoy si es sábado', () => {
+  assert.equal(proximoSabado('2026-09-30'), '2026-10-03'); // miércoles
+  assert.equal(proximoSabado('2026-10-03'), '2026-10-03'); // sábado
+  assert.equal(proximoSabado('2026-10-04'), '2026-10-10'); // domingo
+  assert.equal(proximoSabado('2026-12-28'), '2027-01-02'); // cambia el año
 });
