@@ -77,12 +77,13 @@ export async function mostrar(cont) {
 
     vaciar(resultado,
       h('h2', {}, `${plural(plan.total_tandas, 'tanda')} para el ${fechaCorta(estado.fecha)}`),
+      // Una tanda "mezclada" que quedó de un solo sabor se muestra como una tanda de ese sabor.
       h('ul', { class: 'lista' }, plan.tandas.map((t) => h('li', {}, h('div', { class: 'fila' },
         h('div', { class: 'princ' },
-          t.tipo === 'sola'
+          t.sabores.length === 1
             ? h('div', { class: 't1' }, `${t.cantidad} × ${t.sabores[0].nombre}`)
             : h('div', { class: 't1' }, 'Tanda mezclada ', h('span', { class: 'badge neutro' }, 'una masa')),
-          h('div', { class: 't2' }, t.tipo === 'sola'
+          h('div', { class: 't2' }, t.sabores.length === 1
             ? `${t.rolls} rolls`
             : t.sabores.map((s) => `${s.nombre} ${s.rolls}`).join(' · '))))))),
       hayMezcla && compartidos.length > 1 ? h('div', { class: 'card' },
