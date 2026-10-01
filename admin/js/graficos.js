@@ -6,7 +6,8 @@ import { h } from './util.js';
 
 // Columnas (p. ej. vendido por mes). datos: [{ etiqueta, valor, destacado, filas: [[nombre, texto]] }]
 // Se rotula solo la columna destacada y la más alta; el resto está en el detalle y en la tabla.
-export function columnas(datos, { formato, titulo, columnasTabla }) {
+// `alElegir(d)`: si está, tocar (o Enter sobre) una columna la elige además de mostrar el detalle.
+export function columnas(datos, { formato, titulo, columnasTabla, alElegir, ayudaElegir }) {
   const max = Math.max(0, ...datos.map((d) => d.valor));
   const iMax = datos.findIndex((d) => d.valor === max && max > 0);
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
@@ -23,6 +24,7 @@ export function columnas(datos, { formato, titulo, columnasTabla }) {
     const col = h('button', {
       type: 'button', class: 'graf-col' + (d.destacado ? ' destacado' : ''),
       'aria-label': `${d.etiquetaLarga || d.etiqueta}: ${formato(d.valor)}`,
+      'aria-pressed': alElegir ? String(Boolean(d.destacado)) : null,
     },
     h('span', { class: 'graf-valor' }, d.destacado || i === iMax ? formato(d.valor) : ''),
     h('span', { class: 'graf-area' }, h('span', { class: 'graf-barra', style: `height:${alto}%` })),
@@ -30,7 +32,7 @@ export function columnas(datos, { formato, titulo, columnasTabla }) {
     const ver = () => mostrar(d, col);
     col.addEventListener('pointerenter', ver);
     col.addEventListener('focus', ver);
-    col.addEventListener('click', ver);
+    col.addEventListener('click', alElegir ? () => alElegir(d) : ver);
     return col;
   });
 
@@ -44,6 +46,7 @@ export function columnas(datos, { formato, titulo, columnasTabla }) {
     h('figcaption', { class: 'graf-titulo' }, titulo),
     h('div', { class: 'graf-columnas', style: `--n:${datos.length}` }, cols),
     detalle,
+    alElegir && ayudaElegir ? h('p', { class: 'graf-ayuda' }, ayudaElegir) : null,
     tabla);
   if (destacado) queueMicrotask(() => mostrar(destacado, cols[datos.indexOf(destacado)]));
   return fig;

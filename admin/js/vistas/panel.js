@@ -5,6 +5,7 @@ import { columnas, barras, variacion } from '../graficos.js';
 import { irA, sesion } from '../app.js';
 
 const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', texto: 'Mes pasado' }, { valor: 'todo', texto: 'Todo' }];
+// 'mes', 'anterior', 'todo' o un mes elegido en el gráfico ('AAAA-MM-01').
 let periodo = 'mes';
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -44,7 +45,7 @@ export async function mostrar(cont) {
     ganancia_bruta: tramoAnterior.reduce((a, v) => a + Number(v.ganancia), 0),
   };
   const deMes = (mes) => resumen.find((r) => r.mes === mes)
-    || { mes, vendido: 0, ventas: 0, rolls_vendidos: 0, ganancia_bruta: 0, total_gastado: 0 };
+    || { mes, vendido: 0, ventas: 0, rolls_vendidos: 0, ganancia_bruta: 0, total_gastado: 0, aportes: 0, otros_ingresos: 0 };
 
   // ---- accesos rápidos y tareas (no dependen del período)
   const acceso = (href, ico, texto) => h('a', { class: 'acceso', href }, h('span', { class: 'acceso-ico' }, icono(ico)), texto);
@@ -94,11 +95,23 @@ export async function mostrar(cont) {
 
   // ---- resumen del período elegido
   const contPeriodo = h('div');
+  const contChips = h('div');
+  // Tocar una barra del gráfico elige ese mes; si es este mes o el pasado, se marca su chip.
+  const elegirMes = (mes) => {
+    periodo = mes === actual ? 'mes' : mes === mesesAntes(actual, 1) ? 'anterior' : mes;
+    dibujarPeriodo();
+    contPeriodo.querySelector('.graf-col.destacado')?.focus({ preventScroll: true });
+  };
   function dibujarPeriodo() {
-    const mesSel = periodo === 'mes' ? actual : periodo === 'anterior' ? mesesAntes(actual, 1) : null;
+    const mesSel = periodo === 'mes' ? actual : periodo === 'anterior' ? mesesAntes(actual, 1)
+      : periodo === 'todo' ? null : periodo;
+    const otroMes = !PERIODOS.some((p) => p.valor === periodo);
+    vaciar(contChips, chips(otroMes ? [...PERIODOS, { valor: periodo, texto: nombreMes(periodo) }] : PERIODOS,
+      periodo, (v) => { periodo = v; dibujarPeriodo(); }));
     const datos = mesSel ? deMes(mesSel) : {
       vendido: total.vendido, ventas: total.ventas, rolls_vendidos: total.rolls_vendidos,
       ganancia_bruta: total.ganancia_bruta, total_gastado: total.total_gastado,
+      aportes: total.aportes, otros_ingresos: total.otros_ingresos,
     };
     const previo = periodo === 'mes' ? mismoTramo : mesSel ? deMes(mesesAntes(mesSel, 1)) : null;
     const contra = periodo === 'mes'
@@ -116,6 +129,7 @@ export async function mostrar(cont) {
     // Últimos 6 meses (con ceros si en alguno no hubo ventas)
     const seis = Array.from({ length: 6 }, (_, i) => deMes(mesesAntes(actual, 5 - i)));
     const grafico = columnas(seis.map((r) => ({
+      mes: r.mes,
       etiqueta: nombreCorto(r.mes),
       etiquetaLarga: nombreMes(r.mes),
       valor: Number(r.vendido),
@@ -124,6 +138,8 @@ export async function mostrar(cont) {
     })), {
       titulo: 'Vendido por mes',
       formato: (v) => (v >= 10000 ? `$${numero(v / 1000, 1)} mil` : pesos(v)),
+      alElegir: (d) => elegirMes(d.mes),
+      ayudaElegir: 'Tocá un mes para ver su resumen.',
       columnasTabla: [
         ['Mes', (d) => d.etiquetaLarga],
         ['Vendido', (d) => pesos(d.valor)],
@@ -157,7 +173,18 @@ export async function mostrar(cont) {
           previo ? variacion(Number(datos.ventas), Number(previo.ventas), contra) : null),
         kpi('Ticket promedio', ticket != null ? pesos(Math.round(ticket)) : '—', 'por venta'),
         kpi('Gastado', pesos(datos.total_gastado), 'compras y gastos')),
+      entroAparte(datos),
       h('div', { class: 'graficos' }, h('div', { class: 'card' }, grafico), h('div', { class: 'card' }, porSabor)));
+  }
+
+  // Plata que entró sin ser una venta (aportes de socios y otros ingresos), si hubo.
+  function entroAparte(d) {
+    const aportes = Number(d.aportes || 0);
+    const otros = Number(d.otros_ingresos || 0);
+    if (!aportes && !otros) return null;
+    const partes = [aportes ? `aportes de socios ${pesos(aportes)}` : null, otros ? `otros ingresos ${pesos(otros)}` : null];
+    return h('p', { class: 'ayuda' }, `Además entraron ${pesos(aportes + otros)} que no son ventas: `,
+      partes.filter(Boolean).join(' · '), '.');
   }
 
   const plata = (etiqueta, valor, ayuda) => h('div', { class: 'dato' },
@@ -171,12 +198,13 @@ export async function mostrar(cont) {
       acceso('#/tandas', 'roll', 'Tanda'),
       acceso('#/compras', 'carrito', 'Compra'),
       acceso('#/gastos', 'gasto', 'Gasto'),
+      acceso('#/gastos/ingreso', 'ingreso', 'Ingreso'),
       acceso('#/stock/conteo', 'conteo', 'Conteo')),
 
     tareas.length ? [h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas] : null,
 
     h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Resumen'),
-      chips(PERIODOS, periodo, (v) => { periodo = v; dibujarPeriodo(); })),
+      contChips),
     contPeriodo,
 
     h('h2', { class: 'seccion-titulo' }, 'La plata, acumulado'),
@@ -186,6 +214,8 @@ export async function mostrar(cont) {
       plata('Stock', pesos(Number(total.stock_ingredientes) + Number(total.stock_packaging)), 'ingredientes y packaging'),
       plata('Capital', pesos(total.capital), 'caja + stock'),
       plata('Retiros de socios', pesos(total.retiros)),
+      plata('Aportes de socios', pesos(total.aportes)),
+      Number(total.otros_ingresos) ? plata('Otros ingresos', pesos(total.otros_ingresos), 'que no son ventas') : null,
       plata('Tandas hechas', `${numero(total.tandas, 1)} · ${numero(total.rolls_producidos, 0)} rolls`)),
 
     h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Últimas ventas'),

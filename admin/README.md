@@ -82,9 +82,9 @@ Instagram, texto de pedido recibido) y la foto de fondo del inicio. Cada campo e
 - **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más.
   - **Producción** agrupa Plan, Tandas, Stock, Compras y ¿Qué compro? con pestañas internas; la pestaña
     vuelve a la última que se usó.
-  - **Más**: Pedidos web, Clientes, Gastos y retiros, todo el catálogo y la cuenta, cada uno a un toque.
+  - **Más**: Pedidos web, Clientes, Gastos e ingresos, todo el catálogo y la cuenta, cada uno a un toque.
 - **Compu y tablet (≥ 900 px):** menú lateral con todo a un clic: "+ Venta" arriba, Inicio, Ventas y
-  los grupos Producción (Plan de horneado, Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Gastos y retiros) y
+  los grupos Producción (Plan de horneado, Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Gastos e ingresos) y
   Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes) y Web (Textos e imágenes); abajo, **Cuenta** (contraseña y
   salir), que es lo único que queda en "Más". Sin las pestañas internas de Producción ni "←" hacia "Más".
   La lista del menú está en `MENU` (`js/app.js`).

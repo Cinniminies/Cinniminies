@@ -437,9 +437,12 @@ create table conteos (                    -- conteo físico de stock
 - **Total gastado** = Σ compras + Σ gastos **excepto** `retiro_socios`.
 - **Retiros socios** = Σ gastos con tipo `retiro_socios`. Se muestra aparte.
 - **Ajustes de caja** = Σ gastos con tipo `ajuste_caja`. Se muestran aparte; no cuentan como gasto pero sí restan de la caja teórica.
+- **Ingresos** (tabla `ingresos`, agregada el 30/09/2026): plata que entra sin ser una venta. **Aportes de socios**
+  (`aporte_socios`, espejo del retiro: suma a la caja, no es ganancia) y **otros ingresos** (`otro`: suman a la caja,
+  a la ganancia neta y al resultado del mes).
 - **Ganancia bruta de ventas** = Σ (precio cobrado + envío − costo de producción − costo de caja).
-- **Ganancia neta** = vendido − gastado + valor del stock de ingredientes + valor del stock de packaging.
-- **Caja teórica** = vendido − gastado − pendiente − retiros − ajustes de caja.
+- **Ganancia neta** = vendido + otros ingresos − gastado + valor del stock de ingredientes + valor del stock de packaging.
+- **Caja teórica** = vendido − gastado − pendiente − retiros − ajustes de caja + aportes + otros ingresos.
 - **Capital** = caja teórica + valor del stock.
 - **Tandas hechas**, **rolls producidos** y **rolls vendidos** por sabor.
 

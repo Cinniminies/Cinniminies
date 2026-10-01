@@ -138,6 +138,8 @@ main:focus { outline: none; }
 .fila .t1 { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fila .t2 { font-size: .83rem; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fila .monto { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fila .monto.entra { color: var(--ok); }
+.sentido { margin-bottom: 1rem; }
 .num-der { text-align: right; font-variant-numeric: tabular-nums; }
 
 .badge { display: inline-block; font-size: .75rem; font-weight: 600; padding: .1rem .45rem; border-radius: 999px; vertical-align: middle; }
@@ -314,7 +316,7 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .saludo { margin-bottom: 1rem; }
 .saludo p { margin: 0; }
 .saludo-hola { font-family: var(--display); font-size: 1.4rem; font-weight: 600; }
-.accesos { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+.accesos { display: grid; grid-template-columns: repeat(5, 1fr); gap: .5rem; }
 .acceso { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem;
   min-height: 4.75rem; padding: .6rem .25rem; border-radius: var(--radio); background: var(--card);
   border: 1px solid var(--borde); color: var(--texto); text-decoration: none; font-size: .85rem; font-weight: 600; }
@@ -355,6 +357,7 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .graf-col.activa .graf-barra { outline: 2px solid var(--graf-acento); outline-offset: 2px; }
 .graf-col .graf-etq { padding-top: .35rem; font-size: .78rem; color: var(--suave); }
 .graf-col.destacado .graf-etq { color: var(--texto); font-weight: 600; }
+.graf-ayuda { margin: .35rem 0 0; font-size: .78rem; color: var(--suave); }
 .graf-detalle { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .75rem; min-height: 1.6rem;
   margin-top: .75rem; font-size: .85rem; color: var(--suave); }
 .graf-detalle strong { font-size: 1rem; color: var(--texto); }

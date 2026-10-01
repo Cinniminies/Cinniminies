@@ -658,3 +658,32 @@ begin
 
   raise exception 'TODO OK';
 end $$;
+
+-- Ingresos: el aporte de socios suma a la caja y al capital pero no a la ganancia; el otro ingreso
+-- suma también a la ganancia neta y al resultado del mes. Monto siempre mayor a 0.
+do $$
+declare
+  a record;
+  b record;
+  ra numeric;
+  rb numeric;
+begin
+  select * into a from v_panel;
+  select coalesce((select resultado from v_resumen_mensual where mes = '2026-09-01'), 0) into ra;
+  insert into ingresos (fecha, descripcion, tipo, monto) values
+    ('2026-09-15', 'PRUEBA aporte', 'aporte_socios', 1000), ('2026-09-15', 'PRUEBA otro', 'otro', 200);
+  select * into b from v_panel;
+  select resultado into rb from v_resumen_mensual where mes = '2026-09-01';
+  assert b.caja_teorica - a.caja_teorica = 1200, 'caja: suman los dos';
+  assert b.capital - a.capital = 1200, 'capital: suman los dos';
+  assert b.ganancia_neta - a.ganancia_neta = 200, 'ganancia neta: solo el otro ingreso';
+  assert rb - ra = 200, 'resultado del mes: solo el otro ingreso';
+  assert b.aportes - a.aportes = 1000 and b.otros_ingresos - a.otros_ingresos = 200, 'columnas nuevas';
+  assert b.total_gastado = a.total_gastado, 'no cuentan como gasto';
+  begin
+    insert into ingresos (fecha, descripcion, tipo, monto) values ('2026-09-15', 'PRUEBA', 'otro', 0);
+    raise exception 'dejó un ingreso de $0';
+  exception when check_violation then null;
+  end;
+  raise exception 'TODO OK';
+end $$;

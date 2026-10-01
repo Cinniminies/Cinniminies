@@ -65,7 +65,7 @@ export async function mostrar(cont) {
     seccion('Negocio',
       item('#/pedidos', 'carrito', 'Pedidos web', 'Los que llegan desde la web: confirmar o rechazar'),
       item('#/clientes', 'clientes', 'Clientes', 'Libreta, historial y duplicados'),
-      item('#/gastos', 'gasto', 'Gastos y retiros', 'Mermas, comisiones, retiros de socios')),
+      item('#/gastos', 'gasto', 'Gastos e ingresos', 'Mermas, comisiones, retiros y aportes de socios')),
     seccion('Catálogo',
       item('#/sabores', 'roll', 'Sabores y recetas', 'Activar, ocultar en la web, precio por unidad'),
       item('#/formatos', 'caja', 'Formatos', 'Cajas, personalizado y unidad'),
