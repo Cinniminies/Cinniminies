@@ -20,8 +20,9 @@ actualización.
 | `datos_costos` | Costo por tanda y por roll de cada sabor, precio y margen por unidad (precios de hoy). |
 | `datos_margenes` | Margen por formato y sabor (precios de hoy). |
 | `datos_stock` | Stock teórico por insumo, con el último conteo, alertas y valor. |
-| `datos_resumen_mensual` | Vendido, cobrado, costos, compras, gastos, retiros y resultado por mes. |
+| `datos_resumen_mensual` | Vendido, cobrado, costos, compras, gastos, retiros, aportes, otros ingresos y resultado por mes. |
 | `datos_gastos` | Gastos y retiros (`es_gasto` = falso para retiros de socios y ajustes de caja). |
+| `datos_ingresos` | Ingresos que no son ventas: aportes de socios y otros (`es_ingreso_negocio` = verdadero solo para "otro"). |
 | `datos_compras` | Compras con el insumo y el costo por unidad base. |
 | `datos_tandas` | Tandas con el costo estimado a los precios de su fecha. |
 | `datos_estado` | Cuándo se actualizó cada pestaña y si hubo algún error. |

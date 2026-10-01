@@ -75,7 +75,8 @@ const VISTAS = {
       ['cobrado', 'dinero'], ['pendiente', 'dinero'], ['costo_produccion', 'dinero'],
       ['costo_caja', 'dinero'], ['ganancia_bruta', 'dinero'], ['compras', 'dinero'],
       ['gastos', 'dinero'], ['total_gastado', 'dinero'], ['retiros', 'dinero'],
-      ['ajustes_caja', 'dinero'], ['resultado', 'dinero'],
+      ['ajustes_caja', 'dinero'], ['resultado', 'dinero'], ['aportes', 'dinero'],
+      ['otros_ingresos', 'dinero'],
     ],
     orden: ['mes'],
   },
@@ -85,6 +86,16 @@ const VISTAS = {
     columnas: [
       ['fecha', 'fecha'], ['mes', 'mes'], ['tipo', 'texto'], ['descripcion', 'texto'],
       ['monto', 'dinero'], ['es_gasto', 'bool'], ['rolls', 'numero'], ['notas', 'texto'],
+      ['creado_en', 'fechahora'],
+    ],
+    orden: ['fecha', 'creado_en', 'id'],
+  },
+  ingresos: {
+    tabla: 'v_ingresos',
+    titulo: 'Ingresos que no son ventas (aportes de socios y otros)',
+    columnas: [
+      ['fecha', 'fecha'], ['mes', 'mes'], ['tipo', 'texto'], ['descripcion', 'texto'],
+      ['monto', 'dinero'], ['es_ingreso_negocio', 'bool'], ['notas', 'texto'],
       ['creado_en', 'fechahora'],
     ],
     orden: ['fecha', 'creado_en', 'id'],

@@ -118,6 +118,7 @@ export const ETIQUETAS = {
     merma: 'Merma', tanda_descartada: 'Tanda descartada', gasto_operativo: 'Gasto',
     comision: 'Comisión', retiro_socios: 'Retiro socios', ajuste_caja: 'Ajuste de caja', otro: 'Otro',
   },
+  ingreso: { aporte_socios: 'Aporte socios', otro: 'Otro ingreso' },
 };
 
 export const opciones = (mapa) => Object.entries(mapa).map(([valor, texto]) => ({ valor, texto }));

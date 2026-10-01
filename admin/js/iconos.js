@@ -10,6 +10,7 @@ const TRAZOS = {
   derecha: '<path d="M9 18l6-6-6-6"/>',
   bolsa: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   gasto: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+  ingreso: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>',
   conteo: '<path d="M9 5h10M9 12h10M9 19h10"/><path d="M4 5l1 1 2-2M4 12l1 1 2-2M4 19l1 1 2-2"/>',
   stock: '<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M12 12v8"/>',
   carrito: '<path d="M3 4h2l2.5 11h10L20 7H6.2"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',

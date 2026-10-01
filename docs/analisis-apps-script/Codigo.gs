@@ -471,7 +471,7 @@ function crearTablero_(ss) {
     ['Vendido', '=SUM(resumen_mensual_vendido)', 'todo el período'],
     ['Ganancia bruta', '=SUM(resumen_mensual_ganancia_bruta)', 'ventas − costos'],
     ['Pendiente de cobro', '=SUM(resumen_mensual_pendiente)', 'ventas sin cobrar'],
-    ['Resultado', '=SUM(resumen_mensual_resultado)', 'vendido − compras − gastos'],
+    ['Resultado', '=SUM(resumen_mensual_resultado)', 'vendido + otros ingresos − compras − gastos'],
     ['Stock', '=SUM(stock_valor)', 'ingredientes y packaging'],
   ];
   tarjetas.forEach(function (t, i) {

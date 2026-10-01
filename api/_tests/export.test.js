@@ -8,7 +8,7 @@ const handler = require('../export/[vista].js');
 
 test('las vistas del handoff están todas', () => {
   for (const v of ['ventas', 'ventas_sabores', 'costos', 'stock', 'resumen_mensual', 'gastos',
-    'compras', 'tandas']) {
+    'compras', 'tandas', 'ingresos']) {
     assert.ok(VISTAS[v], v);
   }
 });

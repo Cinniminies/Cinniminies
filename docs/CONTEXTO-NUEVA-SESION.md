@@ -141,6 +141,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 - **"Sin detalle" eliminado (29/09):** Lucio reclasificó a mano la mayoría de las cajas viejas; las últimas 11
   (72 rolls) se repartieron por estadística (historial del cliente o mezcla de la semana) y el sabor se borró.
   Criterio en `supabase/migrations/20261007100000_repartir_sin_detalle.sql`.
+- **Ingresos (30/09):** tabla `ingresos` (aporte de socios / otro ingreso), en /admin → Gastos e ingresos
+  ("Entra plata"). Reglas en el handoff, 5.6. En Inicio, tocar una barra de "Vendido por mes" muestra el resumen de ese mes.
 - **Sin respuesta de los dueños:** "Cobramos menos de una box de 6" quedó como `comision` (así estaba en la planilla).
 
 ---
