@@ -21,6 +21,7 @@ export async function catalogo(forzar = false) {
     formatosActivos: formatos.filter((f) => f.activo),
     cajas: insumos.filter((i) => i.tipo === 'packaging' && i.activo && /^caja/i.test(i.nombre)),
     precioEnvio: Number(param.precio_envio || 0),
+    parametros: param,
     sabor: (id) => sabores.find((s) => s.id === id),
     formato: (id) => formatos.find((f) => f.id === id),
     insumo: (id) => insumos.find((i) => i.id === id),
