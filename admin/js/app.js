@@ -29,6 +29,7 @@ function volverDe(ruta, id, accion) {
   if (ruta === 'ventas' && id && accion === 'editar') return [`#/ventas/${id}`, 'Editar venta'];
   if (ruta === 'ventas' && id) return ['#/ventas', 'Venta'];
   if (ruta === 'stock' && id === 'conteo') return ['#/stock', 'Cargar conteo'];
+  if (ruta === 'stock' && id === 'desvios') return ['#/stock', 'Desvíos'];
   const nuevo = { sabores: 'Nuevo sabor', insumos: 'Nuevo insumo', formatos: 'Nuevo formato' };
   if (id && ['clientes', 'sabores', 'insumos', 'formatos'].includes(ruta)) {
     return [`#/${ruta}`, id === 'nuevo' ? nuevo[ruta] : RUTAS[ruta][0]];

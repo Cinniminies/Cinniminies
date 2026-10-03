@@ -698,3 +698,37 @@ begin
   end;
   raise exception 'TODO OK';
 end $$;
+
+-- Desvíos de stock: el conteo guarda el teórico y lo usado desde el conteo anterior; el promedio
+-- por insumo arranca de nuevo después de ajustar las recetas.
+do $$
+declare
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  har uuid := (select id from insumos where nombre = 'Harina');
+  receta numeric := (select cantidad from recetas where sabor_id = (select id from sabores where nombre = 'Canela')
+                                                  and insumo_id = (select id from insumos where nombre = 'Harina'));
+  d record;
+begin
+  -- Fechas futuras: dentro del bloque now() es siempre el mismo, así que el orden lo da la fecha.
+  perform registrar_conteo(jsonb_build_object('fecha', hoy() + 1,
+            'items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', 5000))));
+  perform registrar_tanda(jsonb_build_object('fecha', hoy() + 2, 'sabor_id', ca, 'cantidad', 2));
+  perform registrar_conteo(jsonb_build_object('fecha', hoy() + 2, 'items', jsonb_build_array(
+            jsonb_build_object('insumo_id', har, 'cantidad', 5000 - 2 * receta - 90))));
+  select * into d from v_desvios where insumo_id = har order by fecha desc limit 1;
+  assert d.teorico = 5000 - 2 * receta, 'teórico guardado';
+  assert d.usado = 2 * receta, 'usado desde el conteo anterior';
+  assert d.desvio = 90, 'desvío = teórico − contado';
+  assert d.desvio_relativo = round(90 / (2 * receta), 4), 'desvío relativo';
+
+  perform ajustar_recetas_insumo(har, 1.1);
+  assert (select cantidad from recetas where sabor_id = ca and insumo_id = har) = round(receta * 1.1, 2), 'receta ajustada';
+  assert not exists (select 1 from v_desvio_insumo where insumo_id = har), 'el promedio arranca de nuevo';
+  begin
+    perform ajustar_recetas_insumo((select id from insumos where tipo = 'packaging' limit 1), 1.1);
+    raise exception 'ajustó packaging';
+  exception when others then
+    if sqlerrm = 'ajustó packaging' then raise; end if;
+  end;
+  raise exception 'TODO OK';
+end $$;
