@@ -7,6 +7,17 @@ import { ZONA_HORARIA } from './config.js';
 export function h(tag, attrs, ...hijos) {
   const el = document.createElement(tag);
   let valor;
+  if (tag === 'input' && attrs?.type === 'number' && attrs.inputmode === 'decimal') {
+    // En el celular con teclado en español, un type="number" no acepta "80,76" (queda vacío).
+    // Va como texto y la coma se pasa a punto antes de que lo lean los oninput.
+    attrs = { ...attrs, type: 'text', autocomplete: 'off' };
+    el.addEventListener('input', () => {
+      if (!el.value.includes(',')) return;
+      const pos = el.selectionStart;
+      el.value = el.value.replaceAll(',', '.');
+      el.setSelectionRange(pos, pos);
+    });
+  }
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v == null || v === false) continue;
     if (k === 'value') valor = v;
