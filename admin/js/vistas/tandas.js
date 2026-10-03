@@ -67,11 +67,52 @@ export async function mostrar(cont) {
           toast('Tanda borrada');
           irA('#/tandas');
         });
-        return h('li', {}, h('div', { class: 'fila' },
+        const li = h('li');
+        const editar = h('button', { class: 'btn chico', type: 'button' }, 'Editar');
+        let form = null;
+        editar.onclick = () => {
+          if (form) { form.remove(); form = null; return; }
+          form = formEditar(t, () => { form.remove(); form = null; });
+          li.append(form);
+        };
+        return vaciar(li, h('div', { class: 'fila' },
           h('div', { class: 'princ' },
             h('div', { class: 't1' }, `${numero(t.cantidad)} × ${t.sabores.nombre}`),
             h('div', { class: 't2' }, `${fechaCorta(t.fecha)} · ${t.rolls} rolls${t.notas ? ' · ' + t.notas : ''}`)),
-          borrar));
+          editar, borrar));
       }))
       : h('p', { class: 'vacio' }, 'Todavía no hay tandas.'));
+}
+
+// Corregir cuántas tandas se hicieron (por ejemplo, si salieron más que las del Plan de horneado).
+// Lo consumido se escala en proporción, con la receta del día de la tanda.
+function formEditar(t, cerrar) {
+  const f = { cantidad: String(t.cantidad), rolls: String(t.rolls), notas: t.notas || '' };
+  let rollsTocados = false;
+  const rolls = h('input', {
+    type: 'number', inputmode: 'numeric', min: 0, value: f.rolls,
+    oninput: (e) => { f.rolls = e.target.value; rollsTocados = true; },
+  });
+  const cantidad = h('input', {
+    type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: f.cantidad,
+    oninput: (e) => {
+      f.cantidad = e.target.value;
+      const n = Number(f.cantidad);
+      if (!rollsTocados && n > 0) { f.rolls = String(Math.round(t.rolls * n / t.cantidad)); rolls.value = f.rolls; }
+    },
+  });
+  const guardar = h('button', { class: 'btn primario chico', type: 'button' }, 'Guardar');
+  guardar.onclick = () => conBoton(guardar, async () => {
+    if (!(Number(f.cantidad) > 0)) throw new Error('Poné cuántas tandas se hicieron');
+    if (f.rolls === '' || Number(f.rolls) < 0) throw new Error('Poné cuántos rolls salieron');
+    await rpc('actualizar_tanda', { p_id: t.id, p: { cantidad: Number(f.cantidad), rolls: Number(f.rolls), notas: f.notas } });
+    toast(`Tanda de ${t.sabores.nombre} corregida`);
+    irA('#/tandas');
+  });
+  return h('div', { class: 'card', style: 'margin:.5rem 0' },
+    h('div', { class: 'fila-campos' },
+      campo('Tandas', cantidad),
+      campo('Rolls que salieron', rolls)),
+    campo('Notas', h('input', { value: f.notas, oninput: (e) => { f.notas = e.target.value; } })),
+    h('div', { class: 'acciones' }, guardar, h('button', { class: 'btn chico', type: 'button', onclick: cerrar }, 'Cancelar')));
 }

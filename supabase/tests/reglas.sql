@@ -97,6 +97,17 @@ begin
   assert (select cantidad from tanda_consumos where tanda_id = (r->>'tanda_id')::uuid and insumo_id = har) = 900,
          'consumo de harina de 2 tandas';
   assert (r->>'rolls')::int = 24, 'rolls de 2 tandas';
+  -- Editar la tanda: salieron 3 → consumo y rolls en proporción; los rolls cargados a mano se respetan
+  perform actualizar_tanda((r->>'tanda_id')::uuid, '{"cantidad": 3}');
+  assert (select cantidad from tanda_consumos where tanda_id = (r->>'tanda_id')::uuid and insumo_id = har) = 1350,
+         'consumo de harina al pasar a 3 tandas';
+  assert (select rolls from tandas where id = (r->>'tanda_id')::uuid) = 36, 'rolls al pasar a 3 tandas';
+  perform actualizar_tanda((r->>'tanda_id')::uuid, '{"rolls": 40, "notas": "PRUEBA"}');
+  assert (select cantidad = 3 and rolls = 40 and notas = 'PRUEBA' from tandas where id = (r->>'tanda_id')::uuid),
+         'rolls y notas a mano';
+  perform actualizar_tanda((r->>'tanda_id')::uuid, '{"cantidad": 2, "rolls": 24}');
+  assert (select cantidad from tanda_consumos where tanda_id = (r->>'tanda_id')::uuid and insumo_id = har) = 900,
+         'vuelve a 2 tandas';
 
   -- 5.7 Una venta posterior al último conteo descuenta la caja y lo que lleva
   select jsonb_object_agg(nombre, teorico) into antes from v_stock
