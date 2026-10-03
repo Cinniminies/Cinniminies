@@ -12,17 +12,21 @@ const FACTOR = { g: 1, kg: 1000, ml: 1, L: 1000, un: 1, paq: 1 };
 const recordar = { fecha: null, proveedor: '' };
 
 export async function mostrar(cont) {
-  const [cat, historial, costos, proveedores] = await Promise.all([
+  const [cat, historial, costos, proveedores, descripciones] = await Promise.all([
     catalogo(),
     q(sb.from('compras').select('id,fecha,proveedor,descripcion,cantidad,unidad,total,categoria,insumos(nombre)')
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(30)),
     q(sb.from('v_costo_insumo').select('insumo_id,costo_unitario,presentacion,precio_presentacion')),
     q(sb.from('compras').select('proveedor').not('proveedor', 'is', null)),
+    q(sb.from('compras').select('insumo_id,categoria,descripcion').not('descripcion', 'is', null)
+      .order('fecha', { ascending: false }).limit(1000)),
   ]);
   const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, c]));
   const f = { fecha: recordar.fecha || hoyISO(), insumo: '', proveedor: recordar.proveedor, descripcion: '', cantidad: '', unidad: null, total: '', notas: '' };
 
   const unidadesCont = h('div');
+  const sugerenciasCont = h('div', { style: 'margin:-.4rem 0 .9rem' });
+  const inputDescripcion = h('input', { placeholder: 'Harina Uruguay 0000', oninput: (e) => { f.descripcion = e.target.value; } });
   const vistaPrevia = h('p', { class: 'ayuda' });
   const insumo = () => (f.insumo && !f.insumo.startsWith('__') ? cat.insumo(f.insumo) : null);
 
@@ -33,6 +37,20 @@ export async function mostrar(cont) {
     if (!lista.includes(f.unidad)) f.unidad = lista[0];
     vaciar(unidadesCont, lista.length > 1
       ? grupo('Unidad', chips(lista.map((u) => ({ valor: u, texto: u })), f.unidad, (u) => { f.unidad = u; previa(); }))
+      : null);
+  }
+
+  // Los nombres con los que ya se cargó ese insumo, los más usados primero (a igual uso, el más reciente).
+  function dibujarSugerencias() {
+    const esDe = (c) => (f.insumo.startsWith('__') ? !c.insumo_id && c.categoria === f.insumo.slice(2) : c.insumo_id === f.insumo);
+    const usos = new Map();
+    for (const c of f.insumo ? descripciones.filter(esDe) : []) {
+      const d = c.descripcion.trim();
+      if (d) usos.set(d, (usos.get(d) || 0) + 1);
+    }
+    const lista = [...usos].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([d]) => ({ valor: d, texto: d }));
+    vaciar(sugerenciasCont, lista.length
+      ? chips(lista, null, (d) => { f.descripcion = d; inputDescripcion.value = d; })
       : null);
   }
 
@@ -52,7 +70,7 @@ export async function mostrar(cont) {
   }
 
   const selInsumo = h('select', {
-    onchange: (e) => { f.insumo = e.target.value; dibujarUnidades(); previa(); },
+    onchange: (e) => { f.insumo = e.target.value; dibujarUnidades(); dibujarSugerencias(); previa(); },
   },
   h('option', { value: '' }, 'Elegí qué compraste…'),
   h('optgroup', { label: 'Ingredientes' },
@@ -92,7 +110,8 @@ export async function mostrar(cont) {
     h('div', { class: 'card' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       campo('Qué', selInsumo),
-      campo('Descripción', h('input', { placeholder: 'Harina Uruguay 0000', oninput: (e) => { f.descripcion = e.target.value; } })),
+      campo('Descripción', inputDescripcion),
+      sugerenciasCont,
       campo('Proveedor', h('input', { value: f.proveedor, list: 'lista-proveedores', oninput: (e) => { f.proveedor = e.target.value; } })),
       h('datalist', { id: 'lista-proveedores' },
         [...new Set(proveedores.map((p) => p.proveedor))].sort().map((p) => h('option', { value: p }))),
