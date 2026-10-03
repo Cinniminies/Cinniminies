@@ -31,10 +31,16 @@ function horaLocal(iso) {
   return { dia, hora: Number(partes.find((x) => x.type === 'hour').value) };
 }
 
-const promedio = (xs) => xs.reduce((a, x) => a + x, 0) / xs.length;
+// Mediana: una publicación excepcional (un sorteo, un aniversario) no tira el resultado de todo el grupo.
+const mediana = (xs) => {
+  const o = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(o.length / 2);
+  return o.length % 2 ? o[m] : (o[m - 1] + o[m]) / 2;
+};
 
-// Agrupa por clave y devuelve [{ clave, n, prom }] de los grupos con al menos `min` publicaciones.
-function grupos(pubs, clave, min = 2) {
+// Agrupa por clave y devuelve [{ clave, n, prom }] (prom = mediana) de los grupos con al menos `min`
+// publicaciones.
+function grupos(pubs, clave, min = 3) {
   const m = new Map();
   for (const p of pubs) {
     const k = clave(p);
@@ -42,7 +48,7 @@ function grupos(pubs, clave, min = 2) {
     if (!m.has(k)) m.set(k, []);
     m.get(k).push(puntaje(p));
   }
-  return [...m].filter(([, xs]) => xs.length >= min).map(([k, xs]) => ({ clave: k, n: xs.length, prom: promedio(xs) }))
+  return [...m].filter(([, xs]) => xs.length >= min).map(([k, xs]) => ({ clave: k, n: xs.length, prom: mediana(xs) }))
     .sort((a, b) => b.prom - a.prom);
 }
 
@@ -78,7 +84,7 @@ export function sugerencias(publicaciones, { sabores = [], ahora = new Date() } 
     out.push({ tipo: 'datos', texto: `Con ${pubs.length} publicaciones con números todavía no alcanza para comparar; las sugerencias aparecen a partir de ${MINIMO}.` });
     return out;
   }
-  const general = promedio(pubs.map(puntaje));
+  const general = mediana(pubs.map(puntaje));
 
   const porTipo = grupos(pubs, tipoDe);
   if (porTipo.length >= 2 && porTipo[0].prom >= 1.3 * porTipo[porTipo.length - 1].prom) {
@@ -103,9 +109,9 @@ export function sugerencias(publicaciones, { sabores = [], ahora = new Date() } 
   for (const s of sabores) {
     const nombres = [...new Set([s.nombre, s.nombre_corto].filter(Boolean).map(normalizar))];
     const con = pubs.filter((p) => nombres.some((n) => normalizar(p.texto).includes(n)));
-    if (con.length < 2 || con.length === pubs.length) continue;
-    const resto = promedio(pubs.filter((p) => !con.includes(p)).map(puntaje));
-    const prom = promedio(con.map(puntaje));
+    if (con.length < 3 || con.length === pubs.length) continue;
+    const resto = mediana(pubs.filter((p) => !con.includes(p)).map(puntaje));
+    const prom = mediana(con.map(puntaje));
     if (prom >= 1.2 * resto) {
       out.push({ tipo: 'sabor', texto: `Cuando aparece ${s.nombre}, las publicaciones tienen ${pct(prom / resto - 1)} más vistas: muéstrenlo más.` });
     }
