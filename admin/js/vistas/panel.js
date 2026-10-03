@@ -1,5 +1,5 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, conBoton, toast, plural } from '../util.js';
+import { h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, conBoton, toast, plural, ETIQUETAS } from '../util.js';
 import { icono } from '../iconos.js';
 import { columnas, barras, variacion } from '../graficos.js';
 import { irA, sesion } from '../app.js';
@@ -28,7 +28,7 @@ export async function mostrar(cont) {
   const [resumen, total, pendientes, alertas, ultimas, tramoAnterior, pedidosNuevos, porHacer] = await Promise.all([
     q(sb.from('v_resumen_mensual').select('*').order('mes')),
     q(sb.from('v_panel').select('*').single()),
-    q(sb.from('v_ventas').select('id,fecha,cliente,formatos,total').eq('estado_pago', 'pendiente').order('fecha')),
+    q(sb.from('v_ventas').select('id,fecha,cliente,formatos,total,medio_pago').eq('estado_pago', 'pendiente').order('fecha')),
     q(sb.from('v_stock').select('nombre').eq('reponer', true).order('nombre')),
     q(sb.from('v_ventas').select('id,fecha,cliente,formatos,sabores,total,estado_pago')
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(5)),
@@ -81,7 +81,8 @@ export async function mostrar(cont) {
         return h('li', { class: 'fila' },
           h('a', { class: 'princ', href: `#/ventas/${v.id}` },
             h('div', { class: 't1' }, v.cliente || 'Sin cliente'),
-            h('div', { class: 't2' }, `${fechaCorta(v.fecha)} · ${v.formatos || ''} · ${pesos(v.total)}`)),
+            h('div', { class: 't2' }, [fechaCorta(v.fecha), v.formatos, pesos(v.total), ETIQUETAS.medio_pago[v.medio_pago] || 'sin medio de pago']
+              .filter(Boolean).join(' · '))),
           boton);
       }))));
   }
