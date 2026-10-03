@@ -6,13 +6,14 @@ import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
 import { subnavProduccion } from '../componentes.js';
 import { cargarPlan } from './comprar.js';
+import { cronograma, duracion, horaMas, tiemposDe, TIEMPOS_DEFECTO } from '../tiempos.js';
 
 // 3.1 + 3.2 Plan de horneado: con las ventas marcadas "Por hacer" (cobradas o no), cuántas tandas hacer.
 // El cálculo lo hace plan_horneado en la base: masa propia (Oreo) aparte; los sabores de masa compartida
 // arman tandas enteras y lo que sobra va a tandas mezcladas (sin partir un sabor), completadas con el sabor
 // elegido. Las cajas salen de los pedidos (cajas_plan); los rolls que sobran se venden sueltos.
 // Lo elegido acá sobrevive si se sale de la pantalla y se vuelve.
-const estado = { fecha: null, excluidas: new Set(), extra: {}, completar: null };
+const estado = { fecha: null, excluidas: new Set(), extra: {}, completar: null, tandas: null, inicio: '09:00' };
 
 export async function mostrar(cont) {
   const [cat, recetas, porHacer, pedidosNuevos] = await Promise.all([
@@ -36,6 +37,7 @@ export async function mostrar(cont) {
   });
 
   const resultado = h('div');
+  const tiempo = h('div');
   let pedido = 0;
   let plan = null;
   let cajas = [];
@@ -57,6 +59,7 @@ export async function mostrar(cont) {
     if (!plan.sabores.length) {
       plan = null;
       vaciar(resultado, h('p', { class: 'vacio' }, 'No hay nada para hornear: elegí al menos un pedido.'));
+      dibujarTiempo();
       return;
     }
     const hayMezcla = plan.tandas.some((t) => t.tipo === 'mezcla');
@@ -119,6 +122,67 @@ export async function mostrar(cont) {
           + 'las cajas de los pedidos que todavía no se hicieron.'),
       ] : null,
       h('div', { class: 'acciones' }, verComprar, registrar));
+    dibujarTiempo();
+  }
+
+  // Calculadora de tiempo: arranca con las tandas del plan (se pueden cambiar) y los tiempos guardados.
+  function dibujarTiempo() {
+    const t = tiemposDe(cat.parametros);
+    const n = estado.tandas ?? Math.ceil(Number(plan?.total_tandas || 1));
+    const r = cronograma(n, t);
+    const hora = (min) => horaMas(estado.inicio, min);
+    const inicio = h('input', {
+      type: 'time', value: estado.inicio, required: true,
+      onchange: (e) => { estado.inicio = e.target.value || '09:00'; dibujarTiempo(); },
+    });
+
+    const valores = { ...t };
+    const ETIQUETAS_TIEMPO = [
+      ['tiempo_preparacion', 'Preparar masa', 'min'], ['masas_por_preparacion', 'Masas por preparación', 'masas'],
+      ['tiempo_leudado', 'Primer leudado', 'min'], ['tiempo_estirado', 'Estirar una tanda', 'min'],
+      ['tiempo_leudado2', 'Segundo leudado', 'min'], ['tiempo_horno', 'Horno', 'min'], ['horno_tandas', 'Tandas por horneada', 'tandas'],
+    ];
+    const guardar = h('button', { class: 'btn chico', type: 'button' }, 'Guardar tiempos');
+    guardar.onclick = () => conBoton(guardar, async () => {
+      if (Object.values(valores).some((v) => !(Number(v) > 0))) throw new Error('Los tiempos tienen que ser mayores a 0');
+      const enteros = ['masas_por_preparacion', 'horno_tandas'];
+      if (enteros.some((k) => !Number.isInteger(Number(valores[k])))) throw new Error('Masas y tandas por horneada van sin decimales');
+      await q(sb.from('parametros').upsert(Object.entries(valores).map(([clave, v]) => ({ clave, valor: String(Number(v)) }))));
+      Object.assign(cat.parametros, Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, String(Number(v))])));
+      toast('Tiempos guardados');
+      dibujarTiempo();
+    });
+
+    vaciar(tiempo, h('div', { class: 'card' },
+      h('h3', {}, '¿Cuánto lleva?'),
+      h('div', { class: 'stepper-fila' }, h('div', { class: 'nombre' }, 'Tandas'),
+        stepper(n, (v) => { estado.tandas = v; dibujarTiempo(); }, { min: 1, max: 20 })),
+      campo('Empezás a las', inicio),
+      h('p', { style: 'margin:.25rem 0' }, h('strong', { style: 'font-size:1.25rem' }, duracion(r.total)),
+        ` · terminás a las ${hora(r.total)}`),
+      h('p', { class: 'ayuda' }, `Una persona prepara las masas de a ${t.masas_por_preparacion} y estira de a una; `
+        + 'cuando una tanda terminó de leudar se estira antes de seguir preparando. '
+        + `El horno lleva ${plural(t.horno_tandas, 'tanda')} por vez.`),
+      estado.tandas != null && plan ? h('p', { class: 'ayuda' }, h('a', {
+        href: '#/plan', onclick: (e) => { e.preventDefault(); estado.tandas = null; dibujarTiempo(); },
+      }, `Volver a las ${plural(Math.ceil(Number(plan.total_tandas)), 'tanda')} del plan`)) : null,
+      h('table', { class: 'tabla' },
+        h('tr', {}, h('th', {}, 'Tanda'), h('th', { class: 'num-der' }, 'Preparar'), h('th', { class: 'num-der' }, 'Estirar'),
+          h('th', { class: 'num-der' }, 'Horno')),
+        r.tandas.map((x, i) => h('tr', {}, h('td', {}, String(i + 1)),
+          h('td', { class: 'num-der' }, hora(x.preparacion[0])),
+          h('td', { class: 'num-der' }, hora(x.estirado[0])),
+          h('td', { class: 'num-der' }, `${hora(x.horno[0])}–${hora(x.horno[1])}`)))),
+      h('details', { class: 'plegable', style: 'margin-top:.75rem' },
+        h('summary', {}, 'Tiempos (iguales para todos los sabores)'),
+        ETIQUETAS_TIEMPO.map(([k, texto, unidad]) => h('div', { class: 'receta-fila', style: 'grid-template-columns:1fr 7rem' },
+          h('span', {}, texto),
+          h('div', { class: 'unidad' }, h('input', {
+            type: 'number', inputmode: 'decimal', min: 1, step: 'any', value: valores[k],
+            placeholder: String(TIEMPOS_DEFECTO[k]), 'aria-label': texto,
+            oninput: (e) => { valores[k] = e.target.value; },
+          }), h('small', {}, unidad)))),
+        h('div', { class: 'acciones' }, guardar))));
   }
 
   const fecha = h('input', {
@@ -155,7 +219,8 @@ export async function mostrar(cont) {
       sabores.map((s) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, s.nombre, s.masa_propia ? h('div', { class: 'ayuda' }, 'Masa propia') : null),
         stepper(estado.extra[s.id] || 0, (v) => { estado.extra[s.id] = v; calcular(); }, { min: 0, max: 48, paso: 6 })))),
-    resultado);
+    resultado,
+    tiempo);
   vaciar(resultado, h('p', { class: 'cargando' }, 'Calculando…'));
   calcular();
 }
