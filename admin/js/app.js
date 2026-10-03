@@ -23,6 +23,7 @@ const RUTAS = {
   insumos: ['Insumos', () => import('./vistas/insumos.js'), 'mas', '#/mas'],
   formatos: ['Formatos', () => import('./vistas/formatos.js'), 'mas', '#/mas'],
   precios: ['Precios', () => import('./vistas/precios.js'), 'mas', '#/mas'],
+  redes: ['Redes', () => import('./vistas/redes.js'), 'mas', '#/mas'],
 };
 // Subpantallas: a dónde vuelve "←" desde una ficha o un formulario.
 function volverDe(ruta, id, accion) {
@@ -67,6 +68,7 @@ const MENU = [
   ['insumos', 'Insumos', 'bolsa', () => '#/insumos', 'lateral', 'Catálogo'],
   ['catalogo', 'Costos y márgenes', 'grafico', () => '#/catalogo', 'lateral', 'Catálogo'],
   ['web', 'Textos e imágenes', 'etiqueta', () => '#/web', 'lateral', 'Web'],
+  ['redes', 'Instagram', 'redes', () => '#/redes', 'lateral', 'Web'],
   ['mas', 'Más', 'menu', () => '#/mas', 'celular'],
   ['cuenta', 'Cuenta', 'llave', () => '#/mas', 'lateral', ' '],
 ];
