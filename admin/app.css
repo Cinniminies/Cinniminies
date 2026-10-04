@@ -18,6 +18,7 @@
   --alto-barra: 3.5rem;
   --graf-acento: #a8531d;
   --graf-gris: #978d88;
+  --graf-frio: #3d6fa6; /* polo opuesto a --graf-acento en los gráficos divergentes (validado con la guía de dataviz) */
   --radio: 14px;
   --sombra: 0 1px 2px rgba(43, 28, 18, .06), 0 2px 8px rgba(43, 28, 18, .05);
   --display: 'Fraunces', Georgia, serif;
@@ -42,6 +43,7 @@
     --sobre-alerta: #1f0c05;
     --graf-acento: #d07a38;
     --graf-gris: #8a7564;
+    --graf-frio: #5b93d6;
     --sombra: none;
     color-scheme: dark;
   }
@@ -274,8 +276,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .receta-fila .unidad small { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); color: var(--suave); pointer-events: none; }
 .receta-fila .unidad input { padding-right: 2.2rem; }
 .tabla .sub { display: block; color: var(--suave); font-size: .78rem; font-weight: 400; }
-.desvio-pos { color: var(--alerta); }
-.desvio-neg { color: var(--ok); }
+.desvio-pos { color: var(--graf-acento); } /* se usó de más / faltan: mismo color que en el gráfico de Desvíos */
+.desvio-neg { color: var(--graf-frio); }
 .seccion-cab { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
 .seccion-cab > :first-child { white-space: nowrap; margin: 0; }
 .seccion-cab select { width: auto; max-width: 60%; min-height: 2.4rem; padding: .4rem .6rem; font-size: .9rem; }
@@ -426,3 +428,28 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
   .guardar .btn { max-width: 756px; }
   .graficos { grid-template-columns: 3fr 2fr; }
 }
+
+/* Desvíos de stock: gráfico divergente (izquierda sobró, derecha se usó de más), una fila por insumo. */
+.acciones-fila { display: flex; flex-wrap: wrap; gap: .45rem 1rem; margin: .25rem 0 .75rem; }
+.div-grafico { background: var(--card); border: 1px solid var(--borde); border-radius: var(--radio); padding: .9rem 1rem; }
+.div-ejes, .div-fila { display: grid; grid-template-columns: minmax(4.75rem, 27%) 1fr 3.9rem; align-items: center; gap: .5rem; }
+.div-ejes { font-size: .72rem; color: var(--suave); margin-bottom: .2rem; }
+.div-ejes .div-mitad.izq { text-align: right; padding-right: .3rem; }
+.div-ejes .div-mitad.der { padding-left: .3rem; }
+.div-fila { width: 100%; background: none; border: 0; border-top: 1px solid var(--borde); padding: .45rem 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.div-fila:hover, .div-fila.abierto { background: var(--marca-suave); }
+.div-nombre { font-size: .88rem; line-height: 1.2; overflow-wrap: anywhere; }
+.div-nombre small { display: block; font-size: .72rem; color: var(--suave); }
+.div-pista { display: grid; grid-template-columns: 1fr 1fr; align-items: center; min-width: 0; }
+.div-mitad { display: flex; min-width: 0; }
+.div-fila .div-mitad { height: 14px; }
+.div-fila .div-mitad.izq { justify-content: flex-end; border-right: 1px solid var(--suave); }
+.div-barra { display: block; height: 14px; min-width: 3px; }
+.div-barra.demas { background: var(--graf-acento); border-radius: 0 4px 4px 0; margin-left: 2px; }
+.div-barra.sobro { background: var(--graf-frio); border-radius: 4px 0 0 4px; margin-right: 2px; }
+.div-fila.poco .div-barra { opacity: .45; }
+.div-valor { text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.div-valor strong { display: block; font-size: .88rem; }
+.div-valor small { font-size: .72rem; color: var(--suave); }
+.div-detalle { padding: .6rem .25rem .9rem; border-top: 1px dashed var(--borde); }
+.div-detalle .stats { margin-bottom: .5rem; }

@@ -1,7 +1,8 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton } from '../util.js';
 import { subnavProduccion } from '../componentes.js';
 import { irA } from '../app.js';
+import { filas as filasDesvio, resumen as resumenDesvios, ordenar, escala, porConteo, REVISAR } from '../desvios.js';
 
 // 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas), alertas y conteos.
 // "Hay" se carga en la misma tabla, al lado del teórico; cada conteo guarda su desvío (ver Desvíos).
@@ -9,7 +10,7 @@ export async function mostrar(cont, { id }) {
   return id === 'desvios' ? desvios(cont) : resumen(cont, id === 'conteo');
 }
 
-const pct = (x) => `${Number(x) > 0 ? '+' : ''}${numero(Number(x) * 100, 0)} %`;
+const pct = (x) => `${Number(x) > 0 ? '+' : Number(x) < 0 ? '−' : ''}${numero(Math.abs(Number(x)) * 100, 0)} %`;
 const claseDesvio = (d) => (d > 0 ? 'desvio-pos' : d < 0 ? 'desvio-neg' : '');
 
 async function resumen(cont, enfocar) {
@@ -89,71 +90,150 @@ function resultado(cont, r, unidad) {
       h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'))));
 }
 
-// Desvíos: promedio por insumo (desde el último ajuste de recetas) e historial de conteos.
+// Desvíos: por insumo, lo que dicen las recetas contra lo que se usó de verdad (desde el último ajuste
+// de recetas), en un gráfico divergente para comparar de un vistazo, y cada conteo por separado.
+// Estado de la pantalla (sobrevive si se sale y se vuelve).
+const verDesvios = { tipo: 'ingrediente', orden: 'plata', abierto: null, conteo: null };
+
 async function desvios(cont) {
   const [porInsumo, historial, recetas] = await Promise.all([
     q(sb.from('v_desvio_insumo').select('*').order('nombre')),
-    q(sb.from('v_desvios').select('*').order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(60)),
+    q(sb.from('v_desvios').select('*').order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(500)),
     q(sb.from('recetas').select('insumo_id,cantidad,sabores(nombre,activo)').gt('cantidad', 0)),
   ]);
-  const valorTotal = porInsumo.reduce((a, d) => a + Number(d.valor), 0);
+  const todas = filasDesvio(porInsumo);
+  const conteos = porConteo(historial);
+  if (!todas.length) {
+    vaciar(cont, subnavProduccion('stock'),
+      h('p', { class: 'vacio' }, 'Todavía no hay desvíos: hacen falta dos conteos de un mismo insumo (en Stock, columna "Hay").'));
+    return;
+  }
 
-  const tarjeta = (d) => {
-    const rel = d.desvio_relativo == null ? null : Number(d.desvio_relativo);
-    const deEste = recetas.filter((r) => r.insumo_id === d.insumo_id && r.sabores?.activo);
-    const factor = rel == null ? null : 1 + rel;
-    const ajustar = h('button', { class: 'btn chico', type: 'button' }, `Ajustar recetas ${pct(rel)}`);
+  const r = resumenDesvios(todas);
+  const etiquetaConteo = (c) => (c.hora ? `${fechaCorta(c.fecha)} ${c.hora}` : fechaCorta(c.fecha));
+  const kpi = (etiqueta, valor, sub) => h('div', { class: 'stat' },
+    h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), h('div', { class: 'sub' }, sub));
+  const contGrafico = h('div');
+  const contConteo = h('div');
+
+  function dibujarGrafico() {
+    const lista = ordenar(todas.filter((f) => f.tipo === verDesvios.tipo), verDesvios.orden);
+    const max = escala(lista);
+    const filaGrafico = (f) => {
+      const ancho = f.rel == null ? 0 : Math.min(1, Math.abs(f.rel) / max) * 100;
+      const abierto = verDesvios.abierto === f.insumo_id;
+      const boton = h('button', {
+        type: 'button', class: 'div-fila' + (f.confiable ? '' : ' poco') + (abierto ? ' abierto' : ''), 'aria-expanded': String(abierto),
+        'aria-label': `${f.nombre}: ${f.rel == null ? 'sin %' : pct(f.rel)}, ${pesos(f.valor)}${f.confiable ? '' : ', un solo conteo'}`,
+        onclick: () => { verDesvios.abierto = abierto ? null : f.insumo_id; dibujarGrafico(); },
+      },
+      h('span', { class: 'div-nombre' }, f.nombre, f.confiable ? null : h('small', {}, '1 conteo')),
+      h('span', { class: 'div-pista' },
+        h('span', { class: 'div-mitad izq' }, f.rel < 0 ? h('span', { class: 'div-barra sobro', style: `width:${ancho}%` }) : null),
+        h('span', { class: 'div-mitad der' }, f.rel > 0 ? h('span', { class: 'div-barra demas', style: `width:${ancho}%` }) : null)),
+      h('span', { class: 'div-valor' }, h('strong', {}, f.rel == null ? '—' : pct(f.rel)), h('small', {}, pesos(f.valor))));
+      return [boton, abierto ? detalle(f) : null];
+    };
+    vaciar(contGrafico,
+      h('div', { class: 'acciones-fila' },
+        chips([{ valor: 'ingrediente', texto: 'Ingredientes' }, { valor: 'packaging', texto: 'Packaging' }], verDesvios.tipo,
+          (v) => { verDesvios.tipo = v; verDesvios.abierto = null; dibujarGrafico(); }),
+        chips([{ valor: 'plata', texto: 'Por $' }, { valor: 'pct', texto: 'Por %' }], verDesvios.orden,
+          (v) => { verDesvios.orden = v; dibujarGrafico(); })),
+      lista.length ? h('figure', { class: 'grafico div-grafico' },
+        h('figcaption', { class: 'graf-titulo' }, 'Lo que se usó contra lo previsto'),
+        h('div', { class: 'div-ejes', 'aria-hidden': 'true' }, h('span'),
+          h('span', { class: 'div-pista' }, h('span', { class: 'div-mitad izq' }, '← sobró'), h('span', { class: 'div-mitad der' }, 'de más →')),
+          h('span')),
+        lista.map(filaGrafico),
+        h('p', { class: 'graf-ayuda' }, 'Tocá un insumo para ver el detalle. Las barras claras tienen un solo conteo: tomalas con pinzas.'),
+        tablaComparar(lista))
+        : h('p', { class: 'vacio' }, 'No hay desvíos de este tipo todavía.'));
+  }
+
+  // Detalle de un insumo: según recetas vs real, cada conteo y, para ingredientes, cómo quedarían las recetas.
+  function detalle(f) {
+    const deEste = recetas.filter((x) => x.insumo_id === f.insumo_id && x.sabores?.activo);
+    const factor = f.rel == null ? null : 1 + f.rel;
+    const suyos = historial.filter((x) => x.insumo_id === f.insumo_id);
+    const ajustar = h('button', { class: 'btn chico', type: 'button' }, `Ajustar recetas ${pct(f.rel)}`);
     ajustar.onclick = () => conBoton(ajustar, async () => {
-      if (!confirm(`¿Cambiar ${d.nombre} en ${deEste.length} receta(s) un ${pct(rel)}? El promedio de desvíos de ${d.nombre} arranca de nuevo.`)) return;
-      await rpc('ajustar_recetas_insumo', { p_insumo: d.insumo_id, p_factor: factor });
-      toast(`Recetas con ${d.nombre} ajustadas`);
+      if (!confirm(`¿Cambiar ${f.nombre} en ${deEste.length} receta(s) un ${pct(f.rel)}? El promedio de ${f.nombre} arranca de nuevo.`)) return;
+      await rpc('ajustar_recetas_insumo', { p_insumo: f.insumo_id, p_factor: factor });
+      toast(`Recetas con ${f.nombre} ajustadas`);
+      verDesvios.abierto = null;
       irA('#/stock/desvios');
     });
-    const sugerir = d.tipo === 'ingrediente' && rel != null && Math.abs(rel) >= 0.02 && deEste.length && factor > 0;
-    const sugerencia = sugerir
-      ? h('div', { class: 'ayuda', style: 'margin-top:.35rem' },
-        'Receta por tanda: ', deEste.map((r) => `${r.sabores.nombre} ${cantidad(r.cantidad, d.unidad_base)} → ${cantidad(Math.round(r.cantidad * factor * 100) / 100, d.unidad_base)}`).join(' · '),
-        Number(d.conteos) < 3 ? ' (con menos de 3 conteos el promedio es poco confiable)' : '', ' ', ajustar)
-      : null;
-    return h('li', {}, h('div', { class: 'fila' },
-      h('div', { class: 'princ' },
-        h('div', { class: 't1' }, d.nombre),
-        h('div', { class: 't2' }, [
-          `${numero(d.conteos, 0)} ${Number(d.conteos) === 1 ? 'conteo' : 'conteos'}`,
-          `se usaron ${cantidad(d.usado, d.unidad_base)}`,
-          Number(d.desvio) === 0 ? 'sin desvío' : Number(d.desvio) > 0 ? `faltaron ${cantidad(d.desvio, d.unidad_base)}` : `sobraron ${cantidad(-d.desvio, d.unidad_base)}`,
-        ].join(' · ')),
-        sugerencia),
-      h('div', { class: 'num-der' },
-        h('div', { class: claseDesvio(Number(d.desvio)) }, rel == null ? '—' : pct(rel)),
-        h('div', { class: 'sub ayuda' }, pesos(d.valor)))));
-  };
+    const sugerir = f.tipo === 'ingrediente' && f.rel != null && Math.abs(f.rel) >= 0.02 && deEste.length && factor > 0;
+    return h('div', { class: 'div-detalle' },
+      h('div', { class: 'stats' },
+        kpi('Previsto', cantidad(f.segunRecetas, f.unidad), f.tipo === 'ingrediente' ? 'según las recetas de las tandas' : 'según las cajas vendidas'),
+        kpi('Real', cantidad(f.real, f.unidad), f.desvio === 0 ? 'igual a las recetas'
+          : `${f.desvio > 0 ? 'se usaron' : 'sobraron'} ${cantidad(Math.abs(f.desvio), f.unidad)} (${pesos(Math.abs(f.valor))})`)),
+      h('table', { class: 'tabla' },
+        h('tr', {}, h('th', {}, 'Conteo'), h('th', { class: 'num-der' }, 'Debería'), h('th', { class: 'num-der' }, 'Había'), h('th', { class: 'num-der' }, 'Diferencia')),
+        suyos.map((x) => h('tr', {},
+          h('td', {}, etiquetaConteo(conteos.find((c) => c.filas.includes(x)) || x)),
+          h('td', { class: 'num-der' }, cantidad(x.teorico, x.unidad_base)),
+          h('td', { class: 'num-der' }, cantidad(x.contado, x.unidad_base)),
+          h('td', { class: 'num-der ' + claseDesvio(Number(x.desvio)) }, Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, x.unidad_base),
+            x.desvio_relativo != null && Number(x.desvio) !== 0 ? h('span', { class: 'sub' }, pct(x.desvio_relativo)) : null)))),
+      sugerir ? [
+        h('h3', { style: 'margin-top:.75rem' }, 'Si ajustás las recetas'),
+        h('table', { class: 'tabla' },
+          h('tr', {}, h('th', {}, 'Sabor (por tanda)'), h('th', { class: 'num-der' }, 'Hoy'), h('th', { class: 'num-der' }, 'Quedaría')),
+          deEste.map((x) => h('tr', {}, h('td', {}, x.sabores.nombre),
+            h('td', { class: 'num-der' }, cantidad(x.cantidad, f.unidad)),
+            h('td', { class: 'num-der' }, h('strong', {}, cantidad(Math.round(x.cantidad * factor * 100) / 100, f.unidad)))))),
+        f.confiable ? null : h('p', { class: 'ayuda' }, 'Con un solo conteo el % puede ser casualidad: mejor esperar otro conteo.'),
+        h('div', { class: 'acciones' }, ajustar),
+      ] : null);
+  }
+
+  // La misma información en tabla, para comparar números exactos.
+  const tablaComparar = (lista) => h('details', { class: 'graf-tabla' }, h('summary', {}, 'Ver la tabla'),
+    h('table', { class: 'tabla' },
+      h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Previsto'), h('th', { class: 'num-der' }, 'Real'),
+        h('th', { class: 'num-der' }, 'Dif.'), h('th', { class: 'num-der' }, '$')),
+      lista.map((f) => h('tr', {},
+        h('td', {}, f.nombre, h('span', { class: 'sub' }, `${f.conteos} ${f.conteos === 1 ? 'conteo' : 'conteos'}`)),
+        h('td', { class: 'num-der' }, cantidad(f.segunRecetas, f.unidad)),
+        h('td', { class: 'num-der' }, cantidad(f.real, f.unidad)),
+        h('td', { class: 'num-der ' + claseDesvio(f.desvio) }, f.rel == null ? '—' : pct(f.rel)),
+        h('td', { class: 'num-der' }, pesos(f.valor))))));
+
+  // Un conteo puntual: todo lo que se contó ese día, ordenado por impacto.
+  function dibujarConteo() {
+    if (!conteos.length) { vaciar(contConteo); return; }
+    if (!conteos.some((c) => c.clave === verDesvios.conteo)) verDesvios.conteo = conteos[0].clave;
+    const c = conteos.find((x) => x.clave === verDesvios.conteo);
+    const total = c.filas.reduce((a, x) => a + Number(x.valor), 0);
+    vaciar(contConteo,
+      h('h2', {}, 'Cada conteo'),
+      chips(conteos.slice(0, 8).map((x) => ({ valor: x.clave, texto: etiquetaConteo(x) })), verDesvios.conteo,
+        (v) => { verDesvios.conteo = v; dibujarConteo(); }),
+      h('table', { class: 'tabla card', style: 'margin-top:.6rem' },
+        h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Debería'), h('th', { class: 'num-der' }, 'Había'), h('th', { class: 'num-der' }, 'Diferencia')),
+        c.filas.map((x) => h('tr', {},
+          h('td', {}, x.nombre, h('span', { class: 'sub' }, pesos(x.valor))),
+          h('td', { class: 'num-der' }, cantidad(x.teorico, x.unidad_base)),
+          h('td', { class: 'num-der' }, cantidad(x.contado, x.unidad_base)),
+          h('td', { class: 'num-der ' + claseDesvio(Number(x.desvio)) }, Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, x.unidad_base),
+            x.desvio_relativo != null && Number(x.desvio) !== 0 ? h('span', { class: 'sub' }, pct(x.desvio_relativo)) : null)))),
+      h('p', { class: 'ayuda' }, `Ese día, en total: ${total >= 0 ? 'faltó' : 'sobró'} mercadería por ${pesos(Math.abs(total))}.`));
+  }
 
   vaciar(cont,
     subnavProduccion('stock'),
-    h('p', { class: 'ayuda' },
-      'Cada vez que cargás lo que hay, se compara con el teórico. El % es el desvío sobre lo que se usó según las recetas y las cajas: ',
-      '+10 % quiere decir que por cada 1 kg que dicen las recetas se fueron 1,1 kg (o algo no se cargó). Negativo: sobró.'),
-    porInsumo.length ? [
-      h('div', { class: 'seccion-cab' }, h('h2', {}, 'Promedio por insumo'),
-        h('span', { class: 'ayuda' }, `${valorTotal >= 0 ? 'faltante' : 'sobrante'} ${pesos(Math.abs(valorTotal))}`)),
-      ['ingrediente', 'packaging'].map((tipo) => {
-        const lista = porInsumo.filter((d) => d.tipo === tipo);
-        return lista.length ? [h('h3', {}, tipo === 'ingrediente' ? 'Ingredientes' : 'Packaging'),
-          h('ul', { class: 'lista card' }, lista.map(tarjeta))] : null;
-      }),
-    ] : h('p', { class: 'vacio' }, 'Todavía no hay desvíos: hacen falta dos conteos de un insumo.'),
-
-    historial.length ? [
-      h('h2', {}, 'Conteos'),
-      h('table', { class: 'tabla card' },
-        h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Teórico'), h('th', { class: 'num-der' }, 'Hay'), h('th', { class: 'num-der' }, 'Desvío')),
-        historial.map((x) => h('tr', {},
-          h('td', {}, x.nombre, h('span', { class: 'sub' }, fechaCorta(x.fecha))),
-          h('td', { class: 'num-der' }, cantidad(x.teorico, x.unidad_base)),
-          h('td', { class: 'num-der' }, cantidad(x.contado, x.unidad_base)),
-          h('td', { class: 'num-der ' + claseDesvio(Number(x.desvio)) },
-            Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, x.unidad_base),
-            x.desvio_relativo != null && Number(x.desvio) !== 0 ? h('span', { class: 'sub' }, pct(x.desvio_relativo)) : null)))),
-    ] : null);
+    h('p', { class: 'ayuda' }, 'Compara lo que dicen las recetas y las cajas con lo que se usó de verdad según los conteos, '
+      + 'desde el último ajuste de recetas de cada insumo.'),
+    h('div', { class: 'stats' },
+      kpi('Se usó de más', pesos(r.deMas), 'faltó en los conteos'),
+      kpi('Sobró', pesos(r.sobro), 'había más de lo debido'),
+      kpi('Para revisar', String(r.revisar), `pasan ±${Math.round(REVISAR * 100)} % (2+ conteos)`),
+      kpi('Conteos', String(conteos.length), conteos.length ? `último: ${fechaCorta(conteos[0].fecha)}` : '—')),
+    contGrafico,
+    contConteo);
+  dibujarGrafico();
+  dibujarConteo();
 }
