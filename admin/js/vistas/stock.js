@@ -8,7 +8,8 @@ import {
 } from '../desvios.js';
 
 // 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas), alertas y conteos.
-// "Hay" se carga en la misma tabla, al lado del teórico; cada conteo guarda su desvío (ver Desvíos).
+// Tres columnas: "Registro" para cargar lo contado, "Hay" (el último conteo) y "Debería haber" (el teórico).
+// Cada conteo guarda su desvío (ver Desvíos) y el último se puede deshacer.
 export async function mostrar(cont, { id }) {
   return id === 'desvios' ? desvios(cont) : resumen(cont, id === 'conteo');
 }
@@ -17,14 +18,17 @@ const pct = (x) => `${Number(x) > 0 ? '+' : Number(x) < 0 ? '−' : ''}${numero(
 const claseDesvio = (d) => (d > 0 ? 'desvio-pos' : d < 0 ? 'desvio-neg' : '');
 
 async function resumen(cont, enfocar) {
-  const stock = await q(sb.from('v_stock').select('*').order('nombre'));
+  const [stock, [ultimo]] = await Promise.all([
+    q(sb.from('v_stock').select('*').order('nombre')),
+    q(sb.from('conteos').select('fecha,creado_en').order('creado_en', { ascending: false }).limit(1)),
+  ]);
   const total = (tipo) => stock.filter((s) => s.tipo === tipo).reduce((a, s) => a + Number(s.valor), 0);
   const contado = {};
 
   const fila = (s) => {
     const desvio = h('span', { class: 'sub' });
     const input = h('input', {
-      type: 'number', inputmode: 'decimal', min: 0, step: 'any', 'aria-label': `Hay de ${s.nombre} (${s.unidad_base})`,
+      type: 'number', inputmode: 'decimal', min: 0, step: 'any', 'aria-label': `Registro de ${s.nombre} (${s.unidad_base})`,
       oninput: (e) => {
         if (e.target.value === '' || Number.isNaN(Number(e.target.value))) {
           delete contado[s.insumo_id]; desvio.textContent = ''; return;
@@ -39,27 +43,29 @@ async function resumen(cont, enfocar) {
     return h('tr', {},
       h('td', {}, h('a', { href: `#/insumos/${s.insumo_id}` }, s.nombre),
         h('span', { class: 'sub' }, [
-          s.fecha_conteo ? `contado ${fechaCorta(s.fecha_conteo)}: ${cantidad(s.conteo, s.unidad_base)}` : 'nunca contado',
           `mín. ${cantidad(s.stock_minimo, s.unidad_base)}`,
+          s.fecha_conteo ? `contado ${fechaCorta(s.fecha_conteo)}` : 'nunca contado',
         ].join(' · '))),
-      h('td', { style: 'width:7rem;padding-left:.6rem' },
+      h('td', { class: 'registro' },
         h('div', { class: 'receta-fila', style: 'grid-template-columns:1fr;margin:0' },
           h('div', { class: 'unidad' }, input, h('small', {}, s.unidad_base))), desvio),
+      h('td', { class: 'num-der' }, s.fecha_conteo ? cantidad(s.conteo, s.unidad_base) : '—'),
       h('td', { class: 'num-der' }, s.reponer ? h('span', { class: 'badge alerta' }, teorico) : teorico));
   };
 
   const tabla = (tipo, titulo) => [
     h('div', { class: 'seccion-cab' }, h('h2', {}, titulo), h('span', { class: 'ayuda' }, pesos(total(tipo)))),
-    h('table', { class: 'tabla card' },
-      h('tr', {}, h('th', {}, 'Insumo'), h('th', { style: 'padding-left:.6rem' }, 'Hay'), h('th', { class: 'num-der' }, 'Teórico')),
+    h('table', { class: 'tabla card tabla-stock' },
+      h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'registro' }, 'Registro'), h('th', { class: 'num-der' }, 'Hay'),
+        h('th', { class: 'num-der' }, 'Debería haber')),
       stock.filter((s) => s.tipo === tipo).map(fila)),
   ];
   const alertas = stock.filter((s) => s.reponer).length;
 
-  const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar lo que hay');
+  const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar lo contado');
   guardar.onclick = () => conBoton(guardar, async () => {
     const items = Object.entries(contado).map(([insumo_id, c]) => ({ insumo_id, cantidad: c }));
-    if (!items.length) throw new Error('Cargá al menos una cantidad en "Hay"');
+    if (!items.length) throw new Error('Cargá al menos una cantidad en "Registro"');
     const r = await rpc('registrar_conteo', { p: { items } });
     toast('Conteo guardado');
     resultado(cont, r, Object.fromEntries(stock.map((s) => [s.insumo_id, s.unidad_base])));
@@ -67,14 +73,28 @@ async function resumen(cont, enfocar) {
 
   vaciar(cont, h('div', { class: 'con-guardar' },
     subnavProduccion('stock'),
-    h('p', { class: 'ayuda' }, 'Teórico: el último conteo, más lo comprado, menos lo que usaron las tandas y las cajas vendidas después. ',
-      'En "Hay" cargá lo que quedó (solo lo que contaste; lo vacío no cambia).'),
+    h('p', { class: 'ayuda' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo; ',
+      '"Debería haber" arranca de ahí y suma lo comprado y resta lo que usaron las tandas y las cajas vendidas después.'),
     alertas ? h('p', {}, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
-    h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos')),
+    h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
+      ultimo ? botonDeshacer(ultimo) : null),
     tabla('ingrediente', 'Ingredientes'),
     tabla('packaging', 'Packaging')),
   h('div', { class: 'guardar' }, guardar));
   if (enfocar) cont.querySelector('input')?.focus();
+}
+
+// Deshace el último conteo guardado (todos los insumos de esa vez) y vuelve al stock.
+function botonDeshacer(ultimo, texto = `Deshacer el conteo del ${fechaCorta(ultimo.fecha)}`) {
+  const b = h('button', { class: 'btn', type: 'button' }, texto);
+  b.onclick = () => conBoton(b, async () => {
+    if (!confirm(`¿Deshacer el conteo del ${fechaCorta(ultimo.fecha)}? Se borran todas las cantidades que cargaste esa vez `
+      + 'y el stock vuelve a calcularse desde el conteo anterior.')) return;
+    const r = await rpc('deshacer_ultimo_conteo');
+    toast(`Conteo deshecho (${plural(r.insumos, 'insumo')})`);
+    irA('#/stock');
+  });
+  return b;
 }
 
 function resultado(cont, r, unidad) {
@@ -82,15 +102,16 @@ function resultado(cont, r, unidad) {
     h('h1', { style: 'margin-top:0' }, 'Conteo guardado'),
     h('p', { class: 'ayuda' }, `${r.length} insumos, ${fechaLarga(hoyISO())}. Desde ahora el stock teórico arranca de estas cantidades.`),
     h('table', { class: 'tabla' },
-      h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Teórico'), h('th', { class: 'num-der' }, 'Hay'), h('th', { class: 'num-der' }, 'Desvío')),
+      h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Debería haber'), h('th', { class: 'num-der' }, 'Hay'), h('th', { class: 'num-der' }, 'Desvío')),
       r.map((x) => h('tr', {}, h('td', {}, x.insumo),
         h('td', { class: 'num-der' }, cantidad(x.teorico, unidad[x.insumo_id])),
         h('td', { class: 'num-der' }, cantidad(x.contado, unidad[x.insumo_id])),
         h('td', { class: 'num-der ' + claseDesvio(x.desvio) },
           Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, unidad[x.insumo_id]))))),
-    h('p', { class: 'ayuda' }, 'Desvío = teórico − hay. Positivo: hay menos de lo que debería (se usó más, se tiró o faltó cargar algo).'),
+    h('p', { class: 'ayuda' }, 'Desvío = debería haber − hay. Positivo: hay menos de lo que debería (se usó más, se tiró o faltó cargar algo).'),
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock' }, 'Volver al stock'),
-      h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'))));
+      h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
+      botonDeshacer({ fecha: hoyISO() }, 'Deshacer este conteo'))));
 }
 
 // Desvíos: por insumo, lo que dicen las recetas contra lo que se usó de verdad (desde el último ajuste
@@ -109,7 +130,7 @@ async function desvios(cont) {
   const conteos = porConteo(historial);
   if (!todas.length) {
     vaciar(cont, subnavProduccion('stock'),
-      h('p', { class: 'vacio' }, 'Todavía no hay desvíos: hacen falta dos conteos de un mismo insumo (en Stock, columna "Hay").'));
+      h('p', { class: 'vacio' }, 'Todavía no hay desvíos: hacen falta dos conteos de un mismo insumo (en Stock, columna "Registro").'));
     return;
   }
 
