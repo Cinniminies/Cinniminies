@@ -700,7 +700,8 @@ begin
 end $$;
 
 -- Desvíos de stock: el conteo guarda el teórico y lo usado desde el conteo anterior; el promedio
--- por insumo arranca de nuevo después de ajustar las recetas.
+-- por insumo arranca de nuevo después de ajustar las recetas. Lo que entra en un conteo se decide por
+-- cuándo se cargó: una tanda con fecha futura cargada antes de contar ya está en lo contado.
 do $$
 declare
   ca uuid := (select id from sabores where nombre = 'Canela');
@@ -709,13 +710,17 @@ declare
                                                   and insumo_id = (select id from insumos where nombre = 'Harina'));
   d record;
 begin
-  -- Fechas futuras: dentro del bloque now() es siempre el mismo, así que el orden lo da la fecha.
-  perform registrar_conteo(jsonb_build_object('fecha', hoy() + 1,
+  -- Dentro del bloque now() es siempre el mismo: corro hacia atrás el creado_en de lo que se carga antes.
+  perform registrar_conteo(jsonb_build_object(
             'items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', 5000))));
-  perform registrar_tanda(jsonb_build_object('fecha', hoy() + 2, 'sabor_id', ca, 'cantidad', 2));
-  perform registrar_conteo(jsonb_build_object('fecha', hoy() + 2, 'items', jsonb_build_array(
+  update conteos set creado_en = now() - interval '2 minutes' where insumo_id = har and creado_en = now();
+  perform registrar_tanda(jsonb_build_object('fecha', hoy() + 5, 'sabor_id', ca, 'cantidad', 2));
+  update tandas set creado_en = now() - interval '1 minute' where creado_en = now();
+  perform registrar_conteo(jsonb_build_object('items', jsonb_build_array(
             jsonb_build_object('insumo_id', har, 'cantidad', 5000 - 2 * receta - 90))));
-  select * into d from v_desvios where insumo_id = har order by fecha desc limit 1;
+  assert (select teorico from v_stock where insumo_id = har) = 5000 - 2 * receta - 90,
+         'la tanda con fecha futura no se vuelve a restar después de contar';
+  select * into d from v_desvios where insumo_id = har order by creado_en desc limit 1;
   assert d.teorico = 5000 - 2 * receta, 'teórico guardado';
   assert d.usado = 2 * receta, 'usado desde el conteo anterior';
   assert d.desvio = 90, 'desvío = teórico − contado';
