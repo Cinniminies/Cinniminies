@@ -1,8 +1,11 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, interruptor, plural, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton } from '../util.js';
 import { subnavProduccion } from '../componentes.js';
 import { irA } from '../app.js';
-import { filas as filasDesvio, resumen as resumenDesvios, ordenar, escala, porConteo, REVISAR } from '../desvios.js';
+import {
+  filas as filasDesvio, resumen as resumenDesvios, ordenar, escala, porConteo, REVISAR,
+  estadoAjuste, propuesta, cambios, MINIMO_AJUSTE,
+} from '../desvios.js';
 
 // 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas), alertas y conteos.
 // "Hay" se carga en la misma tabla, al lado del teórico; cada conteo guarda su desvío (ver Desvíos).
@@ -96,10 +99,11 @@ function resultado(cont, r, unidad) {
 const verDesvios = { tipo: 'ingrediente', orden: 'plata', abierto: null, conteo: null };
 
 async function desvios(cont) {
-  const [porInsumo, historial, recetas] = await Promise.all([
+  const [porInsumo, historial, recetas, costos] = await Promise.all([
     q(sb.from('v_desvio_insumo').select('*').order('nombre')),
     q(sb.from('v_desvios').select('*').order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(500)),
-    q(sb.from('recetas').select('insumo_id,cantidad,sabores(nombre,activo)').gt('cantidad', 0)),
+    q(sb.from('recetas').select('sabor_id,insumo_id,cantidad,sabores(nombre,activo,rolls_por_tanda),insumos(nombre,unidad_base,tipo)').gt('cantidad', 0)),
+    q(sb.from('v_costo_insumo').select('insumo_id,costo_unitario')),
   ]);
   const todas = filasDesvio(porInsumo);
   const conteos = porConteo(historial);
@@ -115,6 +119,13 @@ async function desvios(cont) {
     h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), h('div', { class: 'sub' }, sub));
   const contGrafico = h('div');
   const contConteo = h('div');
+  const contPropuesta = h('div');
+  const elegidos = new Set(todas.filter((f) => f.tipo === 'ingrediente' && estadoAjuste(f) === 'ajustar').map((f) => f.insumo_id));
+  const recetasSabor = recetas.filter((x) => x.sabores?.activo && x.insumos?.tipo === 'ingrediente').map((x) => ({
+    sabor_id: x.sabor_id, sabor: x.sabores.nombre, rolls: x.sabores.rolls_por_tanda,
+    insumo_id: x.insumo_id, nombre: x.insumos.nombre, unidad: x.insumos.unidad_base, cantidad: x.cantidad,
+  }));
+  const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, c.costo_unitario]));
 
   function dibujarGrafico() {
     const lista = ordenar(todas.filter((f) => f.tipo === verDesvios.tipo), verDesvios.orden);
@@ -202,6 +213,66 @@ async function desvios(cont) {
         h('td', { class: 'num-der ' + claseDesvio(f.desvio) }, f.rel == null ? '—' : pct(f.rel)),
         h('td', { class: 'num-der' }, pesos(f.valor))))));
 
+  // Recetas propuestas: el uso real promedio por tanda de cada ingrediente y la receta redondeada que sale
+  // de ahí, sabor por sabor, con el costo antes y después. Se eligen qué ingredientes ajustar.
+  function dibujarPropuesta() {
+    const ingredientes = ordenar(todas.filter((f) => f.tipo === 'ingrediente'), 'pct');
+    const ajustables = ingredientes.filter((f) => estadoAjuste(f) === 'ajustar');
+    const pocos = ingredientes.filter((f) => estadoAjuste(f) === 'pocos');
+    const chicos = ingredientes.filter((f) => estadoAjuste(f) === 'chico');
+    const sabores = propuesta(recetasSabor, todas, elegidos, costoDe);
+    const lista = cambios(sabores);
+    const signo = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${pesos(Math.abs(n))}`;
+
+    const aplicar = h('button', { class: 'btn primario', type: 'button', disabled: !lista.length },
+      lista.length ? `Aplicar recetas propuestas (${plural(lista.length, 'cambio')})` : 'Elegí al menos un ingrediente');
+    aplicar.onclick = () => conBoton(aplicar, async () => {
+      if (!confirm(`¿Cambiar ${plural(lista.length, 'cantidad', 'cantidades')} en las recetas? `
+        + 'El costo de las tandas nuevas sale de las recetas nuevas, y el promedio de desvíos de esos ingredientes arranca de nuevo.')) return;
+      await rpc('aplicar_recetas_propuestas', { p: { items: lista } });
+      toast('Recetas actualizadas');
+      verDesvios.abierto = null;
+      irA('#/stock/desvios');
+    });
+
+    vaciar(contPropuesta,
+      h('h2', {}, 'Recetas propuestas'),
+      h('p', { class: 'ayuda' }, 'Cuánto se usa de verdad por tanda: la receta más el desvío de cada ingrediente '
+        + '(lo que se usa de más o de menos se reparte en proporción entre los sabores que lo llevan). '
+        + `Se propone ajustar los que tienen 2 conteos o más y se desvían ±${Math.round(MINIMO_AJUSTE * 100)} % o más, redondeado.`),
+      ajustables.length ? h('div', { class: 'card' },
+        h('h3', {}, 'Qué ingredientes ajustar'),
+        ajustables.map((f) => interruptor(`${f.nombre} ${pct(f.rel)}`, elegidos.has(f.insumo_id), (si) => {
+          if (si) elegidos.add(f.insumo_id); else elegidos.delete(f.insumo_id);
+          dibujarPropuesta();
+        }, `${f.conteos} conteos · ${f.rel > 0 ? 'se usa más' : 'se usa menos'} de lo que dice la receta`)),
+        pocos.length ? h('p', { class: 'ayuda' }, `Esperar otro conteo: ${pocos.map((f) => `${f.nombre} ${pct(f.rel)}`).join(', ')}.`) : null,
+        chicos.length ? h('p', { class: 'ayuda' }, `Sin cambios (menos de ±${Math.round(MINIMO_AJUSTE * 100)} %): ${chicos.map((f) => `${f.nombre} ${pct(f.rel)}`).join(', ')}.`) : null)
+        : h('p', { class: 'vacio' }, 'Todavía ningún ingrediente tiene datos suficientes para proponer un cambio.'),
+      sabores.map((sab) => {
+        const dif = sab.costoDespues - sab.costoAntes;
+        return h('div', { class: 'card' },
+          h('div', { class: 'seccion-cab' }, h('h3', { style: 'margin:0' }, sab.sabor),
+            h('span', { class: 'ayuda' }, Math.abs(dif) < 0.005 ? 'sin cambios'
+              : `${signo(dif)} por tanda · ${signo(dif / (sab.rolls || 12))} por roll`)),
+          h('table', { class: 'tabla' },
+            h('tr', {}, h('th', {}, 'Ingrediente'), h('th', { class: 'num-der' }, 'Receta'), h('th', { class: 'num-der' }, 'Se usa'),
+              h('th', { class: 'num-der' }, 'Propuesta')),
+            sab.items.map((i) => {
+              const cambia = i.propuesta !== i.receta;
+              return h('tr', {},
+                h('td', {}, i.nombre),
+                h('td', { class: 'num-der' }, cantidad(i.receta, i.unidad)),
+                h('td', { class: 'num-der' }, i.real == null ? '—' : cantidad(Math.round(i.real * 10) / 10, i.unidad)),
+                h('td', { class: 'num-der ' + (cambia ? claseDesvio(i.propuesta - i.receta) : '') },
+                  cambia ? h('strong', {}, cantidad(i.propuesta, i.unidad)) : 'igual'));
+            })),
+          h('p', { class: 'ayuda', style: 'margin:.4rem 0 0' },
+            `Costo de ingredientes por tanda: ${pesos(sab.costoAntes)}${Math.abs(dif) < 0.005 ? '' : ` → ${pesos(sab.costoDespues)}`}.`));
+      }),
+      ajustables.length ? h('div', { class: 'acciones' }, aplicar) : null);
+  }
+
   // Un conteo puntual: todo lo que se contó ese día, ordenado por impacto.
   function dibujarConteo() {
     if (!conteos.length) { vaciar(contConteo); return; }
@@ -233,7 +304,9 @@ async function desvios(cont) {
       kpi('Para revisar', String(r.revisar), `pasan ±${Math.round(REVISAR * 100)} % (2+ conteos)`),
       kpi('Conteos', String(conteos.length), conteos.length ? `último: ${fechaCorta(conteos[0].fecha)}` : '—')),
     contGrafico,
+    contPropuesta,
     contConteo);
   dibujarGrafico();
+  dibujarPropuesta();
   dibujarConteo();
 }

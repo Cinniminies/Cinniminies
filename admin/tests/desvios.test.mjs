@@ -1,7 +1,7 @@
 // Pruebas de los desvíos de stock. Correr con: node --test admin/tests/*.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { filas, resumen, ordenar, escala, porConteo } from '../js/desvios.js';
+import { filas, resumen, ordenar, escala, porConteo, estadoAjuste, redondear, propuesta, cambios } from '../js/desvios.js';
 
 const base = [
   { insumo_id: 'a', nombre: 'Azúcar', tipo: 'ingrediente', unidad_base: 'g', conteos: 3, usado: '371.67', desvio: '60.33', desvio_relativo: '0.1623', valor: '2.78' },
@@ -47,4 +47,46 @@ test('porConteo: agrupa por carga, más nuevo primero, mayor impacto arriba; hor
   ]);
   assert.deepEqual(g.map((x) => [x.fecha, x.hora]), [['2026-10-03', null], ['2026-10-02', '19:43'], ['2026-10-02', '00:37']]);
   assert.deepEqual(g[0].filas.map((x) => x.nombre), ['Canela', 'Azúcar']);
+});
+
+test('estadoAjuste', () => {
+  const [a, d, n] = filas(base);
+  assert.equal(estadoAjuste(a), 'ajustar'); // +16 %, 3 conteos
+  assert.equal(estadoAjuste(d), 'pocos'); // 1 conteo
+  assert.equal(estadoAjuste({ ...n, rel: -0.02 }), 'chico');
+  assert.equal(estadoAjuste(undefined), 'sin');
+});
+
+test('redondear: cantidades cómodas', () => {
+  assert.equal(redondear(174.35, 'g'), 175);
+  assert.equal(redondear(58.12, 'g'), 58);
+  assert.equal(redondear(17.05, 'g'), 17);
+  assert.equal(redondear(11.37, 'g'), 11.5);
+  assert.equal(redondear(0.1, 'g'), 0.5);
+  assert.equal(redondear(1.3, 'un'), 1.5);
+});
+
+test('propuesta: ajusta solo lo elegido con datos, costo antes y después; cambios', () => {
+  const recetas = [
+    { sabor_id: 'ca', sabor: 'Canela', rolls: 12, insumo_id: 'a', nombre: 'Azúcar', unidad: 'g', cantidad: '150' },
+    { sabor_id: 'ca', sabor: 'Canela', rolls: 12, insumo_id: 'h', nombre: 'Huevos', unidad: 'un', cantidad: '1' },
+    { sabor_id: 'dl', sabor: 'Dulce de Leche', rolls: 12, insumo_id: 'd', nombre: 'Dulce de leche', unidad: 'g', cantidad: '240' },
+    { sabor_id: 'dl', sabor: 'Dulce de Leche', rolls: 12, insumo_id: 'a', nombre: 'Azúcar', unidad: 'g', cantidad: '50' },
+  ];
+  const p = propuesta(recetas, filas(base), new Set(['a']), { a: 0.05, h: 10, d: 0.2 });
+  const canela = p.find((s) => s.sabor === 'Canela');
+  const azucar = canela.items[0];
+  assert.equal(azucar.nombre, 'Azúcar'); // lo que cambia va primero
+  assert.equal(Math.round(azucar.real * 10) / 10, 174.3);
+  assert.equal(azucar.propuesta, 175);
+  assert.equal(canela.items[1].propuesta, 1); // huevos sin datos: igual
+  assert.equal(canela.items[1].estado, 'sin');
+  assert.equal(canela.costoAntes, 150 * 0.05 + 10);
+  assert.equal(canela.costoDespues, 175 * 0.05 + 10);
+  const ddl = p.find((s) => s.sabor === 'Dulce de Leche');
+  assert.equal(ddl.items.find((i) => i.nombre === 'Dulce de leche').propuesta, 240); // no elegido (1 conteo)
+  assert.deepEqual(cambios(p), [
+    { sabor_id: 'ca', insumo_id: 'a', cantidad: 175 },
+    { sabor_id: 'dl', insumo_id: 'a', cantidad: 58 },
+  ]);
 });

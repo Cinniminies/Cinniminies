@@ -732,3 +732,33 @@ begin
   end;
   raise exception 'TODO OK';
 end $$;
+
+-- Recetas propuestas: guarda las cantidades tal cual y reinicia el promedio de esos ingredientes.
+do $$
+declare
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  har uuid := (select id from insumos where nombre = 'Harina');
+  caja uuid := (select id from insumos where tipo = 'packaging' limit 1);
+  n int;
+begin
+  n := aplicar_recetas_propuestas(jsonb_build_object('items', jsonb_build_array(
+         jsonb_build_object('sabor_id', ca, 'insumo_id', har, 'cantidad', 475))));
+  assert n = 1, 'una fila';
+  assert (select cantidad from recetas where sabor_id = ca and insumo_id = har) = 475, 'cantidad guardada';
+  assert (select receta_ajustada_en from insumos where id = har) = now(), 'promedio reiniciado';
+  begin
+    perform aplicar_recetas_propuestas(jsonb_build_object('items', jsonb_build_array(
+              jsonb_build_object('sabor_id', ca, 'insumo_id', caja, 'cantidad', 1))));
+    raise exception 'cambió packaging';
+  exception when others then
+    if sqlerrm = 'cambió packaging' then raise; end if;
+  end;
+  begin
+    perform aplicar_recetas_propuestas(jsonb_build_object('items', jsonb_build_array(
+              jsonb_build_object('sabor_id', ca, 'insumo_id', har, 'cantidad', 0))));
+    raise exception 'dejó 0';
+  exception when others then
+    if sqlerrm = 'dejó 0' then raise; end if;
+  end;
+  raise exception 'TODO OK';
+end $$;
