@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, stepper, campo, numero, cantidad, plural, fechaCorta, proximoSabado, toast, conBoton, debounce,
+  h, vaciar, chips, stepper, campo, numero, cantidad, plural, fechaCorta, hoyISO, proximoSabado, toast, conBoton, debounce,
 } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
@@ -73,7 +73,8 @@ export async function mostrar(cont) {
     registrar.onclick = () => conBoton(registrar, async () => {
       const n = incluidas().length;
       if (!confirm(`¿Registrar ${plural(plan.total_tandas, 'tanda')} con fecha ${fechaCorta(estado.fecha)}?`
-        + (n ? ` ${plural(n, 'pedido pasa', 'pedidos pasan')} a hecho.` : ''))) return;
+        + (n ? ` ${plural(n, 'pedido pasa', 'pedidos pasan')} a hecho.` : '')
+        + (estado.fecha > hoyISO() ? '\n\nOjo: la fecha es posterior a hoy. Si ya horneaste, cambiá el día de horneado.' : ''))) return;
       const r = await rpc('registrar_horneado', { p: { ...payload(), fecha: estado.fecha } });
       estado.excluidas.clear();
       estado.extra = {};
