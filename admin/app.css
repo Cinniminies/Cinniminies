@@ -276,6 +276,11 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .receta-fila .unidad small { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); color: var(--suave); pointer-events: none; }
 .receta-fila .unidad input { padding-right: 2.2rem; }
 .tabla .sub { display: block; color: var(--suave); font-size: .78rem; font-weight: 400; }
+/* Stock: Registro (para cargar), Hay y Debería haber. El campo no se achica en el celular. */
+.tabla-stock .registro { width: 6.5rem; min-width: 5.75rem; padding-left: .6rem; }
+.tabla-stock .registro input { padding-left: .5rem; padding-right: 1.9rem; }
+.tabla-stock .registro .unidad small { right: .45rem; }
+.tabla-stock th.num-der { white-space: normal; }
 .desvio-pos { color: var(--graf-acento); } /* se usó de más / faltan: mismo color que en el gráfico de Desvíos */
 .desvio-neg { color: var(--graf-frio); }
 .seccion-cab { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }

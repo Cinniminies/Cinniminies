@@ -767,3 +767,18 @@ begin
   end;
   raise exception 'TODO OK';
 end $$;
+
+-- Deshacer el último conteo: borra todo lo de esa vez y el teórico vuelve a arrancar del conteo anterior.
+do $$
+declare
+  har uuid := (select id from insumos where nombre = 'Harina');
+  antes numeric := (select teorico from v_stock where insumo_id = (select id from insumos where nombre = 'Harina'));
+  r jsonb;
+begin
+  perform registrar_conteo(jsonb_build_object('items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', 1))));
+  assert (select teorico from v_stock where insumo_id = har) = 1, 'conteo cargado';
+  r := deshacer_ultimo_conteo();
+  assert (r->>'insumos')::int = 1, 'borró solo lo de esa vez';
+  assert (select teorico from v_stock where insumo_id = har) = antes, 'volvió al conteo anterior';
+  raise exception 'TODO OK';
+end $$;
