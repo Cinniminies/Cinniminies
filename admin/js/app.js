@@ -283,6 +283,30 @@ sb.auth.onAuthStateChange((evento, session) => {
   if (evento === 'PASSWORD_RECOVERY') toast('Elegí una contraseña nueva en Más → Contraseña');
 });
 
+// iOS 26 (app instalada y Safari): al cerrar el teclado el visor a veces queda achicado y la barra de
+// abajo flota con un hueco debajo hasta que se recarga. Se arregla forzando que el navegador lo vuelva
+// a medir: ocultar y mostrar la página en el mismo cuadro (no se llega a ver) y volver al mismo scroll.
+let altoMax = window.innerHeight;
+window.addEventListener('resize', () => { altoMax = Math.max(altoMax, window.innerHeight); });
+const editable = (el) => el?.matches?.('input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select, [contenteditable]');
+function curarVisor() {
+  if (editable(document.activeElement)) return; // pasó a otro campo: el teclado sigue abierto
+  const vv = window.visualViewport;
+  if (altoMax - window.innerHeight <= 4 && !(vv && vv.offsetTop > 1)) return;
+  const y = window.scrollY;
+  document.body.style.display = 'none';
+  void document.body.offsetHeight;
+  document.body.style.display = '';
+  window.scrollTo(0, y);
+}
+// Solo después de salir de un campo (no en cada resize: en Android la barra del navegador cambia el
+// alto al scrollear). Dos intentos, por si el teclado tarda en terminar de cerrarse.
+document.addEventListener('focusout', (e) => {
+  if (!editable(e.target)) return;
+  setTimeout(curarVisor, 150);
+  setTimeout(curarVisor, 600);
+});
+
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 export function irA(hash) {
