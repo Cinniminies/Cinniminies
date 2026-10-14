@@ -12,6 +12,7 @@ const valido = {
 test('armarPedido limpia y recorta', () => {
   const p = armarPedido(valido);
   assert.equal(p.nombre, 'Ana');
+  assert.equal(armarPedido({ ...valido, nombre: 'Ana 2 Pérez99' }).nombre, 'Ana Pérez');
   assert.equal(p.modalidad, 'retiro');
   assert.equal(p.pago, 'efectivo');
   assert.equal(p.notas.length, 500);

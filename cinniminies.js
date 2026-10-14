@@ -711,6 +711,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (telInput.value !== limpio) telInput.value = limpio;
   });
 
+  /* ---------- Nombre: sin números ---------- */
+  // Igual que el WhatsApp: los números se sacan mientras escriben (o si los pegan),
+  // dejando el cursor donde estaba.
+  const nombreInput = stepForm ? stepForm.nombre : null;
+  nombreInput?.addEventListener('input', () => {
+    const valor = nombreInput.value;
+    const limpio = valor.replace(/\d/g, '');
+    if (valor === limpio) return;
+    const cursor = nombreInput.selectionStart ?? valor.length;
+    const quitadosAntes = (valor.slice(0, cursor).match(/\d/g) || []).length;
+    nombreInput.value = limpio;
+    nombreInput.setSelectionRange?.(cursor - quitadosAntes, cursor - quitadosAntes);
+  });
+
   /* ---------- Estado del botón "Confirmar pedido" ---------- */
   // Mismo criterio que "Pedir ahora": el botón queda gris mientras falte algo,
   // así nunca promete un envío que después se rechaza.
