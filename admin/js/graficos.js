@@ -81,3 +81,77 @@ export function variacion(actual, anterior, contra, { masEsMejor = true } = {}) 
     h('span', { 'aria-hidden': 'true' }, sube ? '▲ ' : '▼ '),
     `${sube ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs ${contra}`);
 }
+
+// Línea en el tiempo (p. ej. el precio de un insumo en cada compra). datos: [{ x: 'AAAA-MM-DD', valor,
+// etiqueta }], ordenados por fecha. El eje x respeta las fechas (compras espaciadas quedan espaciadas)
+// y el y arranca en el mínimo, no en cero: lo que importa es cuánto cambió. Se rotulan la primera y la
+// última; tocar (o enfocar) un punto muestra su detalle con una línea vertical.
+const SVG = 'http://www.w3.org/2000/svg';
+function s(tag, attrs, ...hijos) {
+  const el = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs || {})) if (v != null) el.setAttribute(k, v);
+  el.append(...hijos);
+  return el;
+}
+
+export function linea(datos, { formato, titulo, columnasTabla }) {
+  const W = 320, H = 160, IZQ = 10, DER = 10, ARR = 22, ABA = 36;
+  const dia = (iso) => Date.parse(`${iso}T12:00:00Z`) / 864e5;
+  const x0 = dia(datos[0].x), x1 = dia(datos[datos.length - 1].x);
+  const vals = datos.map((d) => d.valor);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (max - min < 1e-9) { min -= Math.abs(min) * 0.1 || 1; max += Math.abs(max) * 0.1 || 1; }
+  const px = (d, i) => (x1 > x0 ? IZQ + ((dia(d.x) - x0) / (x1 - x0)) * (W - IZQ - DER)
+    : IZQ + (i / Math.max(1, datos.length - 1)) * (W - IZQ - DER));
+  const py = (v) => ARR + (1 - (v - min) / (max - min)) * (H - ARR - ABA);
+  const pts = datos.map((d, i) => [px(d, i), py(d.valor)]);
+
+  const detalle = h('div', { class: 'graf-detalle', role: 'status' });
+  const guia = s('line', { class: 'graf-guia', y1: ARR - 8, y2: H - ABA, x1: -10, x2: -10 });
+  const marcas = [];
+  const mostrar = (i) => {
+    const d = datos[i];
+    detalle.replaceChildren(h('strong', {}, formato(d.valor)), h('span', {}, d.etiqueta));
+    guia.setAttribute('x1', pts[i][0]); guia.setAttribute('x2', pts[i][0]);
+    marcas.forEach((m, j) => m.classList.toggle('activa', i === j));
+  };
+  const rotulo = (i, abajo = false) => {
+    const [x, y] = pts[i];
+    const ancla = i === 0 && datos.length > 1 ? 'start' : i === datos.length - 1 ? 'end' : 'middle';
+    return s('text', { class: 'graf-rotulo', x, y: abajo ? y + 18 : y - 10, 'text-anchor': ancla }, formato(datos[i].valor));
+  };
+  // Primera, última, y el mínimo y el máximo si quedan en el medio.
+  const ultimo = datos.length - 1;
+  const iMin = vals.indexOf(Math.min(...vals)), iMax = vals.indexOf(Math.max(...vals));
+  const rotulos = [rotulo(0), ultimo ? rotulo(ultimo) : ''];
+  if (iMax > 0 && iMax < ultimo) rotulos.push(rotulo(iMax));
+  if (iMin > 0 && iMin < ultimo && iMin !== iMax) rotulos.push(rotulo(iMin, true));
+
+  const svg = s('svg', { class: 'graf-linea', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
+    s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: H - ABA + 6, y2: H - ABA + 6 }),
+    s('text', { class: 'graf-eje', x: IZQ, y: H - 4, 'text-anchor': 'start' }, datos[0].etiquetaEje || ''),
+    datos.length > 1 ? s('text', { class: 'graf-eje', x: W - DER, y: H - 4, 'text-anchor': 'end' }, datos[datos.length - 1].etiquetaEje || '') : '',
+    guia,
+    s('polyline', { class: 'graf-trazo', points: pts.map((p) => p.join(',')).join(' ') }),
+    ...datos.map((d, i) => {
+      const g = s('g', { class: 'graf-punto', tabindex: '0', role: 'button', 'aria-label': `${d.etiqueta}: ${formato(d.valor)}` },
+        s('circle', { class: 'graf-toque', cx: pts[i][0], cy: pts[i][1], r: 14 }),
+        s('circle', { class: 'graf-marca', cx: pts[i][0], cy: pts[i][1], r: 4.5 }));
+      const ver = () => mostrar(i);
+      g.addEventListener('pointerenter', ver);
+      g.addEventListener('focus', ver);
+      g.addEventListener('click', ver);
+      marcas.push(g);
+      return g;
+    }),
+    ...rotulos);
+
+  const tabla = h('details', { class: 'graf-tabla' }, h('summary', {}, 'Ver los números'),
+    h('table', { class: 'tabla' },
+      h('tr', {}, columnasTabla.map((c, i) => h('th', { class: i ? 'num-der' : null }, c[0]))),
+      [...datos].reverse().map((d) => h('tr', {}, columnasTabla.map((c, i) => h('td', { class: i ? 'num-der' : null }, c[1](d)))))));
+
+  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), svg, detalle, tabla);
+  queueMicrotask(() => mostrar(datos.length - 1));
+  return fig;
+}
