@@ -1008,6 +1008,48 @@ a:hover{ color: var(--canela-hover); }
   text-decoration: none;
 }
 
+/* Panel de transferencia: datos de la cuenta, comprobante y "lo mando después" */
+.transfer-datos{
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--crema);
+  border: 1.5px dashed var(--canela);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+}
+.transfer-datos p{
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.transfer-copiar{
+  flex: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--canela-tostada);
+  background: none;
+  border: 1.5px solid var(--linea);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.transfer-copiar:hover{ border-color: var(--canela); }
+.field input[type="file"]{ padding: 10px; cursor: pointer; }
+.transfer-enviar, .transfer-despues{ width: 100%; margin-top: 10px; text-align: center; font-size: 16px; cursor: pointer; }
+.transfer-enviar{ border: none; }
+.transfer-enviar:disabled{
+  background: rgba(58,36,23,0.1);
+  color: rgba(58,36,23,0.4);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* ============== BOX COMPLETE POPUP ============== */
 .box-complete-modal{
   position: fixed;

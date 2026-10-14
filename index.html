@@ -352,6 +352,33 @@
       <p class="form-error" id="formError"></p>
     </form>
 
+    <!-- Segundo panel si eligen transferencia: datos de la cuenta y el comprobante -->
+    <div class="cart-step is-hidden" id="stepTransfer">
+      <div class="cart-modal-head">
+        <h3>Pagá por transferencia</h3>
+        <button type="button" class="cart-close" id="transferClose" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="order-id-box">
+        <span class="order-id-label">Tu número de pedido</span>
+        <span class="order-id-value" id="transferOrderId">CM-0000</span>
+      </div>
+      <p class="done-text">Transferí <strong id="transferTotal">$0</strong> y poné el número de pedido en el concepto.</p>
+      <div class="transfer-datos">
+        <p id="transferDatos" data-contenido="pago.transferencia">Te pasamos los datos de la cuenta por WhatsApp.</p>
+        <button type="button" class="transfer-copiar" id="transferCopiar">Copiar</button>
+      </div>
+      <div id="comprobanteBloque">
+        <label class="field">
+          <span>Comprobante (opcional)</span>
+          <input type="file" id="comprobanteInput" accept="image/*,application/pdf">
+          <small class="field-hint">Una foto, una captura o el PDF del banco. Si preferís, lo mandás después por WhatsApp.</small>
+        </label>
+        <p class="form-error" id="transferError" role="alert"></p>
+        <button type="button" class="btn-primary transfer-enviar" id="transferEnviar" disabled>Enviar comprobante</button>
+      </div>
+      <button type="button" class="btn-secondary transfer-despues" id="transferDespues">Lo mando después</button>
+    </div>
+
     <div class="cart-step is-hidden" id="stepDone">
       <div class="cart-modal-head">
         <h3 data-contenido="pedido.titulo">¡Listo, pedido recibido!</h3>

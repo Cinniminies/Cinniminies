@@ -604,6 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepCart = document.getElementById('stepCart');
   const stepForm = document.getElementById('stepForm');
   const stepDone = document.getElementById('stepDone');
+  const stepTransfer = document.getElementById('stepTransfer');
 
   function openModal() {
     cartModal.classList.add('is-open');
@@ -614,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
   function goToStep(step) {
-    [stepCart, stepForm, stepDone].forEach(s => s.classList.add('is-hidden'));
+    [stepCart, stepForm, stepTransfer, stepDone].forEach(s => s?.classList.add('is-hidden'));
     step.classList.remove('is-hidden');
   }
 
@@ -622,6 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cartClose')?.addEventListener('click', closeModal);
   document.getElementById('formClose')?.addEventListener('click', closeModal);
   document.getElementById('doneClose')?.addEventListener('click', closeModal);
+  document.getElementById('transferClose')?.addEventListener('click', closeModal);
   document.getElementById('cartBackdrop')?.addEventListener('click', closeModal);
 
   /* ---------- Popup de "caja completa" ---------- */
@@ -753,6 +755,101 @@ document.addEventListener('DOMContentLoaded', () => {
   stepForm?.addEventListener('input', updateSubmitBtn);
   stepForm?.addEventListener('change', updateSubmitBtn);
   updateSubmitBtn();
+
+  /* ---------- Panel de transferencia (segundo panel si eligen pagar así) ---------- */
+  const comprobanteInput = document.getElementById('comprobanteInput');
+  const transferEnviar = document.getElementById('transferEnviar');
+  const transferDespues = document.getElementById('transferDespues');
+  const transferError = document.getElementById('transferError');
+  const MAX_COMPROBANTE = 3 * 1024 * 1024; // mismo límite que /api/comprobante
+  let transferencia = null; // { codigo, telefono, waLink }
+
+  function abrirTransferencia({ codigo, telefono, total, orderId, waLink }) {
+    transferencia = { codigo, telefono, waLink };
+    document.getElementById('transferOrderId').textContent = orderId;
+    document.getElementById('transferTotal').textContent = `$${total}`;
+    document.getElementById('comprobanteBloque').hidden = !codigo;
+    transferDespues.textContent = codigo ? 'Lo mando después' : 'Seguir';
+    comprobanteInput.value = '';
+    transferError.textContent = '';
+    transferEnviar.disabled = true;
+    transferEnviar.textContent = 'Enviar comprobante';
+    // "Copiar" solo si hay datos de cuenta cargados (el texto por defecto no tiene números).
+    const copiar = document.getElementById('transferCopiar');
+    copiar.textContent = 'Copiar';
+    copiar.hidden = !/\d/.test(document.getElementById('transferDatos').textContent);
+    goToStep(stepTransfer);
+  }
+
+  document.getElementById('transferCopiar')?.addEventListener('click', async (e) => {
+    const texto = document.getElementById('transferDatos').innerText.trim();
+    try {
+      await navigator.clipboard.writeText(texto);
+      e.currentTarget.textContent = '¡Copiado!';
+    } catch {
+      e.currentTarget.textContent = 'No se pudo';
+    }
+  });
+
+  comprobanteInput?.addEventListener('change', () => {
+    transferError.textContent = '';
+    transferEnviar.disabled = !comprobanteInput.files?.length;
+  });
+
+  // Las fotos del celular pesan varios MB: se achican a JPEG (alcanza para leer un comprobante).
+  // Los PDF y las imágenes que ya son chicas van tal cual.
+  async function prepararComprobante(archivo) {
+    const esImagen = archivo.type.startsWith('image/');
+    if (!esImagen || archivo.size <= 1024 * 1024) return archivo;
+    try {
+      const bmp = await createImageBitmap(archivo);
+      const escala = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+      const lienzo = document.createElement('canvas');
+      lienzo.width = Math.round(bmp.width * escala);
+      lienzo.height = Math.round(bmp.height * escala);
+      lienzo.getContext('2d').drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
+      const blob = await new Promise(ok => lienzo.toBlob(ok, 'image/jpeg', 0.85));
+      return blob && blob.size < archivo.size ? blob : archivo;
+    } catch {
+      return archivo; // el navegador no la sabe abrir (p. ej. HEIC fuera de Safari): que la valide la API
+    }
+  }
+
+  const aBase64 = (blob) => new Promise((ok, mal) => {
+    const lector = new FileReader();
+    lector.onload = () => ok(String(lector.result).replace(/^data:[^,]*,/, ''));
+    lector.onerror = () => mal(lector.error);
+    lector.readAsDataURL(blob);
+  });
+
+  transferEnviar?.addEventListener('click', async () => {
+    const archivo = comprobanteInput.files?.[0];
+    if (!archivo || !transferencia?.codigo) return;
+    transferError.textContent = '';
+    transferEnviar.disabled = true;
+    transferEnviar.textContent = 'Enviando...';
+    try {
+      const listo = await prepararComprobante(archivo);
+      if (listo.size > MAX_COMPROBANTE) throw new Error('El archivo es muy grande (máximo 3 MB). Probá con una captura.');
+      const r = await fetch('/api/comprobante', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo: transferencia.codigo, telefono: transferencia.telefono, archivo: await aBase64(listo) })
+      });
+      const cuerpo = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(cuerpo?.error || 'No se pudo enviar el comprobante.');
+      // Que el mensaje de WhatsApp avise que ya está.
+      const wa = document.getElementById('doneWhatsapp');
+      wa.href = transferencia.waLink + encodeURIComponent('\nComprobante: subido en la web');
+      goToStep(stepDone);
+    } catch (e) {
+      transferError.textContent = `${e.message} Si no sale, mandalo por WhatsApp.`;
+      transferEnviar.disabled = false;
+      transferEnviar.textContent = 'Enviar comprobante';
+    }
+  });
+
+  transferDespues?.addEventListener('click', () => goToStep(stepDone));
 
   /* ---------- Envío del formulario ---------- */
   const formError = document.getElementById('formError');
@@ -912,7 +1009,12 @@ document.addEventListener('DOMContentLoaded', () => {
     enviandoPedido = false;
     submitBtn.textContent = 'Confirmar pedido';
 
-    goToStep(stepDone);
+    if (pago === 'Transferencia' && stepTransfer) {
+      // El comprobante se adjunta al pedido guardado; si la base no respondió, va por WhatsApp.
+      abrirTransferencia({ codigo: guardado?.codigo || null, telefono, total, orderId, waLink });
+    } else {
+      goToStep(stepDone);
+    }
 
     // limpiar carrito para el próximo pedido
     cart = [];
