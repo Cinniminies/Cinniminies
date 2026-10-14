@@ -1010,22 +1010,48 @@ a:hover{ color: var(--canela-hover); }
 
 /* Panel de transferencia: datos de la cuenta, comprobante y "lo mando después" */
 .transfer-datos{
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
   background: var(--crema);
   border: 1.5px dashed var(--canela);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   margin-bottom: 22px;
 }
-.transfer-datos p{
+.cuenta-form{ margin-top: 12px; }
+.cuenta-form .transfer-datos{ margin-bottom: 0; }
+.cuenta-form.is-hidden{ display: none; }
+.cuenta-datos{ margin: 0; }
+.cuenta-fila{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.cuenta-fila dt{
+  flex: none;
+  width: 92px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--cafe-suave);
+}
+.cuenta-fila dd{
   flex: 1;
   margin: 0;
   font-size: 15px;
-  line-height: 1.5;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
+.cuenta-fila[hidden]{ display: none; }
+.cuenta-numero dd{ font-size: 17px; letter-spacing: 0.02em; }
+.cuenta-nota, .cuenta-sin-datos{
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cafe-suave);
+}
+.cuenta-sin-datos{ margin: 0; color: var(--cafe); }
+.transfer-total{ font-size: 15px; margin: 0 0 6px; }
+.done-aviso{ color: var(--cafe); font-weight: 600; }
 .transfer-copiar{
   flex: none;
   font-family: var(--font-body);
