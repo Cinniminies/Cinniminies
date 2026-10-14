@@ -98,6 +98,13 @@ export async function mostrar(cont) {
     estado === 'nuevo' ? leerOrigenes() : [],
   ]);
 
+  // Comprobantes de transferencia (bucket privado): links firmados por una hora.
+  const conComprobante = pedidos.filter((p) => p.comprobante);
+  const links = conComprobante.length
+    ? Object.fromEntries(((await sb.storage.from('comprobantes').createSignedUrls(conComprobante.map((p) => p.comprobante), 3600)).data || [])
+      .filter((l) => l.signedUrl).map((l) => [l.path, l.signedUrl]))
+    : {};
+
   const tarjeta = (p) => {
     const cajas = [...p.pedido_cajas].sort((a, b) => a.orden - b.orden).map((c) =>
       h('li', {}, h('strong', {}, cat.formato(c.formato_id)?.nombre || 'Caja'), ` · ${pesos(c.precio)}`,
@@ -142,6 +149,11 @@ export async function mostrar(cont) {
           ETIQUETAS.medio_pago[p.medio_pago]].join(' · ')),
       h('ul', { class: 'lista plana' }, cajas),
       p.notas ? h('p', {}, h('em', {}, `“${p.notas}”`)) : null,
+      p.comprobante
+        ? h('p', {}, links[p.comprobante]
+          ? h('a', { class: 'btn chico', href: links[p.comprobante], target: '_blank', rel: 'noopener' }, 'Ver comprobante')
+          : h('span', { class: 'ayuda' }, 'Tiene comprobante, pero no se pudo abrir el link'))
+        : p.medio_pago === 'transferencia' && p.estado === 'nuevo' ? h('p', { class: 'ayuda' }, 'Transferencia: todavía sin comprobante') : null,
       acciones);
   };
 
