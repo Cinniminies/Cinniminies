@@ -5,7 +5,10 @@ import { irA } from '../app.js';
 
 // Textos e imágenes de la web pública (Etapa 7). Cada fila de contenido_web es un lugar de
 // index.html; la web los toma de /api/catalogo (tarda hasta 5 minutos en verse).
-const SECCIONES = ['Barra de arriba', 'Inicio', 'Menú', 'Dónde encontrarnos', 'Contacto', 'Carrito y formulario', 'Pedido recibido'];
+const SECCIONES = ['Barra de arriba', 'Inicio', 'Menú', 'Dónde encontrarnos', 'Contacto', 'Carrito y formulario',
+  'Pago por transferencia', 'Pedido recibido'];
+// Tipos: texto (no puede quedar vacío), texto_largo, dato (un renglón que puede quedar vacío: la web no
+// lo muestra), imagen, whatsapp, instagram, direccion.
 
 // Mismas reglas que los checks de la base, para avisar antes de guardar.
 const VALIDAR = {

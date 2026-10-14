@@ -584,6 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const cat = await r.json();
       try { aplicarContenido(cat.contenido); } catch (e) { console.warn('No se pudieron aplicar los textos:', e.message); }
+      actualizarCuenta();
       if (!aplicarCatalogo(cat)) console.warn('Catálogo vacío: se usa el menú de respaldo');
     } catch (e) {
       console.warn('No se pudo leer el catálogo, se usa el menú de respaldo:', e.message);
@@ -764,32 +765,67 @@ document.addEventListener('DOMContentLoaded', () => {
   const MAX_COMPROBANTE = 3 * 1024 * 1024; // mismo límite que /api/comprobante
   let transferencia = null; // { codigo, telefono, waLink }
 
+  const transferSeguir = document.getElementById('transferSeguir');
+  const avisoDespues = document.getElementById('doneAvisoTransfer');
+
+  // Datos de la cuenta (formulario y panel). Vienen de /admin → Web → Pago por transferencia: lo que
+  // está vacío no se muestra, y sin número de cuenta se ve el texto de respaldo.
+  function actualizarCuenta() {
+    document.querySelectorAll('[data-cuenta]').forEach(caja => {
+      const numero = caja.querySelector('.cuenta-numero dd').textContent.trim();
+      caja.querySelectorAll('.cuenta-fila').forEach(f => { f.hidden = !f.querySelector('dd').textContent.trim(); });
+      caja.querySelector('.cuenta-datos').hidden = !numero;
+      const nota = caja.querySelector('.cuenta-nota');
+      nota.hidden = !numero || !nota.textContent.trim();
+      caja.querySelector('.cuenta-sin-datos').hidden = Boolean(numero);
+    });
+  }
+  actualizarCuenta();
+
+  document.querySelectorAll('[data-copiar-cuenta]').forEach(boton => {
+    boton.addEventListener('click', async () => {
+      const numero = boton.closest('.cuenta-fila').querySelector('dd').textContent.trim();
+      try {
+        await navigator.clipboard.writeText(numero);
+        boton.textContent = '¡Copiado!';
+      } catch {
+        boton.textContent = 'No se pudo';
+      }
+      setTimeout(() => { boton.textContent = 'Copiar'; }, 2000);
+    });
+  });
+
+  // En el formulario, la cuenta aparece apenas eligen transferencia.
+  const cuentaForm = document.getElementById('cuentaForm');
+  function updateCuentaForm() {
+    cuentaForm?.classList.toggle('is-hidden', stepForm?.pago.value !== 'Transferencia');
+  }
+  stepForm?.querySelectorAll('input[name="pago"]').forEach(radio => radio.addEventListener('change', updateCuentaForm));
+
   function abrirTransferencia({ codigo, telefono, total, orderId, waLink }) {
     transferencia = { codigo, telefono, waLink };
     document.getElementById('transferOrderId').textContent = orderId;
     document.getElementById('transferTotal').textContent = `$${total}`;
+    // Sin código de la base (falló el guardado) no se puede adjuntar: solo "Seguir" y va por WhatsApp.
     document.getElementById('comprobanteBloque').hidden = !codigo;
-    transferDespues.textContent = codigo ? 'Lo mando después' : 'Seguir';
+    transferSeguir.hidden = Boolean(codigo);
     comprobanteInput.value = '';
     transferError.textContent = '';
     transferEnviar.disabled = true;
     transferEnviar.textContent = 'Enviar comprobante';
-    // "Copiar" solo si hay datos de cuenta cargados (el texto por defecto no tiene números).
-    const copiar = document.getElementById('transferCopiar');
-    copiar.textContent = 'Copiar';
-    copiar.hidden = !/\d/.test(document.getElementById('transferDatos').textContent);
     goToStep(stepTransfer);
   }
 
-  document.getElementById('transferCopiar')?.addEventListener('click', async (e) => {
-    const texto = document.getElementById('transferDatos').innerText.trim();
-    try {
-      await navigator.clipboard.writeText(texto);
-      e.currentTarget.textContent = '¡Copiado!';
-    } catch {
-      e.currentTarget.textContent = 'No se pudo';
-    }
-  });
+  // "Lo mando después": el pedido ya está guardado; el comprobante llega por WhatsApp. El mensaje
+  // prearmado lo dice y la pantalla final lo recuerda.
+  function terminarSinComprobante() {
+    document.getElementById('doneWhatsapp').href = transferencia.waLink
+      + encodeURIComponent('\nTe mando el comprobante de la transferencia por acá.');
+    avisoDespues.hidden = false;
+    goToStep(stepDone);
+  }
+  transferDespues?.addEventListener('click', terminarSinComprobante);
+  transferSeguir?.addEventListener('click', terminarSinComprobante);
 
   comprobanteInput?.addEventListener('change', () => {
     transferError.textContent = '';
@@ -841,6 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Que el mensaje de WhatsApp avise que ya está.
       const wa = document.getElementById('doneWhatsapp');
       wa.href = transferencia.waLink + encodeURIComponent('\nComprobante: subido en la web');
+      avisoDespues.hidden = true;
       goToStep(stepDone);
     } catch (e) {
       transferError.textContent = `${e.message} Si no sale, mandalo por WhatsApp.`;
@@ -849,7 +886,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  transferDespues?.addEventListener('click', () => goToStep(stepDone));
 
   /* ---------- Envío del formulario ---------- */
   const formError = document.getElementById('formError');
@@ -1013,6 +1049,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // El comprobante se adjunta al pedido guardado; si la base no respondió, va por WhatsApp.
       abrirTransferencia({ codigo: guardado?.codigo || null, telefono, total, orderId, waLink });
     } else {
+      avisoDespues.hidden = true;
       goToStep(stepDone);
     }
 
@@ -1021,6 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     stepForm.reset();
     updateDireccionVisibility();
+    updateCuentaForm();
     updateSubmitBtn();
   });
 
