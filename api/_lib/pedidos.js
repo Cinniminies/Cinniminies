@@ -20,7 +20,7 @@ function armarPedido(b) {
   if (!Array.isArray(b.cajas) || !b.cajas.length) throw new ErrorPedido('El pedido no tiene cajas');
   if (b.cajas.length > 20) throw new ErrorPedido('Demasiadas cajas en un pedido');
   return {
-    nombre: txt(b.nombre, 100),
+    nombre: txt(b.nombre, 100).replace(/\d/g, '').replace(/\s+/g, ' ').trim(), // la web ya no deja escribir números
     telefono: txt(b.telefono, 20),
     modalidad: txt(b.modalidad, 20).toLowerCase(),
     direccion: txt(b.direccion, 200),
