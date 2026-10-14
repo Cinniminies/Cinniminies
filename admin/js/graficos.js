@@ -95,7 +95,7 @@ function s(tag, attrs, ...hijos) {
 }
 
 export function linea(datos, { formato, titulo, columnasTabla }) {
-  const W = 320, H = 150, IZQ = 10, DER = 10, ARR = 22, ABA = 22;
+  const W = 320, H = 160, IZQ = 10, DER = 10, ARR = 22, ABA = 36;
   const dia = (iso) => Date.parse(`${iso}T12:00:00Z`) / 864e5;
   const x0 = dia(datos[0].x), x1 = dia(datos[datos.length - 1].x);
   const vals = datos.map((d) => d.valor);
@@ -115,11 +115,17 @@ export function linea(datos, { formato, titulo, columnasTabla }) {
     guia.setAttribute('x1', pts[i][0]); guia.setAttribute('x2', pts[i][0]);
     marcas.forEach((m, j) => m.classList.toggle('activa', i === j));
   };
-  const rotulo = (i, texto) => {
+  const rotulo = (i, abajo = false) => {
     const [x, y] = pts[i];
     const ancla = i === 0 && datos.length > 1 ? 'start' : i === datos.length - 1 ? 'end' : 'middle';
-    return s('text', { class: 'graf-rotulo', x, y: y - 10, 'text-anchor': ancla }, texto);
+    return s('text', { class: 'graf-rotulo', x, y: abajo ? y + 18 : y - 10, 'text-anchor': ancla }, formato(datos[i].valor));
   };
+  // Primera, última, y el mínimo y el máximo si quedan en el medio.
+  const ultimo = datos.length - 1;
+  const iMin = vals.indexOf(Math.min(...vals)), iMax = vals.indexOf(Math.max(...vals));
+  const rotulos = [rotulo(0), ultimo ? rotulo(ultimo) : ''];
+  if (iMax > 0 && iMax < ultimo) rotulos.push(rotulo(iMax));
+  if (iMin > 0 && iMin < ultimo && iMin !== iMax) rotulos.push(rotulo(iMin, true));
 
   const svg = s('svg', { class: 'graf-linea', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
     s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: H - ABA + 6, y2: H - ABA + 6 }),
@@ -138,8 +144,7 @@ export function linea(datos, { formato, titulo, columnasTabla }) {
       marcas.push(g);
       return g;
     }),
-    rotulo(0, formato(datos[0].valor)),
-    datos.length > 1 ? rotulo(datos.length - 1, formato(datos[datos.length - 1].valor)) : '');
+    ...rotulos);
 
   const tabla = h('details', { class: 'graf-tabla' }, h('summary', {}, 'Ver los números'),
     h('table', { class: 'tabla' },

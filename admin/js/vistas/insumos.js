@@ -181,10 +181,13 @@ function seccionHistorial({ compras, recetas, costos, enCajas }, insumo, cat) {
   }
   const c = cambio(pts);
   const pct = c.relativo == null ? '' : `${Math.round(Math.abs(c.relativo) * 100)} %`;
-  const resumen = Math.abs(c.diferencia) < 1e-9
-    ? `Mismo precio desde la primera compra (${fechaLarga(c.desde.fecha)}): ${pesos(c.hasta.precio * escala)}/${unidad}.`
+  const precios = pts.map((p) => p.precio * escala);
+  const [min, max] = [Math.min(...precios), Math.max(...precios)];
+  const resumen = (Math.abs(c.diferencia) < 1e-9
+    ? `La última compra salió igual que la primera (${fechaLarga(c.desde.fecha)}): ${pesos(c.hasta.precio * escala)}/${unidad}.`
     : `Desde la primera compra (${fechaLarga(c.desde.fecha)}) ${c.diferencia > 0 ? 'subió' : 'bajó'} ${pct}: `
-      + `de ${pesos(c.desde.precio * escala)} a ${pesos(c.hasta.precio * escala)}/${unidad}.`;
+      + `de ${pesos(c.desde.precio * escala)} a ${pesos(c.hasta.precio * escala)}/${unidad}.`)
+    + (max - min > 1e-9 ? ` En ${pts.length} compras estuvo entre ${pesos(min)} y ${pesos(max)}.` : '');
 
   const grafico = linea(pts.map((p) => ({
     x: p.fecha, valor: p.precio * escala, etiqueta: fechaLarga(p.fecha), etiquetaEje: fechaLarga(p.fecha),
