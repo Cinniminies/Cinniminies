@@ -458,3 +458,70 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .div-valor small { font-size: .72rem; color: var(--suave); }
 .div-detalle { padding: .6rem .25rem .9rem; border-top: 1px dashed var(--borde); }
 .div-detalle .stats { margin-bottom: .5rem; }
+
+/* ================= Liquid Glass (estilo iOS 26) =================
+   Vidrio esmerilado: fondo translúcido + blur + saturación, borde claro arriba (el "brillo") y sombra
+   suave. La refracción de Apple no se puede imitar en Safari (necesita filtros SVG que no soporta), así
+   que es la versión que anda en todos lados. Sin backdrop-filter o con "reducir transparencia" queda opaco. */
+:root {
+  --vidrio: rgba(255, 251, 246, .62);
+  --vidrio-barra: rgba(251, 246, 240, .72);
+  --vidrio-borde: rgba(255, 255, 255, .75);
+  --vidrio-brillo: rgba(255, 255, 255, .9);
+  --vidrio-reflejo: rgba(255, 255, 255, .35);
+  --vidrio-sombra: 0 10px 30px rgba(43, 28, 18, .14), 0 1px 3px rgba(43, 28, 18, .08);
+  --vidrio-filtro: blur(20px) saturate(180%);
+  --vidrio-activo: rgba(168, 83, 29, .12);
+  /* Distancia de la cápsula al borde de abajo: dentro de la zona segura del iPhone, como iOS 26. */
+  --tabs-abajo: max(.6rem, calc(env(safe-area-inset-bottom) - .35rem));
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vidrio: rgba(42, 31, 25, .6);
+    --vidrio-barra: rgba(23, 17, 13, .7);
+    --vidrio-borde: rgba(255, 255, 255, .13);
+    --vidrio-brillo: rgba(255, 255, 255, .2);
+    --vidrio-reflejo: rgba(255, 255, 255, .07);
+    --vidrio-sombra: 0 10px 30px rgba(0, 0, 0, .5), 0 1px 3px rgba(0, 0, 0, .3);
+    --vidrio-activo: rgba(227, 145, 82, .16);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --vidrio: var(--card); --vidrio-barra: var(--bg); --vidrio-reflejo: transparent; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --vidrio: var(--card); --vidrio-barra: var(--bg); --vidrio-reflejo: transparent; }
+}
+
+/* Barra de arriba y pestañas de Producción: el contenido pasa por debajo, desenfocado. */
+.barra, .subnav {
+  background: var(--vidrio-barra);
+  -webkit-backdrop-filter: var(--vidrio-filtro);
+  backdrop-filter: var(--vidrio-filtro);
+}
+.subnav a:not(.activo) { background: var(--vidrio); border-color: var(--vidrio-borde); }
+
+/* Celular: la barra de abajo es una cápsula de vidrio que flota. */
+@media (max-width: 899.98px) {
+  body { padding-bottom: calc(var(--alto-tabs) + var(--tabs-abajo) + 1.25rem); }
+  .tabs {
+    left: .75rem; right: .75rem; bottom: var(--tabs-abajo);
+    max-width: 30rem; margin-inline: auto;
+    height: var(--alto-tabs); padding: 0 .3rem;
+    border: 1px solid var(--vidrio-borde); border-radius: 999px;
+    background: var(--vidrio);
+    -webkit-backdrop-filter: var(--vidrio-filtro);
+    backdrop-filter: var(--vidrio-filtro);
+    box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--vidrio-sombra);
+  }
+  /* Reflejo: más claro arriba, como la luz sobre el vidrio. */
+  .tabs::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(to bottom, var(--vidrio-reflejo), transparent 55%);
+  }
+  .tabs a { position: relative; margin: .3rem .05rem; border-radius: 999px; transition: background .2s; }
+  .tabs a.activo:not(.tab-principal) { background: var(--vidrio-activo); }
+  .tabs .tab-principal .ico { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 4px 14px rgba(0, 0, 0, .2); }
+  /* Más arriba que antes: el "+" sobresale de la cápsula y no tiene que tapar el botón. */
+  .guardar { bottom: calc(var(--alto-tabs) + var(--tabs-abajo) + .55rem); }
+}
