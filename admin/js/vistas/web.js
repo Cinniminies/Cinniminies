@@ -6,7 +6,7 @@ import { irA } from '../app.js';
 // Textos e imágenes de la web pública (Etapa 7). Cada fila de contenido_web es un lugar de
 // index.html; la web los toma de /api/catalogo (tarda hasta 5 minutos en verse).
 const SECCIONES = ['Barra de arriba', 'Inicio', 'Menú', 'Dónde encontrarnos', 'Contacto', 'Carrito y formulario',
-  'Pago por transferencia', 'Pedido recibido'];
+  'Pago por transferencia', 'Pedido recibido', 'Preguntas frecuentes'];
 // Tipos: texto (no puede quedar vacío), texto_largo, dato (un renglón que puede quedar vacío: la web no
 // lo muestra), imagen, whatsapp, instagram, direccion.
 
@@ -32,7 +32,7 @@ export async function mostrar(cont) {
   function control(f) {
     let el;
     if (f.tipo === 'imagen') return controlImagen(f);
-    if (f.tipo === 'texto_largo') el = h('textarea', { rows: Math.max(2, f.valor.split('\n').length + 1), value: f.valor });
+    if (f.tipo === 'texto_largo') el = h('textarea', { rows: Math.min(6, Math.max(2, f.valor.split('\n').length + 1, Math.ceil(f.valor.length / 60))), value: f.valor });
     else el = h('input', { value: f.valor, inputmode: f.tipo === 'whatsapp' ? 'numeric' : null });
     el.addEventListener('input', () => marcar(f, f.tipo === 'whatsapp' ? el.value.replace(/\D/g, '') : el.value));
     const volver = f.valor !== f.original

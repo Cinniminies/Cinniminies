@@ -6,7 +6,7 @@
 <title>Cinniminies · Cinnamon rolls en Paysandú, hechos a mano</title>
 <!-- SEO y vista previa al compartir el link (WhatsApp, Instagram, Google). Los buscadores y WhatsApp
      leen el HTML sin ejecutar JS: estas etiquetas no cambian con los textos editables de /admin.
-     Nombran los sabores: si cambia el menú, actualizarlas acá (y en las preguntas frecuentes). -->
+     Nombran los sabores: si cambia el menú, actualizarlas acá (y en /admin → Web → Preguntas frecuentes). -->
 <meta name="description" content="Cinnamon rolls hechos a mano en Paysandú: Canela, Dulce de Leche, Oreo y Nutella. Cajas de 6, 12 o armá la tuya, con retiro o envío el sábado. Pedí online.">
 <link rel="canonical" href="https://cinniminies.vercel.app/">
 <!-- Verificación de Google Search Console: no borrar (se pierde la verificación). -->
@@ -72,8 +72,8 @@
   "url": "https://cinniminies.vercel.app/"
 }
 </script>
-<!-- Preguntas frecuentes (mismo texto que la sección #preguntas). -->
-<script type="application/ld+json">
+<!-- Preguntas frecuentes: lo reescribe cinniminies.js con el texto editado en /admin. -->
+<script type="application/ld+json" id="faqDatos">
 {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -354,49 +354,54 @@
     </div>
   </section>
 
-  <!-- PREGUNTAS FRECUENTES: texto fijo (no editable en /admin) pensado para los buscadores. Responde lo que la
-       gente busca en Google ("cinnamon rolls Paysandú", "rolls de canela a domicilio"…). Sin precios, para que no
-       queden viejos: los precios están en el menú. Si cambian sabores o días de entrega, actualizar también el JSON-LD de abajo. -->
+  <!-- PREGUNTAS FRECUENTES: pensadas para los buscadores ("cinnamon rolls Paysandú", "rolls de canela a domicilio"…).
+       Se editan en /admin → Web → Preguntas frecuentes (10 lugares; las que tienen la pregunta o la respuesta vacía
+       no se muestran). cinniminies.js arma el JSON-LD de #faqDatos con lo que queda visible. -->
   <section class="faq" id="preguntas" aria-labelledby="faqTitulo">
     <div class="faq-head">
-      <p class="eyebrow">Preguntas frecuentes</p>
-      <h2 class="faq-title" id="faqTitulo">Cinnamon rolls en Paysandú:<br>lo que más nos preguntan.</h2>
+      <p class="eyebrow" data-contenido="faq.frase">Preguntas frecuentes</p>
+      <h2 class="faq-title" id="faqTitulo" data-contenido="faq.titulo">Cinnamon rolls en Paysandú:<br>lo que más nos preguntan.</h2>
     </div>
     <div class="faq-lista">
-      <details>
-        <summary>¿Dónde compro cinnamon rolls en Paysandú?</summary>
-        <p>En Cinniminies hacemos cinnamon rolls (rolls o rollos de canela) a mano, en Paysandú. Hacés el pedido en esta
-          web, por WhatsApp o por Instagram, y coordinamos el retiro o el envío para el sábado.</p>
+      <details data-faq>
+        <summary data-contenido="faq.1.pregunta">¿Dónde compro cinnamon rolls en Paysandú?</summary>
+        <p data-contenido="faq.1.respuesta">En Cinniminies hacemos cinnamon rolls (rolls o rollos de canela) a mano, en Paysandú. Hacés el pedido en esta web, por WhatsApp o por Instagram, y coordinamos el retiro o el envío para el sábado.</p>
       </details>
-      <details>
-        <summary>¿Qué sabores de rolls tienen?</summary>
-        <p>Cuatro: Canela, el clásico con glaseado simple; Dulce de Leche; Oreo, nuestro producto estrella; y Nutella,
-          los más nuevos. Podés mezclar sabores en la misma caja.</p>
+      <details data-faq>
+        <summary data-contenido="faq.2.pregunta">¿Qué sabores de rolls tienen?</summary>
+        <p data-contenido="faq.2.respuesta">Cuatro: Canela, el clásico con glaseado simple; Dulce de Leche; Oreo, nuestro producto estrella; y Nutella, los más nuevos. Podés mezclar sabores en la misma caja.</p>
       </details>
-      <details>
-        <summary>¿Cómo se venden?</summary>
-        <p>En cajas de 6 o de 12 rolls, o en una caja personalizada de 3 a 12 rolls en la que cada sabor tiene su precio.
-          Los precios actualizados están en el <a href="#menu">menú</a>.</p>
+      <details data-faq>
+        <summary data-contenido="faq.3.pregunta">¿Cómo se venden?</summary>
+        <p data-contenido="faq.3.respuesta">En cajas de 6 o de 12 rolls, o en una caja personalizada de 3 a 12 rolls en la que cada sabor tiene su precio. Los precios actualizados están en el menú de arriba.</p>
       </details>
-      <details>
-        <summary>¿Hacen envíos a domicilio?</summary>
-        <p>Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se
-          cobra aparte.</p>
+      <details data-faq>
+        <summary data-contenido="faq.4.pregunta">¿Hacen envíos a domicilio?</summary>
+        <p data-contenido="faq.4.respuesta">Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se cobra aparte.</p>
       </details>
-      <details>
-        <summary>¿Qué días entregan?</summary>
-        <p>Horneamos para los sábados y entregamos alrededor del mediodía. Pedí durante la semana y te escribimos por
-          WhatsApp para confirmar el horario.</p>
+      <details data-faq>
+        <summary data-contenido="faq.5.pregunta">¿Qué días entregan?</summary>
+        <p data-contenido="faq.5.respuesta">Horneamos para los sábados y entregamos alrededor del mediodía. Pedí durante la semana y te escribimos por WhatsApp para confirmar el horario.</p>
       </details>
-      <details>
-        <summary>¿Cómo se paga?</summary>
-        <p>En efectivo al retirar o recibir, o por transferencia. Si elegís transferencia, te mostramos los datos de la
-          cuenta al terminar el pedido.</p>
+      <details data-faq>
+        <summary data-contenido="faq.6.pregunta">¿Cómo se paga?</summary>
+        <p data-contenido="faq.6.respuesta">En efectivo al retirar o recibir, o por transferencia. Si elegís transferencia, te mostramos los datos de la cuenta al terminar el pedido.</p>
       </details>
-      <details>
-        <summary>¿Sirven para regalar o para un cumpleaños?</summary>
-        <p>Sí: una caja de rolls de canela es un regalo rico para una merienda, un desayuno sorpresa o para compartir
-          en familia. Si necesitás más de una caja para un evento, escribinos y lo coordinamos.</p>
+      <details data-faq>
+        <summary data-contenido="faq.7.pregunta">¿Sirven para regalar o para un cumpleaños?</summary>
+        <p data-contenido="faq.7.respuesta">Sí: una caja de rolls de canela es un regalo rico para una merienda, un desayuno sorpresa o para compartir en familia. Si necesitás más de una caja para un evento, escribinos y lo coordinamos.</p>
+      </details>
+      <details data-faq hidden>
+        <summary data-contenido="faq.8.pregunta"></summary>
+        <p data-contenido="faq.8.respuesta"></p>
+      </details>
+      <details data-faq hidden>
+        <summary data-contenido="faq.9.pregunta"></summary>
+        <p data-contenido="faq.9.respuesta"></p>
+      </details>
+      <details data-faq hidden>
+        <summary data-contenido="faq.10.pregunta"></summary>
+        <p data-contenido="faq.10.respuesta"></p>
       </details>
     </div>
   </section>

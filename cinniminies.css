@@ -595,7 +595,8 @@ a:hover{ color: var(--canela-hover); }
   margin: 0;
 }
 .faq-lista details{ border-top: 1px solid var(--linea); }
-.faq-lista details:last-child{ border-bottom: 1px solid var(--linea); }
+.faq-lista{ border-bottom: 1px solid var(--linea); }
+.faq[hidden]{ display: none; }
 .faq-lista summary{
   cursor: pointer;
   list-style: none;
