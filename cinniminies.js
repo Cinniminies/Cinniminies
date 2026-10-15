@@ -576,6 +576,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Preguntas frecuentes: se ocultan las que quedaron sin pregunta o sin respuesta, y el JSON-LD
+  // (#faqDatos, lo que lee Google) se rearma con las que se ven.
+  function actualizarPreguntas() {
+    const visibles = [];
+    document.querySelectorAll('[data-faq]').forEach(d => {
+      const pregunta = d.querySelector('summary')?.textContent.trim() || '';
+      // Los <br> (renglones de /admin) pasan a espacios para que no se peguen las palabras.
+      const p = d.querySelector('p')?.cloneNode(true);
+      p?.querySelectorAll('br').forEach(br => br.replaceWith(' '));
+      const respuesta = p?.textContent.replace(/\s+/g, ' ').trim() || '';
+      d.hidden = !pregunta || !respuesta;
+      if (!d.hidden) visibles.push({ pregunta, respuesta });
+    });
+    const seccion = document.getElementById('preguntas');
+    if (seccion) seccion.hidden = !visibles.length;
+    const datos = document.getElementById('faqDatos');
+    if (datos) {
+      datos.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: visibles.map(f => ({ '@type': 'Question', name: f.pregunta, acceptedAnswer: { '@type': 'Answer', text: f.respuesta } })),
+      });
+      if (!visibles.length) datos.remove();
+    }
+  }
+
   (async () => {
     const corte = new AbortController();
     const reloj = setTimeout(() => corte.abort(), 5000);
@@ -584,6 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const cat = await r.json();
       try { aplicarContenido(cat.contenido); } catch (e) { console.warn('No se pudieron aplicar los textos:', e.message); }
+      actualizarPreguntas();
       actualizarCuenta();
       if (!aplicarCatalogo(cat)) console.warn('Catálogo vacío: se usa el menú de respaldo');
     } catch (e) {
