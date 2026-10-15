@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cinniminies · Rolls de canela hechos a mano</title>
+<title>Cinniminies · Cinnamon rolls en Paysandú, hechos a mano</title>
 <!-- SEO y vista previa al compartir el link (WhatsApp, Instagram, Google). Los buscadores y WhatsApp
-     leen el HTML sin ejecutar JS: estas etiquetas no cambian con los textos editables de /admin. -->
-<meta name="description" content="Rolls de canela hechos a mano en Paysandú, Uruguay. Cajas de 6 y 12 o armá la tuya, con retiro o envío. Hacé tu pedido online.">
+     leen el HTML sin ejecutar JS: estas etiquetas no cambian con los textos editables de /admin.
+     Nombran los sabores: si cambia el menú, actualizarlas acá (y en las preguntas frecuentes). -->
+<meta name="description" content="Cinnamon rolls hechos a mano en Paysandú: Canela, Dulce de Leche, Oreo y Nutella. Cajas de 6, 12 o armá la tuya, con retiro o envío el sábado. Pedí online.">
 <link rel="canonical" href="https://cinniminies.vercel.app/">
 <!-- Verificación de Google Search Console: no borrar (se pierde la verificación). -->
 <meta name="google-site-verification" content="UvwAesXSEqL8OmrncxBECJp3tJfeOIH20Be1LesblRU" />
@@ -14,8 +15,8 @@
 <meta property="og:locale" content="es_UY">
 <meta property="og:site_name" content="Cinniminies">
 <meta property="og:url" content="https://cinniminies.vercel.app/">
-<meta property="og:title" content="Cinniminies · Rolls de canela hechos a mano">
-<meta property="og:description" content="Horneado en Paysandú. Cajas de 6 y 12 o armá la tuya, con retiro o envío. Hacé tu pedido online.">
+<meta property="og:title" content="Cinniminies · Cinnamon rolls en Paysandú, hechos a mano">
+<meta property="og:description" content="Rolls de canela de Canela, Dulce de Leche, Oreo y Nutella. Cajas de 6, 12 o armá la tuya, con retiro o envío en Paysandú.">
 <meta property="og:image" content="https://cinniminies.vercel.app/img/og.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
@@ -28,13 +29,33 @@
   "@context": "https://schema.org",
   "@type": "Bakery",
   "name": "Cinniminies",
-  "description": "Rolls de canela hechos a mano en Paysandú, Uruguay.",
+  "alternateName": "Cinniminies Paysandú",
+  "description": "Cinnamon rolls (rolls de canela) hechos a mano en Paysandú, Uruguay. Sabores Canela, Dulce de Leche, Oreo y Nutella, en cajas de 6, 12 o personalizadas, con retiro o envío.",
   "url": "https://cinniminies.vercel.app/",
   "image": "https://cinniminies.vercel.app/img/og.jpg",
   "logo": "https://cinniminies.vercel.app/img/favicon-144.png",
   "telephone": "+598 95 226 739",
-  "address": { "@type": "PostalAddress", "addressLocality": "Paysandú", "addressCountry": "UY" },
-  "areaServed": "Paysandú",
+  "address": { "@type": "PostalAddress", "addressLocality": "Paysandú", "addressRegion": "Paysandú", "addressCountry": "UY" },
+  "geo": { "@type": "GeoCoordinates", "latitude": -32.32, "longitude": -58.06 },
+  "areaServed": { "@type": "City", "name": "Paysandú" },
+  "servesCuisine": ["Cinnamon rolls", "Panadería dulce", "Postres"],
+  "hasMenu": {
+    "@type": "Menu",
+    "name": "Menú de Cinniminies",
+    "url": "https://cinniminies.vercel.app/#menu",
+    "hasMenuSection": {
+      "@type": "MenuSection",
+      "name": "Cinnamon rolls",
+      "description": "Se venden en cajas de 6 o 12, o en una caja personalizada de 3 a 12 rolls.",
+      "hasMenuItem": [
+        { "@type": "MenuItem", "name": "Roll de Canela", "description": "El clásico: relleno de canela, masa esponjosa y glaseado simple." },
+        { "@type": "MenuItem", "name": "Roll de Dulce de Leche", "description": "Relleno de dulce de leche que se derrite adentro al hornear." },
+        { "@type": "MenuItem", "name": "Roll de Oreo", "description": "Trozos de Oreo en la masa y en el glaseado." },
+        { "@type": "MenuItem", "name": "Roll de Nutella", "description": "Relleno de Nutella." }
+      ]
+    }
+  },
+  "potentialAction": { "@type": "OrderAction", "target": "https://cinniminies.vercel.app/#menu" },
   "sameAs": ["https://instagram.com/cinniminies.pay"],
   "priceRange": "$",
   "currenciesAccepted": "UYU",
@@ -49,6 +70,71 @@
   "name": "Cinniminies",
   "alternateName": "Cinniminies Paysandú",
   "url": "https://cinniminies.vercel.app/"
+}
+</script>
+<!-- Preguntas frecuentes (mismo texto que la sección #preguntas). -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "¿Dónde compro cinnamon rolls en Paysandú?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "En Cinniminies hacemos cinnamon rolls (rolls o rollos de canela) a mano, en Paysandú. Hacés el pedido en esta web, por WhatsApp o por Instagram, y coordinamos el retiro o el envío para el sábado."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Qué sabores de rolls tienen?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Cuatro: Canela, el clásico con glaseado simple; Dulce de Leche; Oreo, nuestro producto estrella; y Nutella, los más nuevos. Podés mezclar sabores en la misma caja."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Cómo se venden?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "En cajas de 6 o de 12 rolls, o en una caja personalizada de 3 a 12 rolls en la que cada sabor tiene su precio. Los precios actualizados están en el menú."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Hacen envíos a domicilio?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se cobra aparte."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Qué días entregan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Horneamos para los sábados y entregamos alrededor del mediodía. Pedí durante la semana y te escribimos por WhatsApp para confirmar el horario."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Cómo se paga?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "En efectivo al retirar o recibir, o por transferencia. Si elegís transferencia, te mostramos los datos de la cuenta al terminar el pedido."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Sirven para regalar o para un cumpleaños?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sí: una caja de rolls de canela es un regalo rico para una merienda, un desayuno sorpresa o para compartir en familia. Si necesitás más de una caja para un evento, escribinos y lo coordinamos."
+      }
+    }
+  ]
 }
 </script>
 <!-- Ícono en los resultados de Google: tiene que ser cuadrado y medir un múltiplo de 48 px. -->
@@ -143,7 +229,7 @@
   <section class="menu" id="menu">
     <div class="menu-head">
       <p class="eyebrow" data-contenido="menu.frase">El menú</p>
-      <h2 class="section-title" id="menuTitle"><span id="menuTitleCantidad">Tres rolls.</span><br><span data-contenido="menu.titulo">Ninguno apurado.</span></h2>
+      <h2 class="section-title" id="menuTitle"><span id="menuTitleCantidad">Cuatro rolls.</span><br><span data-contenido="menu.titulo">Ninguno apurado.</span></h2>
       <p class="menu-sub" id="menuSub">Se venden por caja de 6 o 12, o armá tu propia caja personalizada de entre 3 y 12 rolls.</p>
     </div>
 
@@ -226,6 +312,24 @@
         </div>
       </article>
 
+      <article class="roll-card" data-flavor="nutella">
+        <div class="roll-card-media">
+          <picture><img src="https://skysdjfxuykrufawhzvn.supabase.co/storage/v1/object/public/sabores/nutella-1790370270214.jpg" alt="Roll de Nutella" class="roll-photo" loading="lazy"></picture>
+          <span class="roll-tag">Los más nuevitos</span>
+        </div>
+        <div class="roll-card-body">
+          <h3>Roll de Nutella</h3>
+          <p>Los estabas esperando, nosotros también.</p>
+          <div class="roll-card-foot">
+            <span class="roll-price" data-flavor-price="nutella">Precio: Incluido en la caja</span>
+            <div class="roll-add-group">
+              <input type="number" class="roll-qty" min="1" max="12" value="1" inputmode="numeric" aria-label="Cantidad de Roll de Nutella">
+              <button class="roll-add" data-name="Roll de Nutella" data-id="nutella">Agregar al pedido</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
     </div>
   </section>
 
@@ -247,6 +351,53 @@
     </div>
     <div class="local-map">
       <iframe data-contenido-mapa="local.mapa" title="Mapa de la zona de retiro" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d250.6050913965069!2d-58.061820849953996!3d-32.319193573440536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95afc97afac7e1a5%3A0x546b41531c68be01!2sBruno%20Goyeneche%20976%2C%2060000%20Paysand%C3%BA%2C%20Departamento%20de%20Paysand%C3%BA!5e0!3m2!1ses-419!2suy!4v1782011792443!5m2!1ses-419!2suy" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </section>
+
+  <!-- PREGUNTAS FRECUENTES: texto fijo (no editable en /admin) pensado para los buscadores. Responde lo que la
+       gente busca en Google ("cinnamon rolls Paysandú", "rolls de canela a domicilio"…). Sin precios, para que no
+       queden viejos: los precios están en el menú. Si cambian sabores o días de entrega, actualizar también el JSON-LD de abajo. -->
+  <section class="faq" id="preguntas" aria-labelledby="faqTitulo">
+    <div class="faq-head">
+      <p class="eyebrow">Preguntas frecuentes</p>
+      <h2 class="faq-title" id="faqTitulo">Cinnamon rolls en Paysandú:<br>lo que más nos preguntan.</h2>
+    </div>
+    <div class="faq-lista">
+      <details>
+        <summary>¿Dónde compro cinnamon rolls en Paysandú?</summary>
+        <p>En Cinniminies hacemos cinnamon rolls (rolls o rollos de canela) a mano, en Paysandú. Hacés el pedido en esta
+          web, por WhatsApp o por Instagram, y coordinamos el retiro o el envío para el sábado.</p>
+      </details>
+      <details>
+        <summary>¿Qué sabores de rolls tienen?</summary>
+        <p>Cuatro: Canela, el clásico con glaseado simple; Dulce de Leche; Oreo, nuestro producto estrella; y Nutella,
+          los más nuevos. Podés mezclar sabores en la misma caja.</p>
+      </details>
+      <details>
+        <summary>¿Cómo se venden?</summary>
+        <p>En cajas de 6 o de 12 rolls, o en una caja personalizada de 3 a 12 rolls en la que cada sabor tiene su precio.
+          Los precios actualizados están en el <a href="#menu">menú</a>.</p>
+      </details>
+      <details>
+        <summary>¿Hacen envíos a domicilio?</summary>
+        <p>Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se
+          cobra aparte.</p>
+      </details>
+      <details>
+        <summary>¿Qué días entregan?</summary>
+        <p>Horneamos para los sábados y entregamos alrededor del mediodía. Pedí durante la semana y te escribimos por
+          WhatsApp para confirmar el horario.</p>
+      </details>
+      <details>
+        <summary>¿Cómo se paga?</summary>
+        <p>En efectivo al retirar o recibir, o por transferencia. Si elegís transferencia, te mostramos los datos de la
+          cuenta al terminar el pedido.</p>
+      </details>
+      <details>
+        <summary>¿Sirven para regalar o para un cumpleaños?</summary>
+        <p>Sí: una caja de rolls de canela es un regalo rico para una merienda, un desayuno sorpresa o para compartir
+          en familia. Si necesitás más de una caja para un evento, escribinos y lo coordinamos.</p>
+      </details>
     </div>
   </section>
 

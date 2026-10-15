@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // /api/catalogo (lo que se carga en /admin) y los reemplaza. Si la API falla, quedan estos y las
   // tarjetas escritas en index.html, así la web nunca se queda sin menú.
   const BOX_PRICES = { 6: 250, 12: 450 };
-  const CUSTOM_FLAVOR_PRICES = { canela: 50, dulce: 55, oreo: 60 };
+  const CUSTOM_FLAVOR_PRICES = { canela: 50, dulce: 55, oreo: 60, nutella: 65 };
   let CUSTOM_MIN = 3;
   let CUSTOM_MAX = 12;
 
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nombre = `Roll de ${s.nombre}`;
     const media = el('div', { class: 'roll-card-media' },
       s.foto
-        ? el('picture', {}, el('img', { src: s.foto, alt: nombre, class: 'roll-photo', loading: 'lazy' }))
+        ? el('picture', {}, el('img', { src: s.foto, alt: `${nombre}, cinnamon roll de Cinniminies`, class: 'roll-photo', loading: 'lazy' }))
         : el('div', { class: 'roll-photo roll-photo-vacia', role: 'img', 'aria-label': nombre }, s.nombre.charAt(0)),
       s.etiqueta ? el('span', { class: 'roll-tag' }, s.etiqueta) : null);
     return el('article', { class: 'roll-card', 'data-flavor': s.id }, media,

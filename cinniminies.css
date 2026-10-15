@@ -576,6 +576,56 @@ a:hover{ color: var(--canela-hover); }
   pointer-events: none;
 }
 
+/* ============== PREGUNTAS FRECUENTES ============== */
+.faq{
+  background: var(--crema);
+  color: var(--cafe);
+  padding: 90px 5vw;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 40px 6vw;
+  align-items: start;
+}
+.faq .eyebrow{ color: var(--canela-hover); }
+.faq-title{
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  line-height: 1.1;
+  margin: 0;
+}
+.faq-lista details{ border-top: 1px solid var(--linea); }
+.faq-lista details:last-child{ border-bottom: 1px solid var(--linea); }
+.faq-lista summary{
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  font-weight: 600;
+  font-size: 16px;
+}
+.faq-lista summary::-webkit-details-marker{ display: none; }
+.faq-lista summary::after{
+  content: '+';
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--canela-hover);
+  transition: transform .25s var(--ease);
+}
+.faq-lista details[open] summary::after{ transform: rotate(45deg); }
+.faq-lista summary:focus-visible{ outline: 2px solid var(--canela); outline-offset: 4px; }
+.faq-lista details p{
+  margin: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--cafe-suave);
+  max-width: 620px;
+}
+.faq-lista a{ color: var(--canela-tostada); }
+
 /* ============== CONTACT / FOOTER ============== */
 .contact{
   background: var(--cafe);
@@ -1144,6 +1194,7 @@ a:hover{ color: var(--canela-hover); }
   .menu-grid{ grid-template-columns: 1fr; }
   .local{ grid-template-columns: 1fr; }
   .local-map{ min-height: 300px; }
+  .faq{ grid-template-columns: 1fr; padding: 70px 5vw; }
   .box-options{ flex-wrap: wrap; }
 }
 
