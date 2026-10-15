@@ -11,6 +11,14 @@
 >
 > Lo tienen que hacer ustedes con una cuenta de Google del negocio (conviene una sola, compartida por Pia y Lucio).
 
+**Estado (14/10/2026):**
+- ✅ **Perfil de Empresa creado.** Link para compartirlo: https://share.google/mGGzi26jdjVi4Uihw
+  (se edita en https://business.google.com con la cuenta del negocio).
+- ✅ **Search Console verificado** (etiqueta `google-site-verification` en `index.html`: no borrarla).
+- En la web: título, descripción y datos estructurados (`Bakery` con menú y `FAQPage`) pensados para las búsquedas
+  (PR #53), y preguntas frecuentes editables en /admin → Web → Preguntas frecuentes (PR #54).
+- Si cambian sabores, precios, días de entrega o fotos, actualizarlos también en el perfil (sección 1.4 en adelante).
+
 ---
 
 ## 1. Perfil de Empresa de Google
