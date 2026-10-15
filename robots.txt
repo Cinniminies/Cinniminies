@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+# El catálogo lo pide la página al cargar: si Google no puede leerlo, ve el menú viejo escrito en index.html.
+Allow: /api/catalogo
 Disallow: /admin/
 Disallow: /api/
 
