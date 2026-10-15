@@ -80,7 +80,8 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
   `.env.local` (no hay `vercel dev`). Interceptar Web3Forms/Sheets en el navegador para no mandar mails reales.
 - SEO (fase 2 · 6.1): etiquetas fijas en el `<head>` de `index.html` (no las cambian los textos editables), `img/og.jpg`,
   `robots.txt` y `sitemap.xml`. Las URLs absolutas apuntan a `cinniminies.vercel.app`.
-- Google (al 14/10/2026): **Perfil de Empresa creado** (https://share.google/mGGzi26jdjVi4Uihw) y Search Console
+- Google (al 14/10/2026): **Perfil de Empresa creado** (https://share.google/mGGzi26jdjVi4Uihw; link fijo en Maps
+  `https://maps.google.com/?cid=1911078404975776449`, enlazado desde el JSON-LD) y Search Console
   verificado. Título, descripción y JSON-LD (`Bakery` con menú, `FAQPage`) pensados para búsquedas (PR #53); las
   preguntas frecuentes se editan en /admin → Web (PR #54, `faq.*` en `contenido_web`) y `cinniminies.js` rearma el
   `FAQPage` con lo visible. `robots.txt` deja leer `/api/catalogo`. Estado y datos para el perfil en
