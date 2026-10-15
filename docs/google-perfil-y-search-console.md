@@ -13,6 +13,7 @@
 
 **Estado (14/10/2026):**
 - ✅ **Perfil de Empresa creado.** Link para compartirlo: https://share.google/mGGzi26jdjVi4Uihw
+  Link fijo en Maps: https://maps.google.com/?cid=1911078404975776449 (va en el JSON-LD de `index.html`, `hasMap` y `sameAs`)
   (se edita en https://business.google.com con la cuenta del negocio).
 - ✅ **Search Console verificado** (etiqueta `google-site-verification` en `index.html`: no borrarla).
 - En la web: título, descripción y datos estructurados (`Bakery` con menú y `FAQPage`) pensados para las búsquedas
