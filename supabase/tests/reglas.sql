@@ -609,6 +609,7 @@ begin
   -- Registrar: tandas con la fracción de receta y el pedido pasa a hecho.
   r := registrar_horneado(jsonb_build_object('fecha', '2026-10-03'));
   assert (r->>'ventas_hechas')::int = 1 and not (select por_hacer from ventas where id = v2), 'pedido hecho';
+  assert (select hecho_en from ventas where id = v2) = now(), 'las cajas salen al registrar el horneado';
   assert (select count(*) from tandas where fecha = '2026-10-03' and notas = 'Plan de horneado') = 3, 'una tanda por sabor';
   assert (select cantidad from tandas where fecha = '2026-10-03' and sabor_id = nut and notas = 'Plan de horneado')
          = round(11 / 12.0, 4), 'fracción de Nutella';
@@ -626,8 +627,8 @@ begin
   raise exception 'TODO OK';
 end $$;
 
--- Plan de horneado · cajas: cajas_plan cuenta las cajas (y papel y sticker) de los pedidos elegidos; el stock
--- disponible suma lo que ya descontaron los pedidos por hacer; que_comprar suma las cajas que le pasan.
+-- Plan de horneado · cajas: cajas_plan cuenta las cajas (y papel y sticker) de los pedidos elegidos; las cajas
+-- de un pedido por hacer salen del stock cuando se hace, no cuando se carga; que_comprar suma las cajas que le pasan.
 do $$
 declare
   b6 uuid := (select id from formatos where nombre = 'Box de 6');
@@ -638,10 +639,12 @@ declare
   papel uuid := (select id from insumos where nombre = 'Papel manteca');
   v uuid;
   r record;
+  antes numeric;
 begin
   update ventas set por_hacer = false where por_hacer;   -- se deshace al final
   assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
-         'sin pedidos por hacer, disponible = teórico';
+         'disponible = teórico';
+  antes := (select teorico from v_stock where insumo_id = c6);
 
   v := (registrar_venta(jsonb_build_object('entrega', 'retiro', 'medio_pago', 'efectivo', 'estado_pago', 'pagado',
          'por_hacer', true, 'notas', 'PRUEBA cajas', 'lineas', jsonb_build_array(
@@ -650,8 +653,8 @@ begin
 
   select * into r from cajas_plan() where insumo_id = c6;
   assert r.necesario = 2, 'Box de 6: 2 cajas, dio ' || r.necesario;
-  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6) + 2,
-         'las cajas del pedido por hacer siguen disponibles';
+  assert (select teorico from v_stock where insumo_id = c6) = antes, 'las cajas del pedido por hacer siguen en el stock';
+  assert (select hecho_en from ventas where id = v) is null, 'por hacer: sin hecho_en';
   assert (select necesario from cajas_plan() where insumo_id = c12) = 1, 'Box de 12: 1 caja';
   assert (select necesario from cajas_plan() where insumo_id = papel)
          = 2 * (select cantidad from caja_insumos where caja_insumo_id = c6 and insumo_id = papel)
@@ -663,9 +666,17 @@ begin
          'que_comprar con cajas';
   assert (select count(*) from que_comprar(jsonb_build_object(ca, 1))) > 0, 'que_comprar sigue andando solo con tandas';
 
+  -- Un conteo entre la carga y el horneado cuenta las cajas del pedido; al hacerlo, salen del stock.
+  perform registrar_conteo(jsonb_build_object('items', jsonb_build_array(jsonb_build_object('insumo_id', c6, 'cantidad', 5))));
+  update conteos set creado_en = creado_en - interval '1 second'   -- en la prueba todo pasa en el mismo now()
+   where insumo_id = c6 and creado_en = now();
+  assert (select teorico from v_stock where insumo_id = c6) = 5, 'conteo con el pedido por hacer';
   perform actualizar_venta(v, '{"por_hacer": false}');
-  assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
-         'hecho: ya no reserva';
+  assert (select hecho_en from ventas where id = v) is not null, 'hecho: con hecho_en';
+  assert (select teorico from v_stock where insumo_id = c6) = 3, 'hecho: las 2 cajas salen después del conteo';
+  assert (select stock from stock_disponible() where insumo_id = c6) = 3, 'hecho: disponible = teórico';
+  perform actualizar_venta(v, '{"por_hacer": true}');
+  assert (select teorico from v_stock where insumo_id = c6) = 5, 'vuelve a por hacer: las cajas vuelven';
 
   raise exception 'TODO OK';
 end $$;
