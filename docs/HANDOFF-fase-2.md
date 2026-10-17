@@ -238,8 +238,10 @@ rechaza con el mensaje y la web ofrece el sábado siguiente. /admin muestra 12/1
   ¿Qué compro?) y "Registrar horneado". Inicio muestra "N pedidos por hacer" con link al plan.
 - Sin fecha de entrega por pedido (2.4 sigue pospuesta): el plan toma todo lo que está por hacer.
 - **Cajas** (`cajas_plan`, migración `20261008120000_plan_cajas.sql`): el Plan muestra las cajas, el papel y los stickers
-  de los pedidos elegidos contra el stock **disponible** (`stock_disponible()`: el teórico más lo que ya descontaron las
-  ventas por hacer, porque esas cajas siguen en el estante). "Ver qué comprar" las suma (`que_comprar(p, p_cajas)`).
+  de los pedidos elegidos contra el stock **disponible** (`stock_disponible()`, igual al teórico). "Ver qué comprar"
+  las suma (`que_comprar(p, p_cajas)`).
+  Desde el 17/10 (`20261017100000_cajas_al_hacer_pedido.sql`) las cajas de un pedido por hacer salen del stock cuando
+  se hace (`ventas.hecho_en`, lo pone un trigger), no cuando se carga: así un conteo en el medio no las cuenta dos veces.
   Solo cuentan las cajas de los pedidos: por ahora no hacen rolls extra (los extra quedan en una sección plegada).
 
 **Falta la aceptación:** marcar un par de ventas como "Por hacer", ver el plan, abrir ¿Qué compro? desde ahí y
