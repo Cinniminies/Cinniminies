@@ -5,7 +5,7 @@
    ============================================ */
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 :root{
-  --crema:        #FBF3E1;
+  --crema:        #FFF8E7;
   --crema-suave:  #F7E7C8;
   --crema-card:   #FFFBF2;
   --cafe:         #3A2417;
@@ -95,7 +95,7 @@ a:hover{ color: var(--canela-hover); }
   justify-content: space-between;
   padding: 16px 5vw;
   /* Vidrio crema: sobre la foto del hero y sobre el contenido al bajar, el logo y los links se leen siempre */
-  background: rgba(251,243,225,0.86);
+  background: rgba(255,248,231,0.86);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
   backdrop-filter: blur(14px) saturate(160%);
   border-bottom: 1px solid var(--linea);
@@ -108,8 +108,8 @@ a:hover{ color: var(--canela-hover); }
   letter-spacing: -0.01em;
   color: var(--cafe);
 }
-.brand span{ color: var(--canela-tostada); }
-.brand.small{ font-size: 18px; }
+.brand img{ display: block; height: 34px; width: auto; }
+.brand.small img{ height: 26px; }
 
 .topnav{ display: flex; gap: 36px; }
 .topnav a{
@@ -248,7 +248,7 @@ a:hover{ color: var(--canela-hover); }
   font-size: 17px;
   line-height: 1.65;
   max-width: 460px;
-  color: rgba(251,243,225,0.82);
+  color: rgba(255,248,231,0.82);
   margin: 0 0 36px;
 }
 
@@ -653,7 +653,7 @@ a:hover{ color: var(--canela-hover); }
 .contact-link{
   text-decoration: none;
   color: var(--crema);
-  border: 1.5px solid rgba(251,243,225,0.22);
+  border: 1.5px solid rgba(255,248,231,0.22);
   border-radius: 16px;
   padding: 20px 28px;
   display: flex;
@@ -671,18 +671,16 @@ a:hover{ color: var(--canela-hover); }
 .contact-link.is-primary:hover{ background: var(--canela-hover); }
 
 .contact-bottom{
-  border-top: 1px solid rgba(251,243,225,0.12);
+  border-top: 1px solid rgba(255,248,231,0.12);
   padding-top: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
-  color: rgba(251,243,225,0.68);
+  color: rgba(255,248,231,0.68);
   flex-wrap: wrap;
   gap: 12px;
 }
-.contact-bottom .brand{ color: var(--crema); }
-.contact-bottom .brand span{ color: var(--canela-soft-text); }
 
 /* ============== TOAST ============== */
 .order-toast{
