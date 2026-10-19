@@ -179,7 +179,7 @@ La migración tiene que funcionar **en los dos casos**, leyendo columnas por nom
 - **Al confirmar se hacen 3 cosas en paralelo, y si una falla no frena a las otras:**
   1. **Email por Web3Forms.** La access key está en el código y es pública por diseño.
   2. **POST a un Apps Script** (`GOOGLE_SHEETS_URL`, otro deployment distinto al de la web app de ventas) con `{filas:[{cliente, box, cantBox, envio, notas}]}`, una fila por caja. Probablemente escribe en el sheet "Cinniminies - Pedidos Web (para importar)". **[CONFIRMAR]**
-  3. **Link a WhatsApp** (`wa.me/59895226739`) con el pedido prearmado.
+  3. **Link a WhatsApp** (`wa.me/59898029462`) con el pedido prearmado.
 - **Problema de fondo:** los precios y sabores están **duplicados**, en la web y en la planilla, sin conexión entre sí. Tampoco se ofrece Nutella ni se cobra el envío en la web.
 
 ---

@@ -43,7 +43,7 @@
 | **¿Local visitable?** | No |
 | **Zona de servicio** | `Paysandú, Uruguay` (se pueden sumar barrios o localidades cercanas si hacen envíos ahí) |
 | **Dirección** | Google la pide para verificar, pero **no se muestra** al elegir zona de servicio. Usar la real. |
-| **Teléfono** | `+598 95 226 739` (el mismo WhatsApp de la web) |
+| **Teléfono** | `+598 98 029 462` (el mismo WhatsApp de la web) |
 | **Sitio web** | `https://cinniminies.vercel.app` |
 | **Link para pedidos** | `https://cinniminies.vercel.app/#menu` |
 | **Redes sociales** | Instagram: `https://instagram.com/cinniminies.pay` |

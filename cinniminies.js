@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const WEB3FORMS_PLACEHOLDER = "TU_ACCESS_KEY_DE_WEB3FORMS_AQUI";
   const WEB3FORMS_ACCESS_KEY = "37fd769c-9fca-4535-b7c7-dd4186dfce19";
   // tu número, con código de país, sin + ni espacios. Se puede cambiar desde /admin → Web (contacto.whatsapp).
-  let WHATSAPP_NUMBER = "59895226739";
+  let WHATSAPP_NUMBER = "59898029462";
 
   // Precios y límites. Estos valores son el RESPALDO: al cargar, la página pide el catálogo a
   // /api/catalogo (lo que se carga en /admin) y los reemplaza. Si la API falla, quedan estos y las
@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- WhatsApp: solo celulares uruguayos ---------- */
   // Formato válido: 9 dígitos, 09 + prefijo de compañía (1 a 9) + 6 dígitos.
-  // Ej: 095226739. El 090 no se usa para celulares, por eso queda afuera.
+  // Ej: 098029462. El 090 no se usa para celulares, por eso queda afuera.
   const TEL_URUGUAYO = /^09[1-9]\d{6}$/;
   const telInput = stepForm ? stepForm.telefono : null;
 
@@ -723,13 +723,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let teniaPais = false;
     if (d.startsWith('00598')) { d = d.slice(5); teniaPais = true; }
     else if (d.startsWith('598')) { d = d.slice(3); teniaPais = true; }
-    // En formato internacional el 0 inicial no se escribe (+598 95 226 739),
+    // En formato internacional el 0 inicial no se escribe (+598 98 029 462),
     // así que se lo devolvemos para dejarlo siempre como número local.
     if (teniaPais && d && d[0] !== '0') d = '0' + d;
     return d.slice(0, 9);
   }
 
-  // Solo para mostrarlo lindo en el pedido: 095226739 -> 095 226 739
+  // Solo para mostrarlo lindo en el pedido: 098029462 -> 098 029 462
   function formatearTel(digitos) {
     return [digitos.slice(0, 3), digitos.slice(3, 6), digitos.slice(6, 9)]
       .filter(Boolean).join(' ');
@@ -959,7 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (!TEL_URUGUAYO.test(telefono)) {
-      formError.textContent = 'Revisá el WhatsApp: tiene que ser un celular uruguayo de 9 dígitos que empiece con 09 (ej: 095226739).';
+      formError.textContent = 'Revisá el WhatsApp: tiene que ser un celular uruguayo de 9 dígitos que empiece con 09 (ej: 098029462).';
       telInput?.focus();
       return;
     }

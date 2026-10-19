@@ -14,7 +14,7 @@ const SECCIONES = ['Barra de arriba', 'Inicio', 'Menú', 'Dónde encontrarnos', 
 const VALIDAR = {
   texto: (v) => (v.trim() ? null : 'no puede quedar vacío'),
   imagen: (v) => (/^(\/?img\/[\w./-]+|https:\/\/[^\s"'<>]+)$/.test(v) ? null : 'tiene que ser una ruta img/… o un link https'),
-  whatsapp: (v) => (/^598\d{8}$/.test(v) ? null : 'tiene que ser 598 y 8 números, sin el 0 (ej: 59895226739)'),
+  whatsapp: (v) => (/^598\d{8}$/.test(v) ? null : 'tiene que ser 598 y 8 números, sin el 0 (ej: 59898029462)'),
   instagram: (v) => (/^[\w.]{1,30}$/.test(v) ? null : 'solo letras, números, punto y guion bajo, sin @'),
 };
 
