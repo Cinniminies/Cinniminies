@@ -539,3 +539,58 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
   .guardar { bottom: 0; padding-bottom: calc(var(--alto-tabs) + var(--tabs-abajo) + .55rem);
     background: linear-gradient(to top, var(--bg) 85%, transparent); }
 }
+
+/* ================= Hover: qué se puede tocar =================
+   Solo con mouse (en el celular el hover queda "pegado" después del toque). Fondo suave, un leve
+   desplazamiento y el chevron que se corre: alcanza para ver qué es clicable sin distraer. */
+.tabs a, .subnav a, a.fila, button.fila, summary.fila, .acceso, .acceso-ico, .tarea-link, .btn, .chip,
+.stepper button, .atras, .link, .ver-todo, .auto-lista li button, .graf-col .graf-barra, .div-fila, .chev,
+.tabla a, .marca, .quitar, details.plegable > summary, .graf-tabla > summary {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease,
+    transform .18s ease, filter .18s ease, opacity .18s ease;
+}
+.btn:active:not(:disabled), .chip:active, .stepper button:active:not(:disabled), .acceso:active { transform: scale(.97); }
+
+@media (hover: hover) and (pointer: fine) {
+  /* Navegación */
+  .tabs a:not(.activo):not(.tab-principal):hover { background: var(--marca-suave); color: var(--texto); }
+  .tabs .tab-principal:hover .ico { transform: translateY(-1px); filter: brightness(1.08); }
+  .subnav a:not(.activo):hover { border-color: var(--marca); color: var(--marca); }
+  .atras:hover { background: var(--marca-suave); }
+  .marca:hover { opacity: .8; }
+
+  /* Filas de listas: fondo suave y el chevron se corre a la derecha */
+  a.fila:hover, button.fila:hover, summary.fila:hover, .auto-lista li button:hover { background: var(--marca-suave); }
+  a.fila:hover .chev, button.fila:hover .chev, summary.fila:hover .chev { color: var(--marca); transform: translateX(3px); }
+  .lista.plana a.fila:hover { background: none; color: var(--marca); }
+
+  /* Accesos rápidos y tareas de Inicio */
+  .acceso:hover { border-color: var(--marca); transform: translateY(-2px); box-shadow: var(--vidrio-sombra); }
+  .acceso:hover .acceso-ico { background: var(--marca); color: var(--sobre-marca); }
+  .tarea-link:hover { border-color: var(--marca); }
+  .tarea-link:hover .chev { color: var(--marca); transform: translateX(3px); }
+
+  /* Botones y chips */
+  .btn:hover:not(:disabled) { border-color: var(--marca); box-shadow: 0 2px 8px rgba(43, 28, 18, .12); }
+  .btn.primario:hover:not(:disabled), .btn.ok:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn.peligro:hover:not(:disabled) { background: var(--alerta-suave); border-color: var(--alerta); }
+  .chip:not([aria-pressed="true"]):hover { border-color: var(--marca); color: var(--marca); }
+  .stepper button:hover:not(:disabled) { background: var(--marca); color: var(--sobre-marca); border-color: var(--marca); }
+  .quitar:hover { color: var(--alerta); }
+
+  /* Links y desplegables */
+  .ver-todo:hover, .tabla a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .link:hover { text-decoration-thickness: 2px; }
+  details.plegable > summary:hover, .graf-tabla > summary:hover { opacity: .8; }
+
+  /* Gráficos */
+  .graf-col:hover .graf-barra { filter: brightness(1.12); }
+  .graf-col:hover .graf-etq { color: var(--texto); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; }
+  .btn:active, .chip:active, .stepper button:active, .acceso:active,
+  .acceso:hover, a.fila:hover .chev, button.fila:hover .chev, summary.fila:hover .chev, .tarea-link:hover .chev,
+  .tabs .tab-principal:hover .ico { transform: none !important; }
+}
