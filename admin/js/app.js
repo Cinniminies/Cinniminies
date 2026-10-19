@@ -227,7 +227,7 @@ function pantallaLogin(mensaje) {
     boton);
 
     vaciar(cont,
-      h('h1', {}, 'Cinniminies'),
+      h('h1', {}, h('img', { class: 'logo-login', src: 'icons/logo.svg', alt: 'Cinniminies' })),
       mensaje ? h('p', { class: 'mensaje-error' }, mensaje) : null,
       form,
       h('p', { class: 'pie' }, modo === 'clave'

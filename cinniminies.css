@@ -108,8 +108,8 @@ a:hover{ color: var(--canela-hover); }
   letter-spacing: -0.01em;
   color: var(--cafe);
 }
-.brand span{ color: var(--canela-tostada); }
-.brand.small{ font-size: 18px; }
+.brand img{ display: block; height: 34px; width: auto; }
+.brand.small img{ height: 26px; }
 
 .topnav{ display: flex; gap: 36px; }
 .topnav a{
@@ -681,8 +681,6 @@ a:hover{ color: var(--canela-hover); }
   flex-wrap: wrap;
   gap: 12px;
 }
-.contact-bottom .brand{ color: var(--crema); }
-.contact-bottom .brand span{ color: var(--canela-soft-text); }
 
 /* ============== TOAST ============== */
 .order-toast{

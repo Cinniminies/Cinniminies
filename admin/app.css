@@ -263,6 +263,7 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 
 .login { max-width: 380px; margin: 2rem auto; }
 .login h1 { text-align: center; }
+.logo-login { display: block; width: 200px; height: auto; margin: 0 auto; }
 .menu-mas .fila { font-size: 1.02rem; padding: .95rem 1rem; }
 .pie { color: var(--suave); font-size: .8rem; text-align: center; margin-top: 1.5rem; }
 
