@@ -26,6 +26,7 @@ function armarPedido(b) {
     direccion: txt(b.direccion, 200),
     pago: txt(b.pago, 20).toLowerCase(),
     notas: txt(b.notas, 500),
+    codigo_recomendacion: txt(b.codigo_recomendacion, 20), // la base lo normaliza y decide qué hacer con él
     cajas: b.cajas.map((c) => ({
       tipo: c?.tipo === 'personalizado' ? 'personalizado' : 'caja_fija',
       rolls: Number.isInteger(c?.rolls) ? c.rolls : null,

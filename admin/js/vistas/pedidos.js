@@ -1,5 +1,5 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, pesos, plural, chips, campo, interruptor, toast, conBoton, ETIQUETAS } from '../util.js';
+import { h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, ETIQUETAS } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente } from '../componentes.js';
 import { irA } from '../app.js';
@@ -89,6 +89,21 @@ function bloqueCliente(p, lista, origenes) {
   };
 }
 
+// Código de recomendación del pedido: descuento propio ya restado del total, o de quién vino recomendado
+// (la recomendación se valida sola cuando la venta queda pagada).
+function recomendacion(p) {
+  if (Number(p.descuento) > 0) {
+    return h('p', {}, h('span', { class: 'badge ok' }, 'Descuento por recomendaciones'),
+      ` ${numero(p.descuento_porcentaje, 0)} % en una box: ${pesos(-p.descuento)} (ya restado del total)`);
+  }
+  if (p.recomendador) {
+    const estado = { pendiente: 'cuenta cuando se pague la venta', valida: 'ya sumó', anulada: `no cuenta: ${p.recomendacion_motivo || 'anulada'}` };
+    return h('p', { class: 'ayuda' }, `Vino con el código de ${p.recomendador}: ${estado[p.recomendacion_estado]}.`);
+  }
+  if (p.codigo_recomendacion) return h('p', { class: 'ayuda' }, `Puso el código ${p.codigo_recomendacion}, pero no aplicó.`);
+  return null;
+}
+
 export async function mostrar(cont) {
   const [cat, pedidos, lista, origenes] = await Promise.all([
     catalogo(true), // fresco: un pedido puede traer un sabor creado después de abrir la app
@@ -148,6 +163,7 @@ export async function mostrar(cont) {
           p.modalidad === 'entrega' ? `Entrega: ${p.direccion}` : 'Retiro',
           ETIQUETAS.medio_pago[p.medio_pago]].join(' · ')),
       h('ul', { class: 'lista plana' }, cajas),
+      recomendacion(p),
       p.notas ? h('p', {}, h('em', {}, `“${p.notas}”`)) : null,
       p.comprobante
         ? h('p', {}, links[p.comprobante]
