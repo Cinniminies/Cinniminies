@@ -514,6 +514,22 @@
         <span>Notas (opcional)</span>
         <textarea name="notas" rows="2" placeholder="Alguna aclaración, horario preferido, etc."></textarea>
       </label>
+      <!-- Descuento por recomendación: aparece solo si hay una campaña (GET /api/recomendacion) -->
+      <label class="field" id="codigoField" hidden>
+        <span data-contenido="recomendacion.titulo">Código de descuento (opcional)</span>
+        <input type="text" name="codigo_recomendacion" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej: ANA-K7P">
+        <small class="field-hint" data-contenido="recomendacion.ayuda">¿Te lo pasó alguien? Ponelo acá. Si es tu propio código, te descontamos lo que juntaste.</small>
+        <small class="codigo-estado" id="codigoEstado" role="status"></small>
+        <!-- Con su propio código: cuánto descuento tiene y cuánto le falta para el tope del mes -->
+        <span class="codigo-premio" id="codigoPremio" hidden>
+          <span class="codigo-premio-pct" id="codigoPremioPct"></span>
+          <span class="codigo-premio-texto">
+            <strong id="codigoPremioTitulo"></strong>
+            <span id="codigoPremioSub"></span>
+            <span class="codigo-premio-barra" aria-hidden="true"><span id="codigoPremioBarra"></span></span>
+          </span>
+        </span>
+      </label>
 
       <!-- Trampa para bots: una persona no lo ve ni lo completa -->
       <input type="text" name="sitio_web" class="campo-trampa" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -580,6 +596,9 @@
 </div>
 
 <div class="order-toast" id="orderToast"></div>
+
+<!-- Solo en el servidor local (scripts/servidor-dev.js): los pedidos son de prueba -->
+<div class="modo-prueba" id="modoPrueba" hidden>Modo prueba · los pedidos no les llegan a Pia y Lucio</div>
 
 <!-- Popup de caja completa -->
 <div class="box-complete-modal" id="boxCompleteModal">

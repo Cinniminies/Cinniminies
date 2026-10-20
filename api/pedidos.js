@@ -1,6 +1,6 @@
 // POST /api/pedidos → guarda un pedido de la web (estado "nuevo") y devuelve { codigo, total, cajas }.
 // Lo llama cinniminies.js antes de mandar el mail y el WhatsApp. Si falla, la web sigue como antes.
-const { configuracion, responderJson } = require('./_lib/supabase.js');
+const { configuracion, modoPrueba, responderJson } = require('./_lib/supabase.js');
 const { MAX_CUERPO, hashIp, armarPedido, guardarPedido, ErrorPedido } = require('./_lib/pedidos.js');
 const { configuracionPush, avisarPedidoNuevo } = require('./_lib/push.js');
 
@@ -59,9 +59,11 @@ module.exports = async (req, res) => {
       return;
     }
     const pedido = armarPedido(cuerpo);
-    const guardado = await guardarPedido(pedido, hashIp(req), conf);
+    // En modo prueba (servidor local) el pedido queda marcado y no se avisa a los celulares de los dueños.
+    const prueba = modoPrueba();
+    const guardado = await guardarPedido(prueba ? { ...pedido, prueba: true } : pedido, hashIp(req), conf);
     responderJson(res, 201, guardado);
-    avisar(pedido, guardado, conf);
+    if (!prueba) avisar(pedido, guardado, conf);
   } catch (e) {
     if (e instanceof ErrorPedido) {
       responderJson(res, e.message.startsWith('Demasiados pedidos') ? 429 : 400, { error: e.message });

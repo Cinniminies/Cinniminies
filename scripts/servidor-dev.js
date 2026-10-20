@@ -11,7 +11,11 @@
 // - /dev/entrar-prueba: inicia sesión en /admin con el usuario de prueba (PRUEBA_ADMIN_EMAIL y
 //   PRUEBA_ADMIN_PASSWORD de .env.local, los escribe migracion/usuario_prueba.py) y va a /admin/.
 //   Así la contraseña no pasa por el chat. Solo existe acá, nunca en Vercel.
-// Ojo: usa la base REAL. Marcar los datos de prueba ("PRUEBA…") y borrarlos al terminar.
+// - Modo prueba (por defecto): los pedidos de la web quedan marcados como de prueba (solo los ve el usuario de
+//   prueba en /admin, nunca los dueños), no se mandan avisos push ni el mail de Web3Forms, y vale la campaña de
+//   recomendaciones de prueba. Para probar contra lo real: MODO_PRUEBA=0 node scripts/servidor-dev.js.
+// Ojo: usa la base REAL. Lo que carga el usuario de prueba queda aislado y se borra desde /admin →
+// Recomendaciones → Borrar datos de prueba; con MODO_PRUEBA=0, marcar los datos ("PRUEBA…") y borrarlos a mano.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -25,6 +29,7 @@ if (fs.existsSync(env)) {
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
   }
 }
+if (process.env.MODO_PRUEBA === undefined) process.env.MODO_PRUEBA = '1';
 const tipos = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.webp': 'image/webp', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml',
@@ -95,4 +100,9 @@ http.createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.end(datos);
   });
-}).listen(puerto, '127.0.0.1', () => console.log(`http://127.0.0.1:${puerto}/`));
+}).listen(puerto, '127.0.0.1', () => {
+  console.log(`Web:   http://127.0.0.1:${puerto}/`);
+  console.log(`Admin: http://127.0.0.1:${puerto}/dev/entrar-prueba (usuario de prueba)`);
+  console.log(process.env.MODO_PRUEBA === '1' ? 'Modo prueba: los pedidos solo los ve el usuario de prueba, sin avisos.'
+    : 'MODO_PRUEBA=0: los pedidos son REALES (les llegan a los dueños).');
+});

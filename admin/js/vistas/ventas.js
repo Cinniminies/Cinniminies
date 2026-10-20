@@ -6,6 +6,7 @@ import {
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
 import { irA } from '../app.js';
+import { campanaVigente, codigoDe, linkCodigo } from '../recomendacion.js';
 
 // Filtros de la lista: se conservan al volver del detalle.
 const filtro = { mes: '', estado: 'todas', texto: '' };
@@ -113,6 +114,9 @@ async function detalle(cont, id) {
   const { v, lineas } = await leerVenta(id);
   const contacto = v.cliente_id ? (await q(sb.from('clientes').select('contacto').eq('id', v.cliente_id).single())).contacto : null;
   const wa = linkWhatsapp(contacto);
+  // Descuento por recomendación: el código del cliente (lo recibe al pagar durante una campaña).
+  const [codigo, campana] = v.cliente_id ? await Promise.all([codigoDe(v.cliente_id), campanaVigente()]) : [null, null];
+  const waCodigo = codigo ? linkCodigo(contacto, v.cliente, codigo, campana) : null;
 
   const fila = (etq, valor) => h('tr', {}, h('th', {}, etq), h('td', { class: 'num-der' }, valor));
   const pagada = v.estado_pago === 'pagado';
@@ -161,6 +165,9 @@ async function detalle(cont, id) {
         fila('Costo de caja', pesos(v.costo_caja)),
         fila('Ganancia', h('strong', {}, pesos(v.ganancia)))),
       v.notas ? h('p', {}, h('strong', {}, 'Notas: '), v.notas) : null,
+      codigo ? h('p', {}, h('strong', {}, 'Código para recomendar: '), codigo, ' ',
+        waCodigo ? h('a', { class: 'btn chico', href: waCodigo, target: '_blank', rel: 'noopener' }, 'Mandárselo por WhatsApp')
+          : h('span', { class: 'ayuda' }, '(sin celular en el contacto: pasáselo a mano)')) : null,
       h('div', { class: 'acciones' },
         cambiarEstado,
         cambiarHecho,

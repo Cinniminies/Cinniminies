@@ -949,6 +949,91 @@ a:hover{ color: var(--canela-hover); }
   opacity: 0.65;
 }
 
+/* Código de recomendación: aparece solo con campaña; abajo, qué significa el código escrito */
+.field[hidden]{ display: none; }
+.field input[name="codigo_recomendacion"]{ text-transform: uppercase; letter-spacing: 0.06em; }
+.codigo-estado{ font-size: 13px; font-weight: 600; min-height: 0; }
+.codigo-estado:empty{ display: none; }
+.codigo-estado[data-tipo="ok"]{ color: #4E6E3F; }
+.codigo-estado[data-tipo="error"]{ color: #B2462E; }
+
+/* Descuento propio: el porcentaje grande y una barra hasta el tope del mes */
+.codigo-premio{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--crema-suave);
+  border: 1.5px solid var(--canela);
+  animation: codigoPremio 0.45s var(--ease);
+}
+.codigo-premio[hidden]{ display: none; }
+.codigo-premio-pct{
+  flex: none;
+  min-width: 72px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--canela);
+  color: var(--crema-card);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.codigo-premio-texto{ display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.codigo-premio-texto strong{ font-size: 15px; font-weight: 700; }
+.codigo-premio-texto > span:not(.codigo-premio-barra){ font-size: 12.5px; font-weight: 500; color: var(--cafe-suave); }
+.codigo-premio-barra{
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(58,36,23,0.12);
+  overflow: hidden;
+}
+.codigo-premio-barra > span{
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--canela);
+  transition: width 0.8s var(--ease);
+}
+/* Llegó al tope de la campaña */
+.codigo-premio.is-tope{ background: var(--canela); border-color: var(--canela-tostada); }
+.codigo-premio.is-tope .codigo-premio-pct{ background: var(--crema-card); color: var(--canela-tostada); }
+.codigo-premio.is-tope .codigo-premio-texto strong{ color: var(--crema-card); }
+.codigo-premio.is-tope .codigo-premio-texto > span:not(.codigo-premio-barra){ color: var(--crema); }
+.codigo-premio.is-tope .codigo-premio-barra{ background: rgba(255,251,242,0.3); }
+.codigo-premio.is-tope .codigo-premio-barra > span{ background: var(--crema-card); }
+@keyframes codigoPremio{
+  from{ opacity: 0; transform: translateY(6px) scale(0.98); }
+  to{ opacity: 1; transform: none; }
+}
+
+/* Confeti al llegar al tope (lo dibuja cinniminies.js y se borra solo) */
+.confeti{ position: fixed; inset: 0; z-index: 3000; pointer-events: none; }
+
+/* Aviso fijo del servidor local en modo prueba */
+.modo-prueba{
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2000;
+  max-width: calc(100vw - 24px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #B2462E;
+  color: #FFFBF2;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  pointer-events: none;
+}
+.modo-prueba[hidden]{ display: none; }
+
 /* Campo de dirección: solo se muestra si eligieron "Entrega" */
 .field-direccion.is-hidden{ display: none; }
 

@@ -17,10 +17,16 @@ function encabezados(clave) {
   return h;
 }
 
+// Modo prueba (descuento por recomendación, 20/10): solo lo prende scripts/servidor-dev.js, nunca Vercel.
+// Los pedidos quedan marcados como de prueba (solo los ve el usuario de prueba) y no se mandan avisos.
+function modoPrueba(env = process.env) {
+  return env.MODO_PRUEBA === '1';
+}
+
 function responderJson(res, estado, cuerpo) {
   res.statusCode = estado;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(cuerpo));
 }
 
-module.exports = { URL_SUPABASE, configuracion, encabezados, responderJson };
+module.exports = { URL_SUPABASE, configuracion, encabezados, modoPrueba, responderJson };

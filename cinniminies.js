@@ -547,8 +547,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return esc(texto).replace(/\*([^*\n]+)\*/g, '<em>$1</em>').replace(/\r?\n/g, '<br>');
   }
 
+  // Los textos que se arman en el momento (con variables como {tope}) los busca textoWeb().
+  let textosWeb = {};
+
+  // El texto editable `clave` (o `defecto` si no está cargado), con las {variables} reemplazadas.
+  function textoWeb(clave, defecto, vars = {}) {
+    const t = typeof textosWeb[clave] === 'string' && textosWeb[clave].trim() ? textosWeb[clave] : defecto;
+    return t.replace(/\{(\w+)\}/g, (todo, v) => (v in vars ? String(vars[v]) : todo));
+  }
+
   function aplicarContenido(c) {
     if (!c || typeof c !== 'object') return;
+    textosWeb = c;
     const valor = (clave) => (typeof c[clave] === 'string' ? c[clave] : null);
     document.querySelectorAll('[data-contenido]').forEach(el => {
       const v = valor(el.dataset.contenido);
@@ -754,6 +764,183 @@ document.addEventListener('DOMContentLoaded', () => {
     nombreInput.value = limpio;
     nombreInput.setSelectionRange?.(cursor - quitadosAntes, cursor - quitadosAntes);
   });
+
+  /* ---------- Código de recomendación (docs/descuento-plan/logica.md) ---------- */
+  // El campo aparece solo si hay una campaña. Qué significa cada código lo decide la base
+  // (POST /api/recomendacion): acá solo se avisa antes de mandar. El descuento lo aplica la base al
+  // guardar el pedido, en la Box de 6 o de 12 más cara (las personalizadas no llevan).
+  const codigoField = document.getElementById('codigoField');
+  const codigoInput = stepForm ? stepForm.codigo_recomendacion : null;
+  const codigoEstado = document.getElementById('codigoEstado');
+  let campana = { activa: false };
+  let modoPrueba = false; // solo en el servidor local: sin mail de aviso a los dueños
+  let consultaCodigo = 0;
+  let relojCodigo = null;
+
+  (async () => {
+    try {
+      const r = await fetch('/api/recomendacion');
+      if (!r.ok) return;
+      campana = await r.json();
+      modoPrueba = campana.prueba === true;
+      document.getElementById('modoPrueba').hidden = !modoPrueba;
+      if (codigoField) codigoField.hidden = !campana.activa;
+    } catch { /* sin campaña a la vista: el pedido sigue igual */ }
+  })();
+
+  const codigoPremio = document.getElementById('codigoPremio');
+  let confetiLanzado = ''; // código + celular que ya festejó: no se repite en cada revisión
+
+  function mostrarCodigo(texto, tipo = '') {
+    if (!codigoEstado) return;
+    codigoEstado.textContent = texto;
+    codigoEstado.dataset.tipo = tipo;
+    if (codigoPremio) codigoPremio.hidden = true;
+  }
+
+  // Cuánto sería el descuento con el carrito de ahora, y en qué box (la cuenta final la hace la base).
+  function descuentoEstimado(pct) {
+    const fijas = cart.filter(box => !isCustomBox(box));
+    if (!fijas.length) return null;
+    const box = fijas.reduce((a, b) => (boxPrice(b) > boxPrice(a) ? b : a));
+    return { monto: Math.round(boxPrice(box) * pct / 100), caja: `Box de ${box.size}` };
+  }
+
+  // Con su propio código y saldo: el porcentaje bien grande, una barra hasta el tope del mes y,
+  // si llegó al tope, confeti (una vez por código y celular).
+  function mostrarPremio(pct, tope, clave) {
+    if (!codigoPremio) return;
+    const est = descuentoEstimado(pct);
+    const enTope = pct >= tope;
+    document.getElementById('codigoPremioPct').textContent = `${pct} %`;
+    document.getElementById('codigoPremioTitulo').textContent = enTope
+      ? textoWeb('recomendacion.tope_titulo', '¡Llegaste al máximo: {tope} % de descuento!', { tope })
+      : textoWeb('recomendacion.premio_titulo', 'Tenés {saldo} % de descuento', { saldo: pct });
+    document.getElementById('codigoPremioSub').textContent = [
+      est ? `−$${est.monto} en tu ${est.caja}.` : 'Sumá una Box de 6 o de 12 al pedido para usarlo.',
+      enTope
+        ? textoWeb('recomendacion.tope_texto', 'Es lo más alto de la campaña: gracias por recomendarnos.')
+        : textoWeb('recomendacion.premio_texto', 'Este mes podés llegar hasta {tope} % recomendando.', { tope })
+    ].join(' ');
+    codigoPremio.classList.toggle('is-tope', enTope);
+    codigoPremio.hidden = false;
+    const barra = document.getElementById('codigoPremioBarra');
+    barra.style.width = '0';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      barra.style.width = `${Math.min(100, (pct / tope) * 100)}%`;
+    }));
+    if (enTope && confetiLanzado !== clave) {
+      confetiLanzado = clave;
+      lanzarConfeti();
+    }
+  }
+
+  // Confeti en un canvas encima de todo; se borra solo. Sin animación si la persona la desactivó.
+  function lanzarConfeti() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'confeti';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const ancho = window.innerWidth;
+    const alto = window.innerHeight;
+    canvas.width = ancho * dpr;
+    canvas.height = alto * dpr;
+    ctx.scale(dpr, dpr);
+    const colores = ['#D98F3E', '#8B4226', '#F0B873', '#3A2417', '#F7E7C8', '#6B8E5A'];
+    // Dos ráfagas desde las esquinas de abajo, hacia el centro.
+    const piezas = Array.from({ length: 160 }, (_, i) => {
+      const izq = i % 2 === 0;
+      const angulo = (izq ? -60 : -120) + (Math.random() - 0.5) * 50;
+      const vel = 9 + Math.random() * 9;
+      return {
+        x: izq ? 0 : ancho,
+        y: alto,
+        vx: Math.cos(angulo * Math.PI / 180) * vel,
+        vy: Math.sin(angulo * Math.PI / 180) * vel * 1.5,
+        giro: Math.random() * Math.PI,
+        vgiro: (Math.random() - 0.5) * 0.3,
+        w: 6 + Math.random() * 6,
+        h: 4 + Math.random() * 6,
+        color: colores[i % colores.length]
+      };
+    });
+    const inicio = performance.now();
+    const DURACION = 3200;
+    let antes = inicio;
+    // Las velocidades están pensadas por cuadro a 60 por segundo: se escalan por el tiempo real que pasó,
+    // así dura lo mismo en pantallas de 120 Hz o si el navegador frena la animación.
+    (function cuadro(ahora) {
+      const t = ahora - inicio;
+      // (el primer cuadro puede traer una hora apenas anterior a inicio: nunca hacia atrás)
+      const k = Math.min(4, Math.max(0, ahora - antes) / (1000 / 60));
+      antes = Math.max(antes, ahora);
+      ctx.clearRect(0, 0, ancho, alto);
+      ctx.globalAlpha = t > DURACION - 600 ? Math.max(0, (DURACION - t) / 600) : 1;
+      for (const p of piezas) {
+        p.vy = Math.min(p.vy + 0.3 * k, 3.2); // cae despacio, flotando, en vez de desplomarse
+        p.vx *= 0.97 ** k;
+        p.vy *= 0.985 ** k;
+        p.x += p.vx * k;
+        p.y += p.vy * k;
+        p.giro += p.vgiro * k;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.giro);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.giro * 2)));
+        ctx.restore();
+      }
+      if (t < DURACION) requestAnimationFrame(cuadro);
+      else canvas.remove();
+    })(inicio);
+  }
+
+  async function revisarCodigo() {
+    if (!codigoInput || codigoField.hidden) return;
+    const codigo = codigoInput.value.replace(/[^A-Za-z0-9]/g, '');
+    const n = ++consultaCodigo;
+    if (codigo.length < 4) { mostrarCodigo(''); return; }
+    mostrarCodigo('Revisando el código…');
+    try {
+      const r = await fetch('/api/recomendacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo, telefono: normalizarTel(stepForm.telefono.value) })
+      });
+      const c = await r.json();
+      if (n !== consultaCodigo) return; // ya escribieron otra cosa
+      if (!r.ok) { mostrarCodigo(c?.error || '', 'error'); return; }
+      const de = c.nombre ? `Código de ${c.nombre}` : 'Código';
+      if (c.estado === 'no_existe') mostrarCodigo('No encontramos ese código. Revisalo o dejalo vacío.', 'error');
+      else if (c.estado === 'sin_campana') mostrarCodigo('Ahora no hay descuentos por recomendación.');
+      else if (c.estado === 'existe') mostrarCodigo(`${de}. Completá tu WhatsApp para ver si te sirve.`);
+      else if (c.estado === 'recomendado') {
+        mostrarCodigo(textoWeb('recomendacion.de_amigo', 'Código de {nombre} ✓ Gracias por venir de su parte.',
+          { nombre: c.nombre || 'quien te lo pasó' }), 'ok');
+      }
+      else if (c.estado === 'ya_cliente') mostrarCodigo(`${de}. Como ya nos compraste antes, no suma para ${c.nombre || 'esa persona'}.`);
+      else if (c.estado === 'propio' && c.porcentaje > 0) {
+        mostrarCodigo('Es tu código ✓', 'ok');
+        mostrarPremio(Number(c.porcentaje), Number(c.tope) || Number(c.porcentaje), `${codigo}|${stepForm.telefono.value}`);
+      } else if (c.estado === 'propio') {
+        mostrarCodigo(textoWeb('recomendacion.sin_saldo',
+          'Es tu código. Todavía no juntaste descuento este mes: compartilo y sumás {porcentaje} % por cada persona nueva que compre.',
+          { porcentaje: campana.porcentaje || 5 }));
+      }
+    } catch {
+      if (n === consultaCodigo) mostrarCodigo('');
+    }
+  }
+
+  codigoInput?.addEventListener('input', () => {
+    clearTimeout(relojCodigo);
+    relojCodigo = setTimeout(revisarCodigo, 500);
+  });
+  // El mismo código significa otra cosa según quién pide (el propio, el de un amigo).
+  telInput?.addEventListener('change', revisarCodigo);
 
   /* ---------- Estado del botón "Confirmar pedido" ---------- */
   // Mismo criterio que "Pedir ahora": el botón queda gris mientras falte algo,
@@ -987,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
       nombre, telefono, direccion, notas,
       modalidad: esEntrega ? 'entrega' : 'retiro',
       pago: pago.toLowerCase(),
+      codigo_recomendacion: codigoField && !codigoField.hidden ? codigoInput.value.trim() : '',
       sitio_web: stepForm.sitio_web?.value || '',
       cajas: cart.map(box => isCustomBox(box)
         ? { tipo: 'personalizado', sabores: { ...box.flavors } }
@@ -1007,6 +1195,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('\n');
 
     const total = guardado?.total ?? cartTotal();
+    // Lo que hizo la base con el código: descuento propio aplicado o de quién vino recomendado.
+    const rec = guardado?.recomendacion;
+    const codigoUsado = codigoField && !codigoField.hidden ? codigoInput.value.trim().toUpperCase() : '';
+    const lineaCodigo = !codigoUsado ? ''
+      : rec?.aplicado ? `Descuento por recomendaciones (${rec.porcentaje} % en ${rec.formato}): -$${rec.monto}`
+      : rec?.estado === 'recomendado' ? `Código ${codigoUsado} (me recomendó ${rec.nombre})`
+      : `Código ${codigoUsado}`;
 
     const fullDetail = [
       `Pedido: ${orderId}`,
@@ -1016,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
       esEntrega && direccion ? `Dirección: ${direccion}` : '',
       `Pago: ${pago}`,
       detailLines,
+      lineaCodigo,
       `Total: $${total}`,
       notas ? `Notas: ${notas}` : ''
     ].filter(Boolean).join('\n');
@@ -1027,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //    (/admin → Pedidos web) y el cliente siempre puede seguir por WhatsApp.
     const notificaciones = [];
 
-    if (WEB3FORMS_ACCESS_KEY && WEB3FORMS_ACCESS_KEY !== WEB3FORMS_PLACEHOLDER) {
+    if (WEB3FORMS_ACCESS_KEY && WEB3FORMS_ACCESS_KEY !== WEB3FORMS_PLACEHOLDER && !modoPrueba) {
       notificaciones.push(
         fetch('https://api.web3forms.com/submit', {
           method: 'POST',
@@ -1062,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Armar el link de WhatsApp con todo prearmado
     const waMessage = encodeURIComponent(
-      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
+      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}${lineaCodigo ? `\n${lineaCodigo}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
     );
     const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 
@@ -1084,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cart = [];
     renderCart();
     stepForm.reset();
+    mostrarCodigo('');
     updateDireccionVisibility();
     updateCuentaForm();
     updateSubmitBtn();

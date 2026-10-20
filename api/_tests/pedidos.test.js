@@ -68,3 +68,26 @@ test('handler: método, honeypot y cuerpo inválido', async () => {
     process.env = env;
   }
 });
+
+test('handler en modo prueba: el pedido va marcado y no se avisa a los celulares', async () => {
+  const env = { ...process.env };
+  const fetchAntes = global.fetch;
+  const llamadas = [];
+  global.fetch = async (url, op) => {
+    llamadas.push({ url, cuerpo: op?.body ? JSON.parse(op.body) : null });
+    return { ok: true, json: async () => ({ codigo: 'CM-2026-ABCD', total: 250, cajas: [] }) };
+  };
+  try {
+    Object.assign(process.env, { SUPABASE_SERVICE_ROLE_KEY: 'eyJx', MODO_PRUEBA: '1',
+      VAPID_PUBLIC_KEY: 'p', VAPID_PRIVATE_KEY: 'k', VAPID_SUBJECT: 'mailto:x@y' });
+    const res = respuesta();
+    await handler({ method: 'POST', headers: {}, body: { ...valido, codigo_recomendacion: ' ana-k7p ' } }, res);
+    assert.equal(res.statusCode, 201);
+    assert.equal(llamadas.length, 1, 'solo crear_pedido_web, sin leer suscripciones push');
+    assert.equal(llamadas[0].cuerpo.p.prueba, true);
+    assert.equal(llamadas[0].cuerpo.p.codigo_recomendacion, 'ana-k7p');
+  } finally {
+    global.fetch = fetchAntes;
+    process.env = env;
+  }
+});
