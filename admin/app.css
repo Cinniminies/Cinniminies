@@ -132,6 +132,8 @@ main:focus { outline: none; }
 
 .lista { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; }
 .lista > li + li { border-top: 1px solid var(--borde); }
+/* Una lista seguida de otra caja (tabla, plegable, tarjeta): que no queden pegadas */
+.lista:not(:last-child) { margin-bottom: .75rem; }
 .fila {
   display: flex; align-items: center; gap: .75rem; padding: .7rem .9rem;
   color: inherit; text-decoration: none; width: 100%; background: none; border: 0; font: inherit; text-align: left;
