@@ -34,7 +34,7 @@ Conviene abrirlos en dos ventanas lado a lado. Para hacer de varios clientes, us
 6. **Cliente:** Ana pide de nuevo con **su** código → "tenés 5 % de descuento en una box (−$23)". El total
    ya viene con el descuento y el WhatsApp lo detalla.
 7. Casos para mirar: Bruno usando de nuevo el código de Ana (ya es cliente: no suma), Ana poniendo su código
-   sin saldo, una caja personalizada (no lleva descuento), rechazar el pedido del canje (el saldo vuelve),
+   sin saldo, una caja personalizada (no lleva descuento), volver a pedir después de usarlo (el descuento sigue: no se gasta),
    marcar pendiente una venta cobrada (la recomendación vuelve a pendiente), llegar al tope de 30 % (la tarjeta
    del descuento se pone naranja y sale confeti, una vez por código y celular).
 
