@@ -880,7 +880,11 @@ begin
   if (pc->>'descuento')::numeric <> 23 or (pc->>'total')::numeric <> 677 or pc->'recomendacion'->>'formato' <> 'Box de 12' then
     raise exception 'canje Ana: %', pc;
   end if;
-  if consultar_codigo(v_cod, '091000001', true)->>'porcentaje' <> '0' then raise exception 'saldo no se gastó'; end if;
+  -- No se gasta: sigue teniendo el 5 % para el resto del mes
+  if (consultar_codigo(v_cod, '091000001', true)->>'porcentaje')::numeric <> 5 then raise exception 'el saldo se gastó'; end if;
+  if saldo_recomendacion(v_ana, (date_trunc('month', hoy()) + interval '1 month')::date) <> 0 then
+    raise exception 'el saldo pasó al mes siguiente';
+  end if;
   -- Bruno ya compró: el código de Ana ya no cuenta para él
   if consultar_codigo(v_cod, '091000002', true)->>'estado' <> 'ya_cliente' then raise exception 'Bruno ya_cliente'; end if;
   -- código inexistente: el pedido sale igual, sin descuento
@@ -888,7 +892,7 @@ begin
   if r->'recomendacion'->>'estado' <> 'no_existe' or (r->>'total')::numeric <> 250 then raise exception 'código inexistente: %', r; end if;
   reset role;
 
-  -- El canje queda en la nota y en el cobro; si se borra la venta y se rechaza el pedido, el saldo vuelve
+  -- El canje queda en la nota y en el cobro; si se borra la venta y se rechaza el pedido, el saldo no cambia
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
   set local role authenticated;
   select id into v_pc from pedidos where codigo = pc->>'codigo';

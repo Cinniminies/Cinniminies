@@ -8,8 +8,8 @@
 ## 1. La idea en una frase
 
 Cada cliente que compra recibe **su código**. Si una persona **nueva** compra usando ese código, el dueño del código
-gana **5 % de descuento**, acumulable (5 recomendaciones = 25 %), que usa **en una box** de su próxima compra
-del mes. Corre solo durante una **campaña** con fecha de inicio y de fin.
+gana **5 % de descuento**, acumulable (5 recomendaciones = 25 %), que usa **en una box** de cada compra
+que haga ese mes (no se gasta al usarlo). Corre solo durante una **campaña** con fecha de inicio y de fin.
 
 ---
 
@@ -61,8 +61,9 @@ Si dos amigos se ponen de acuerdo para usar el código del otro, **eso es justam
   $22,50 de descuento. Es el canal de clientes nuevos más barato que tenemos.
 - **El descuento solo se usa comprando**: cada canje es otra venta del cliente que recomendó (lo hace volver).
   Hoy 21 de 68 clientes compraron más de una vez; esto empuja esa cifra.
-- **Tope de 25 % por mes** (5 recomendaciones). Con el tope, la peor box (Box de 6 de Nutella) queda en
-  $187,50 y sigue dejando $38 de margen. Nunca se vende a pérdida.
+- **Tope de 30 % por mes** (6 recomendaciones). Con el tope, la peor box (Box de 6 de Nutella) queda en
+  $175 y sigue dejando $26 de margen. Como el descuento no se gasta, se aplica en cada pedido del mes, pero
+  siempre a una sola box: ningún pedido se vende a pérdida.
 - **Se aplica a una sola box** del pedido, no al total.
 - **Se vence a fin de mes**: no se acumula una "deuda" de descuentos de un mes para otro.
 - **Campaña con fecha de fin**: es una prueba. Al terminar se mira si trajo clientes (sección 7) y se decide
@@ -92,7 +93,8 @@ Admin confirma el pedido de Bruno y lo marca pagado
         ▼
 Ana pide de nuevo (con su celular) antes de fin de mes
    - En la web pone su celular + su código en "Tu código" → ve "Tenés 5 % en una box"
-   - Al confirmar, la base aplica el 5 % a una box y lo registra como canjeado
+   - Al confirmar, la base aplica el 5 % a una box y registra el canje (solo para medir el costo: el 5 %
+     le sigue sirviendo para otros pedidos del mes)
 ```
 
 Las ventas cargadas a mano en `/admin → + Venta` (pedidos por Instagram/WhatsApp) siguen el mismo camino:
@@ -146,7 +148,8 @@ la pena el mal momento.
 - `pedidos.codigo_recomendacion` (lo que escribió el cliente en la web) y `ventas.descuento_recomendacion`
   (monto, para que los reportes lo muestren aparte del precio especial).
 - Funciones:
-  - `saldo_recomendacion(cliente, mes)` → % disponible (válidas del mes × 5, con tope, menos lo canjeado).
+  - `saldo_recomendacion(cliente, mes)` → % disponible (válidas del mes × 5, con tope; no se descuenta lo
+    canjeado: el descuento no se gasta, vuelve a cero cuando cambia el mes).
   - `validar_codigo(codigo)` → nombre del dueño si sirve (para la web; no expone el celular).
   - `calcular_venta` gana un `descuento_recomendacion_pct` que aplica sobre una box.
   - Al marcar una venta como pagada: crear el código del cliente si no tiene y pasar su recomendación a `valida`.

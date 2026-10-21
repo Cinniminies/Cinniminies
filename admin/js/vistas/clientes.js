@@ -99,7 +99,7 @@ async function ficha(cont, id) {
           ? h('a', { class: 'btn chico', href: linkCodigo(c.contacto, c.nombre, codigo, campana), target: '_blank', rel: 'noopener' }, 'Mandar por WhatsApp')
           : null),
       h('p', { class: 'ayuda' }, campana
-        ? `Este mes tiene ${numero(saldo, 0)} % para usar en una box (pidiendo en la web con su código).`
+        ? `Este mes tiene ${numero(saldo, 0)} % de descuento en una box de cada pedido que haga en la web con su código.`
         : 'No hay una campaña en curso.'),
       recomendo.length ? h('ul', { class: 'lista' }, recomendo.map((r) => h('li', {}, h('div', { class: 'fila' },
         h('div', { class: 'princ' }, h('div', { class: 't1' }, r.recomendado || r.nombre_pedido),
