@@ -78,13 +78,16 @@ export async function mostrar(cont) {
       h('div', { class: 'seccion-cab' }, h('strong', {}, elegida.nombre),
         h('span', { class: `badge ${vigente ? 'ok' : 'neutro'}` }, vigente ? 'En curso' : (elegida.desde > hoy ? 'Programada' : 'Terminada'))),
       h('p', { class: 'ayuda' }, `${rango(elegida)} · ${numero(elegida.porcentaje, 0)} % por recomendación, hasta ${numero(elegida.tope, 0)} % por mes. `
-        + 'Se usa en una Box de 6 o de 12 de la web; lo de cada mes vence a fin de mes.'),
+        + 'Se usa en una Box de 6 o de 12 de la web; lo de cada mes vence a fin de mes. '
+        + `La primera Box de 12 de la web de cada cliente le da ${numero(elegida.porcentaje, 0)} % por 30 días.`),
       h('div', { class: 'stats' },
         kpi('Clientes nuevos con código', numero(resumen.validas, 0),
           `de ${plural(resumen.clientes_nuevos_total, 'cliente nuevo', 'clientes nuevos')} en esas fechas`),
         kpi('Pendientes', numero(resumen.pendientes, 0), 'esperan que se pague la venta'),
         kpi('Vendido a recomendados', pesos(resumen.vendido_recomendados),
           resumen.volvieron ? `${plural(resumen.volvieron, 'volvió', 'volvieron')} a comprar` : null),
+        kpi('Bonos por Box de 12', numero(resumen.bonos, 0),
+          resumen.bonos_vigentes ? `${plural(resumen.bonos_vigentes, 'vigente', 'vigentes')} hoy` : null),
         kpi('Descuento entregado', pesos(resumen.descuento_entregado), plural(resumen.canjes, 'canje')),
         kpi('Costo por cliente nuevo', resumen.costo_por_cliente == null ? '—' : pesos(resumen.costo_por_cliente),
           'descuento entregado ÷ clientes nuevos')),

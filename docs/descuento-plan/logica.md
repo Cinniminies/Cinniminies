@@ -10,6 +10,8 @@
 Cada cliente que compra recibe **su código**. Si una persona **nueva** compra usando ese código, el dueño del código
 gana **5 % de descuento**, acumulable (5 recomendaciones = 25 %), que usa **en una box** de cada compra
 que haga ese mes (no se gasta al usarlo). Corre solo durante una **campaña** con fecha de inicio y de fin.
+Además, la **primera Box de 12** que alguien paga en la web durante la campaña le deja **5 % por 30 días**
+(sección 10).
 
 ---
 
@@ -202,9 +204,46 @@ Regla para decidir al final: si el costo por cliente nuevo es mucho menor que el
 
 ## 9. Decisiones que faltan
 
-1. **¿El recomendado también recibe algo?** El recomendado no recibe nada mas que su propio codigo que puede compartir para generar descuento
+1. **¿El recomendado también recibe algo?** El recomendado no recibe nada mas que su propio codigo que puede compartir para generar descuento.
+   *Cambió el 21/10:* si su primera compra es una Box de 12, también arranca con el bono de 5 % (sección 10).
 2. **"Durante todo el mes":** la promocion se lanzaria en noviembre, lo generado ese mes se usa hasta el 30 de noviembre, despues en diciembre se hace un reinicio y corre igual.
 3. **¿Sobre qué box se aplica?** Se aplica para las box de 12 y las de 6, para los pedidos personalizados no
 4. **Tope:** Tope 30%
 5. **Duración de la primera campaña:** noviembre y diciembre, que incluye fiestas.
 6. **¿Cuenta solo la web o también las ventas por WhatsApp/Instagram?** Solo en la web, para incentivar a las personas a usarla.
+
+---
+
+## 10. Bono por la primera Box de 12 (agregado el 21/10)
+
+Para empujar la venta de Boxes de 12.
+
+| Regla | Valor |
+|---|---|
+| Quién lo recibe | **Cualquier cliente**, nuevo o no (igual que el código). |
+| Con qué compra | Su **primer pedido de la web con una Box de 12** durante la campaña (puede tener otras cajas también). Las ventas cargadas a mano en /admin no lo dan. |
+| Cuándo se recibe | Cuando esa venta queda **pagada**: ese día recibe el código (si no lo tenía) **y** el bono. |
+| Cuánto | El porcentaje de la campaña: **5 %**. |
+| Cuánto dura | **30 días desde que se recibe**, contando ese día y 30 más (pagado el 20/12 → vale hasta el 19/1). **Aunque la campaña termine antes**: terminada la campaña, la web sigue mostrando el campo "Tu código" mientras quede algún bono sin vencer, pero solo sirve para usar el bono propio (ya no se puede recomendar). |
+| Cuántas veces | **Uno por cliente y por campaña.** La segunda Box de 12 no da otro. |
+| Dónde se usa | Como el resto del saldo: en **una** Box de 6 o de 12 de **cada** pedido web que haga con su código (no se gasta). **No sirve en el mismo pedido que lo genera**: es para la siguiente compra. |
+| Con las recomendaciones | **Se suman** y comparten el **tope de 30 %**: bono 5 % + 5 recomendaciones = 30 %. Lo de recomendar sigue volviendo a cero al cambiar el mes; el bono no, dura sus 30 días. |
+| Si se anula | Si la venta deja de estar pagada, se borra o cambia de cliente, el bono se va con ella (si se fusionan clientes, queda uno). |
+
+**Cuentas.** La Box de 12 deja $184–292 de margen (sección 2.3); el bono cuesta como mucho $23 por pedido
+siguiente (5 % de $450). Con el tope, el peor caso sigue igual que antes: ninguna box se vende a pérdida.
+
+**En el sistema** (migración `20261021120000_bono_box_12.sql`):
+- Tabla `bonos_recomendacion` (campaña, cliente, venta, pedido, porcentaje, desde, hasta).
+- `privado.evaluar_bono(venta)`: la llaman los mismos triggers que evalúan las recomendaciones.
+- `saldo_recomendacion` = recomendaciones del mes × 5 % + bono vigente, con tope.
+- `consultar_codigo` devuelve `bono`, `bono_hasta` y `campana` (si la campaña sigue); `campana_web` devuelve
+  `solo_canje` cuando terminó pero quedan bonos.
+- Textos editables nuevos (/admin → Textos e imágenes): `recomendacion.bono_aviso` (debajo del campo),
+  `recomendacion.bono_premio` (en la tarjeta del descuento) y `recomendacion.mensaje_bono` (se agrega al
+  WhatsApp con el código).
+- /admin: la ficha del cliente muestra el bono y hasta cuándo vale; el resumen de la campaña cuenta los bonos.
+
+**Lo que no hace (a propósito):** si se cambian a mano las cajas de una venta ya pagada (sacar la Box de 12),
+el bono no se recalcula; y si se anula la venta que dio el bono, no pasa a la siguiente Box de 12 ya pagada.
+Son casos raros y se pueden arreglar a mano.

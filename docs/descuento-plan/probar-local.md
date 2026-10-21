@@ -38,6 +38,18 @@ Conviene abrirlos en dos ventanas lado a lado. Para hacer de varios clientes, us
    marcar pendiente una venta cobrada (la recomendación vuelve a pendiente), llegar al tope de 30 % (la tarjeta
    del descuento se pone naranja y sale confeti, una vez por código y celular).
 
+### Bono por la primera Box de 12 (21/10)
+
+8. **Cliente:** alguien que todavía no tiene bono (por ej. Bruno, aunque ya haya comprado) pide una **Box de 12**.
+   Debajo del campo del código aparece el aviso del bono.
+9. **Admin:** confirmar y **cobrar** → en la ficha del cliente: "Incluye 5 % por su primera Box de 12 … vale
+   hasta el …" (30 días). Antes de cobrar no tiene nada.
+10. **Cliente:** el mismo celular pide de nuevo con **su** código → la tarjeta dice "Incluye 5 % por tu primera
+    Box de 12, hasta el …". Una segunda Box de 12 no da otro bono.
+11. **Campaña terminada:** en /admin, ponerle a la campaña de prueba un "hasta" de ayer. La web sigue mostrando
+    el campo ("La campaña terminó. Si todavía tenés descuento, poné tu código."): con el código propio y el
+    bono vigente sigue descontando; un código ajeno dice "Ahora no hay descuentos por recomendación".
+
 ## Borrar todo
 
 **Admin → Recomendaciones → Borrar datos de prueba.** Borra pedidos, ventas, clientes, códigos y campañas de
