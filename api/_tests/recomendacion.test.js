@@ -33,12 +33,17 @@ test('leerCampana pasa la marca de prueba y limpia la respuesta', async () => {
   assert.match(f.pedidos[0].url, /rpc\/campana_web$/);
   assert.deepEqual(f.pedidos[0].cuerpo, { p_prueba: true });
   assert.deepEqual(await leerCampana(false, falso({ activa: false }).conf), { activa: false });
+  assert.deepEqual(await leerCampana(false, falso({ activa: false, solo_canje: true }).conf), { activa: false, solo_canje: true });
 });
 
 test('consultarCodigo: normaliza, filtra campos y rechaza códigos cortos', async () => {
   const f = falso({ estado: 'propio', nombre: 'Ana', porcentaje: 10, tope: 30, celular: '099' });
   assert.deepEqual(await consultarCodigo({ codigo: 'ana-k7p', telefono: '099 123 456' }, false, f.conf),
-    { estado: 'propio', nombre: 'Ana', porcentaje: 10, tope: 30 });
+    { estado: 'propio', nombre: 'Ana', porcentaje: 10, tope: 30, campana: true });
+  // con el bono de la Box de 12 (y sin campaña: solo queda el bono)
+  assert.deepEqual(await consultarCodigo({ codigo: 'ANA-K7P', telefono: '099123456' }, false, falso({
+    estado: 'propio', nombre: 'Ana', porcentaje: '5.00', tope: '30.00', campana: false, bono: '5.00', bono_hasta: '2027-01-19' }).conf),
+  { estado: 'propio', nombre: 'Ana', porcentaje: 5, tope: 30, campana: false, bono: 5, bono_hasta: '2027-01-19' });
   assert.deepEqual(f.pedidos[0].cuerpo, { p_codigo: 'ANAK7P', p_telefono: '099123456', p_prueba: false });
   // el porcentaje solo se muestra con el código propio
   assert.deepEqual(await consultarCodigo({ codigo: 'ANA-K7P' }, false, falso({ estado: 'recomendado', nombre: 'Ana', porcentaje: 10 }).conf),

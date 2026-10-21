@@ -2,7 +2,7 @@ import { sb, q, rpc } from '../db.js';
 import { h, vaciar, campo, pesos, numero, fechaCorta, toast, conBoton, linkWhatsapp, normalizar } from '../util.js';
 import { clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { irA } from '../app.js';
-import { campanaVigente, codigoDe, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
+import { campanaVigente, codigoDe, bonoDe, diaMes, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
 
 let busqueda = '';
 
@@ -31,7 +31,7 @@ async function lista(cont) {
 }
 
 async function ficha(cont, id) {
-  const [todos, origenes, ventas, codigo, campana, recomendo, saldo] = await Promise.all([
+  const [todos, origenes, ventas, codigo, campana, recomendo, saldo, bono] = await Promise.all([
     leerClientes(),
     leerOrigenes(),
     q(sb.from('v_ventas').select('id,fecha,formatos,total,estado_pago').eq('cliente_id', id).order('fecha', { ascending: false })),
@@ -39,9 +39,11 @@ async function ficha(cont, id) {
     campanaVigente(),
     q(sb.from('v_recomendaciones').select('*').eq('recomendador_id', id).order('creado_en', { ascending: false })),
     rpc('saldo_recomendacion', { p_cliente: id }),
+    bonoDe(id),
   ]);
   const c = todos.find((x) => x.id === id);
   if (!c) throw new Error('El cliente no existe (¿lo fusionaron o borraron?)');
+  const waCodigo = codigo ? linkCodigo(c.contacto, c.nombre, codigo, campana, bono) : null;
   const datos = { nombre: c.nombre, contacto: c.contacto || '', origen: c.origen || '', notas: c.notas || '' };
   const entrada = (clave, attrs = {}) => h('input', { ...attrs, value: datos[clave], oninput: (e) => { datos[clave] = e.target.value; } });
   const wa = linkWhatsapp(c.contacto);
@@ -95,12 +97,12 @@ async function ficha(cont, id) {
 
     codigo ? h('div', { class: 'card' },
       h('div', { class: 'seccion-cab' }, h('strong', {}, `Código para recomendar: ${codigo}`),
-        linkCodigo(c.contacto, c.nombre, codigo, campana)
-          ? h('a', { class: 'btn chico', href: linkCodigo(c.contacto, c.nombre, codigo, campana), target: '_blank', rel: 'noopener' }, 'Mandar por WhatsApp')
-          : null),
-      h('p', { class: 'ayuda' }, campana
-        ? `Este mes tiene ${numero(saldo, 0)} % de descuento en una box de cada pedido que haga en la web con su código.`
+        waCodigo ? h('a', { class: 'btn chico', href: waCodigo, target: '_blank', rel: 'noopener' }, 'Mandar por WhatsApp') : null),
+      h('p', { class: 'ayuda' }, campana || bono
+        ? `Hoy tiene ${numero(saldo, 0)} % de descuento en una box de cada pedido que haga en la web con su código.`
         : 'No hay una campaña en curso.'),
+      bono ? h('p', { class: 'ayuda' },
+        `Incluye ${numero(bono.porcentaje, 0)} % por su primera Box de 12 de la web (desde el ${diaMes(bono.desde)}, vale hasta el ${diaMes(bono.hasta)}).`) : null,
       recomendo.length ? h('ul', { class: 'lista' }, recomendo.map((r) => h('li', {}, h('div', { class: 'fila' },
         h('div', { class: 'princ' }, h('div', { class: 't1' }, r.recomendado || r.nombre_pedido),
           h('div', { class: 't2' }, [fechaCorta(r.creado_en.slice(0, 10)), r.motivo].filter(Boolean).join(' · '))),

@@ -6,7 +6,7 @@ import {
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
 import { irA } from '../app.js';
-import { campanaVigente, codigoDe, linkCodigo } from '../recomendacion.js';
+import { campanaVigente, codigoDe, bonoDe, linkCodigo } from '../recomendacion.js';
 
 // Filtros de la lista: se conservan al volver del detalle.
 const filtro = { mes: '', estado: 'todas', texto: '' };
@@ -114,9 +114,11 @@ async function detalle(cont, id) {
   const { v, lineas } = await leerVenta(id);
   const contacto = v.cliente_id ? (await q(sb.from('clientes').select('contacto').eq('id', v.cliente_id).single())).contacto : null;
   const wa = linkWhatsapp(contacto);
-  // Descuento por recomendación: el código del cliente (lo recibe al pagar durante una campaña).
-  const [codigo, campana] = v.cliente_id ? await Promise.all([codigoDe(v.cliente_id), campanaVigente()]) : [null, null];
-  const waCodigo = codigo ? linkCodigo(contacto, v.cliente, codigo, campana) : null;
+  // Descuento por recomendación: el código del cliente (lo recibe al pagar durante una campaña) y, si su
+  // primera Box de 12 de la web le dio el bono, el mensaje también lo cuenta.
+  const [codigo, campana, bono] = v.cliente_id
+    ? await Promise.all([codigoDe(v.cliente_id), campanaVigente(), bonoDe(v.cliente_id)]) : [null, null, null];
+  const waCodigo = codigo ? linkCodigo(contacto, v.cliente, codigo, campana, bono) : null;
 
   const fila = (etq, valor) => h('tr', {}, h('th', {}, etq), h('td', { class: 'num-der' }, valor));
   const pagada = v.estado_pago === 'pagado';

@@ -804,7 +804,7 @@ declare
   box6 jsonb := '[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
   perso jsonb := '[{"tipo":"personalizado","sabores":{"dulce":4}}]';
   r jsonb; pa jsonb; pb jsonb; pc jsonb;
-  v_ana uuid; v_cod text; v_pa uuid; v_pb uuid; v_pc uuid;
+  v_ana uuid; v_bruno uuid; v_cod text; v_pa uuid; v_pb uuid; v_pc uuid;
 begin
   -- Usuario de prueba: campaña de prueba
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
@@ -830,6 +830,10 @@ begin
   select v.cliente_id into v_ana from ventas v where v.id = (r->>'venta_id')::uuid;
   select codigo into v_cod from codigos_recomendacion where cliente_id = v_ana;
   if v_cod is null or v_cod !~ '^ANA-[A-Z2-9]{3}$' then raise exception 'código de Ana: %', v_cod; end if;
+  -- su primera compra fue una Box de 12: además del código, 5 % por 30 días
+  if saldo_recomendacion(v_ana) <> 5 or (select hasta from bonos_recomendacion where cliente_id = v_ana) <> hoy() + 30 then
+    raise exception 'bono de Ana: %', (select row_to_json(x) from bonos_recomendacion x where cliente_id = v_ana);
+  end if;
   reset role;
 
   -- Bruno (nuevo) pide con el código de Ana, en minúsculas y sin guion
@@ -839,7 +843,10 @@ begin
   if r->>'estado' <> 'recomendado' or r->>'nombre' <> 'Ana' then raise exception 'consultar Bruno: %', r; end if;
   if consultar_codigo(v_cod, '091000002', false)->>'estado' <> 'sin_campana' then raise exception 'real con campaña'; end if;
   r := consultar_codigo(v_cod, '091000001', true);
-  if r->>'estado' <> 'propio' or (r->>'porcentaje')::numeric <> 0 then raise exception 'Ana sin saldo: %', r; end if;
+  if r->>'estado' <> 'propio' or (r->>'porcentaje')::numeric <> 5 or (r->>'bono')::numeric <> 5
+     or (r->>'bono_hasta')::date <> hoy() + 30 or not (r->>'campana')::boolean then
+    raise exception 'Ana con el bono: %', r;
+  end if;
   pb := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true,'codigo_recomendacion',lower(v_cod)));
   if (pb->>'total')::numeric <> 250 then raise exception 'Bruno no paga de lista: %', pb; end if;
   reset role;
@@ -853,12 +860,15 @@ begin
   if (select estado from recomendaciones where pedido_id = v_pb) <> 'valida' then
     raise exception 'reco de Bruno: %', (select row_to_json(x) from recomendaciones x where pedido_id = v_pb);
   end if;
-  if saldo_recomendacion(v_ana) <> 5 then raise exception 'saldo Ana: %', saldo_recomendacion(v_ana); end if;
+  if saldo_recomendacion(v_ana) <> 10 then raise exception 'saldo Ana: %', saldo_recomendacion(v_ana); end if;
+  -- la Box de 6 de Bruno no da bono
+  select v.cliente_id into v_bruno from ventas v where v.id = (r->>'venta_id')::uuid;
+  if saldo_recomendacion(v_bruno) <> 0 then raise exception 'Bruno con bono por una Box de 6'; end if;
   -- deja de estar pagada → pendiente; vuelve a pagada → válida
   update ventas set estado_pago = 'pendiente' where id = (r->>'venta_id')::uuid;
-  if saldo_recomendacion(v_ana) <> 0 then raise exception 'saldo Ana con venta impaga'; end if;
+  if saldo_recomendacion(v_ana) <> 5 then raise exception 'saldo Ana con venta impaga'; end if;
   update ventas set estado_pago = 'pagado' where id = (r->>'venta_id')::uuid;
-  if saldo_recomendacion(v_ana) <> 5 then raise exception 'saldo Ana repagada'; end if;
+  if saldo_recomendacion(v_ana) <> 10 then raise exception 'saldo Ana repagada'; end if;
   reset role;
 
   -- Dueño: no ve nada de prueba
@@ -866,25 +876,29 @@ begin
   set local role authenticated;
   if exists (select 1 from pedidos where telefono like '09100000_') or exists (select 1 from v_ventas where cliente like '% Prueba')
      or exists (select 1 from clientes where contacto like '09100000_') or exists (select 1 from recomendaciones)
-     or exists (select 1 from codigos_recomendacion) or exists (select 1 from campanas_recomendacion) then
+     or exists (select 1 from codigos_recomendacion) or exists (select 1 from campanas_recomendacion)
+     or exists (select 1 from bonos_recomendacion) then
     raise exception 'el dueño ve datos de prueba';
   end if;
   reset role;
 
-  -- Ana usa su 5 %: el personalizado no lleva; con Box de 6 + Box de 12 va a la de 12
+  -- Ana usa su 10 % (5 del bono + 5 de Bruno): el personalizado no lleva; con Box de 6 + Box de 12 va a la de 12
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
   set local role service_role;
   r := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',perso,'prueba',true,'codigo_recomendacion',v_cod));
   if (r->>'descuento')::numeric <> 0 or (r->'recomendacion'->>'aplicado')::boolean then raise exception 'personalizado con descuento: %', r; end if;
   pc := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box6 || box12,'prueba',true,'codigo_recomendacion',v_cod));
-  if (pc->>'descuento')::numeric <> 23 or (pc->>'total')::numeric <> 677 or pc->'recomendacion'->>'formato' <> 'Box de 12' then
+  if (pc->>'descuento')::numeric <> 45 or (pc->>'total')::numeric <> 655 or pc->'recomendacion'->>'formato' <> 'Box de 12' then
     raise exception 'canje Ana: %', pc;
   end if;
-  -- No se gasta: sigue teniendo el 5 % para el resto del mes
-  if (consultar_codigo(v_cod, '091000001', true)->>'porcentaje')::numeric <> 5 then raise exception 'el saldo se gastó'; end if;
-  if saldo_recomendacion(v_ana, (date_trunc('month', hoy()) + interval '1 month')::date) <> 0 then
-    raise exception 'el saldo pasó al mes siguiente';
+  -- No se gasta: sigue teniendo el 10 % para el resto del mes
+  if (consultar_codigo(v_cod, '091000001', true)->>'porcentaje')::numeric <> 10 then raise exception 'el saldo se gastó'; end if;
+  -- lo de Bruno no pasa al mes siguiente; el bono dura 30 días (el día 30 todavía vale, el 31 ya no)
+  if saldo_recomendacion(v_ana, hoy() + 30)
+     <> 5 + (case when date_trunc('month', hoy() + 30) = date_trunc('month', hoy()) then 5 else 0 end) then
+    raise exception 'saldo a los 30 días: %', saldo_recomendacion(v_ana, hoy() + 30);
   end if;
+  if saldo_recomendacion(v_ana, hoy() + 31) <> 0 then raise exception 'el bono duró más de 30 días'; end if;
   -- Bruno ya compró: el código de Ana ya no cuenta para él
   if consultar_codigo(v_cod, '091000002', true)->>'estado' <> 'ya_cliente' then raise exception 'Bruno ya_cliente'; end if;
   -- código inexistente: el pedido sale igual, sin descuento
@@ -897,15 +911,17 @@ begin
   set local role authenticated;
   select id into v_pc from pedidos where codigo = pc->>'codigo';
   r := confirmar_pedido(v_pc, '{}');
-  if (select notas from ventas where id = (r->>'venta_id')::uuid) not like '%Descuento por recomendaciones 5% en Box de 12 (−$23)%' then
+  if (select notas from ventas where id = (r->>'venta_id')::uuid) not like '%Descuento por recomendaciones 10% en Box de 12 (−$45)%' then
     raise exception 'nota: %', (select notas from ventas where id = (r->>'venta_id')::uuid);
   end if;
-  if (select precio_cobrado from ventas where id = (r->>'venta_id')::uuid) <> 677 then raise exception 'cobro canje'; end if;
+  if (select precio_cobrado from ventas where id = (r->>'venta_id')::uuid) <> 655 then raise exception 'cobro canje'; end if;
   delete from ventas where id = (r->>'venta_id')::uuid;
   perform rechazar_pedido(v_pc, 'PRUEBA');
-  if saldo_recomendacion(v_ana) <> 5 then raise exception 'saldo tras rechazo: %', saldo_recomendacion(v_ana); end if;
+  if saldo_recomendacion(v_ana) <> 10 then raise exception 'saldo tras rechazo: %', saldo_recomendacion(v_ana); end if;
   r := (select resumen_campana(id) from campanas_recomendacion);
-  if (r->>'validas')::int <> 1 or r->'ranking'->0->>'nombre' <> 'Ana Prueba' then raise exception 'resumen: %', r; end if;
+  if (r->>'validas')::int <> 1 or r->'ranking'->0->>'nombre' <> 'Ana Prueba' or (r->>'bonos')::int <> 1 then
+    raise exception 'resumen: %', r;
+  end if;
   r := borrar_datos_prueba();
   if (r->>'pedidos')::int <> 5 or (r->>'clientes')::int < 2 or (r->>'campanas')::int <> 1 then raise exception 'borrar: %', r; end if;
   if exists (select 1 from pedidos) or exists (select 1 from ventas) then raise exception 'quedaron datos de prueba'; end if;
@@ -922,5 +938,91 @@ begin
   end;
   reset role;
 
+  raise exception 'TODO OK';
+end $$;
+
+-- Bono por la primera Box de 12 (21/10): uno por campaña aunque ya fuera cliente, recién cuando se paga, se
+-- puede usar sus 30 días aunque la campaña termine, y sigue a la venta al fusionar clientes.
+do $$
+declare
+  u_prueba uuid := (select user_id from usuarios_admin where es_prueba limit 1);
+  box12 jsonb := '[{"tipo":"caja_fija","rolls":12,"sabores":{"canela":6,"oreo":6}}]';
+  box6 jsonb := '[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
+  r jsonb; pa jsonb; pb jsonb; pc jsonb; pd jsonb;
+  v_ana uuid; v_bruno uuid; v_cod text;
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform guardar_campana(jsonb_build_object('nombre', 'PRUEBA campaña', 'desde', hoy() - 1, 'hasta', hoy() + 60));
+  reset role;
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  set local role service_role;
+  pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
+  pb := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true));
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  r := confirmar_pedido((select id from pedidos where codigo = pa->>'codigo'), '{"estado_pago":"pagado"}');
+  select v.cliente_id into v_ana from ventas v where v.id = (r->>'venta_id')::uuid;
+  select codigo into v_cod from codigos_recomendacion where cliente_id = v_ana;
+  r := confirmar_pedido((select id from pedidos where codigo = pb->>'codigo'), '{"estado_pago":"pagado"}');
+  select v.cliente_id into v_bruno from ventas v where v.id = (r->>'venta_id')::uuid;
+  -- confirmada ya pagada: bono igual
+  if saldo_recomendacion(v_ana) <> 5 then raise exception 'bono Ana confirmada pagada'; end if;
+  reset role;
+
+  -- Bruno, que ya es cliente, pide su primera Box de 12: bono recién cuando se paga, y uno solo por campaña
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  set local role service_role;
+  pd := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
+  pc := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
+  reset role;
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  r := confirmar_pedido((select id from pedidos where codigo = pd->>'codigo'), '{}');
+  if saldo_recomendacion(v_bruno) <> 0 then raise exception 'bono de Bruno sin pagar'; end if;
+  update ventas set estado_pago = 'pagado' where id = (r->>'venta_id')::uuid;
+  if saldo_recomendacion(v_bruno) <> 5 then raise exception 'bono de Bruno: %', saldo_recomendacion(v_bruno); end if;
+  r := confirmar_pedido((select id from pedidos where codigo = pc->>'codigo'), '{"estado_pago":"pagado"}');
+  if (select count(*) from bonos_recomendacion where cliente_id = v_bruno) <> 1 or saldo_recomendacion(v_bruno) <> 5 then
+    raise exception 'Bruno con dos bonos';
+  end if;
+  r := (select resumen_campana(id) from campanas_recomendacion);
+  if (r->>'bonos')::int <> 2 or (r->>'bonos_vigentes')::int <> 2 then raise exception 'resumen: %', r; end if;
+  -- Termina la campaña: el bono se sigue pudiendo usar sus 30 días; lo de recomendar, no
+  perform guardar_campana(jsonb_build_object('id', (select id from campanas_recomendacion), 'nombre', 'PRUEBA campaña',
+                                             'desde', hoy() - 2, 'hasta', hoy() - 1));
+  reset role;
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  set local role service_role;
+  r := campana_web(true);
+  if (r->>'activa')::boolean or not (r->>'solo_canje')::boolean then raise exception 'web sin campaña con bonos: %', r; end if;
+  if campana_web(false) <> '{"activa": false}' then raise exception 'la web real ve bonos de prueba: %', campana_web(false); end if;
+  r := consultar_codigo(v_cod, '091000001', true);
+  if r->>'estado' <> 'propio' or (r->>'porcentaje')::numeric <> 5 or (r->>'campana')::boolean or (r->>'tope')::numeric <> 30 then
+    raise exception 'Ana sin campaña: %', r;
+  end if;
+  if consultar_codigo(v_cod, '091000009', true)->>'estado' <> 'sin_campana' then raise exception 'recomendar sin campaña'; end if;
+  pc := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true,'codigo_recomendacion',v_cod));
+  if (pc->>'descuento')::numeric <> 23 then raise exception 'canje del bono sin campaña: %', pc; end if;
+  if (select campana_id from canjes_recomendacion x join pedidos p on p.id = x.pedido_id where p.codigo = pc->>'codigo')
+     is distinct from (select campana_id from bonos_recomendacion where cliente_id = v_ana) then
+    raise exception 'el canje sin campaña no quedó en la campaña del bono';
+  end if;
+  reset role;
+
+  -- Fusionar: el bono sigue a la venta; si los dos tenían, queda uno
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform fusionar_clientes(v_ana, v_bruno);
+  if (select count(*) from bonos_recomendacion) <> 1 or saldo_recomendacion(v_ana) <> 5 then
+    raise exception 'bonos tras fusionar: %', (select json_agg(x) from bonos_recomendacion x);
+  end if;
+  r := borrar_datos_prueba();
+  if (r->>'pedidos')::int <> 5 or (r->>'campanas')::int <> 1 then raise exception 'borrar: %', r; end if;
+  if exists (select 1 from pedidos) or exists (select 1 from ventas) or exists (select 1 from bonos_recomendacion) then
+    raise exception 'quedaron datos de prueba';
+  end if;
+  reset role;
   raise exception 'TODO OK';
 end $$;

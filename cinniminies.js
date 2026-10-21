@@ -559,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function aplicarContenido(c) {
     if (!c || typeof c !== 'object') return;
     textosWeb = c;
+    document.dispatchEvent(new Event('textos-web')); // lo que se arma con textoWeb() se vuelve a pintar
     const valor = (clave) => (typeof c[clave] === 'string' ? c[clave] : null);
     document.querySelectorAll('[data-contenido]').forEach(el => {
       const v = valor(el.dataset.contenido);
@@ -784,9 +785,26 @@ document.addEventListener('DOMContentLoaded', () => {
       campana = await r.json();
       modoPrueba = campana.prueba === true;
       document.getElementById('modoPrueba').hidden = !modoPrueba;
-      if (codigoField) codigoField.hidden = !campana.activa;
+      // terminada la campaña, el campo sigue mientras alguien tenga un bono de la Box de 12 por usar
+      if (codigoField) codigoField.hidden = !campana.activa && !campana.solo_canje;
+      textosCampana();
     } catch { /* sin campaña a la vista: el pedido sigue igual */ }
   })();
+
+  // Aviso del bono y aclaración del campo: dependen de la campaña y de los textos editables (llegan por separado).
+  function textosCampana() {
+    const bono = document.getElementById('codigoBono');
+    if (bono && campana.activa) {
+      bono.textContent = textoWeb('recomendacion.bono_aviso',
+        'Tu primera Box de 12 de la campaña te deja {bono} % de descuento para tus próximos pedidos, por 30 días.',
+        { bono: campana.porcentaje || 5 });
+      bono.hidden = false;
+    }
+    const ayuda = document.getElementById('codigoAyuda');
+    if (ayuda && campana.solo_canje) ayuda.textContent = 'La campaña terminó. Si todavía tenés descuento, poné tu código.';
+  }
+  // (después de que aplicarContenido pinta los data-contenido)
+  document.addEventListener('textos-web', () => setTimeout(textosCampana));
 
   const codigoPremio = document.getElementById('codigoPremio');
   let confetiLanzado = ''; // código + celular que ya festejó: no se repite en cada revisión
@@ -806,9 +824,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return { monto: Math.round(boxPrice(box) * pct / 100), caja: `Box de ${box.size}` };
   }
 
+  // "2027-01-19" → "19/1"
+  const diaMes = (iso) => { const [, m, d] = iso.split('-'); return `${Number(d)}/${Number(m)}`; };
+
   // Con su propio código y saldo: el porcentaje bien grande, una barra hasta el tope del mes y,
-  // si llegó al tope, confeti (una vez por código y celular).
-  function mostrarPremio(pct, tope, clave) {
+  // si llegó al tope, confeti (una vez por código y celular). c: lo que devolvió la consulta del código
+  // (bono y bono_hasta si tiene el de la Box de 12; campana false si la campaña ya terminó).
+  function mostrarPremio(pct, tope, clave, c = {}) {
     if (!codigoPremio) return;
     const est = descuentoEstimado(pct);
     const enTope = pct >= tope;
@@ -818,10 +840,15 @@ document.addEventListener('DOMContentLoaded', () => {
       : textoWeb('recomendacion.premio_titulo', 'Tenés {saldo} % de descuento', { saldo: pct });
     document.getElementById('codigoPremioSub').textContent = [
       est ? `−$${est.monto} en tu ${est.caja}.` : 'Sumá una Box de 6 o de 12 al pedido para usarlo.',
+      c.bono && c.bono_hasta
+        ? textoWeb('recomendacion.bono_premio', 'Incluye {bono} % por tu primera Box de 12, hasta el {vence}.',
+          { bono: c.bono, vence: diaMes(c.bono_hasta) })
+        : '',
       enTope
         ? textoWeb('recomendacion.tope_texto', 'Es lo más alto de la campaña: gracias por recomendarnos.')
+        : c.campana === false ? ''
         : textoWeb('recomendacion.premio_texto', 'Este mes podés llegar hasta {tope} % recomendando.', { tope })
-    ].join(' ');
+    ].filter(Boolean).join(' ');
     codigoPremio.classList.toggle('is-tope', enTope);
     codigoPremio.hidden = false;
     const barra = document.getElementById('codigoPremioBarra');
@@ -924,7 +951,9 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (c.estado === 'ya_cliente') mostrarCodigo(`${de}. Como ya nos compraste antes, no suma para ${c.nombre || 'esa persona'}.`);
       else if (c.estado === 'propio' && c.porcentaje > 0) {
         mostrarCodigo('Es tu código ✓', 'ok');
-        mostrarPremio(Number(c.porcentaje), Number(c.tope) || Number(c.porcentaje), `${codigo}|${stepForm.telefono.value}`);
+        mostrarPremio(Number(c.porcentaje), Number(c.tope) || Number(c.porcentaje), `${codigo}|${stepForm.telefono.value}`, c);
+      } else if (c.estado === 'propio' && c.campana === false) {
+        mostrarCodigo('Es tu código, pero la campaña terminó y ya no te queda descuento.');
       } else if (c.estado === 'propio') {
         mostrarCodigo(textoWeb('recomendacion.sin_saldo',
           'Es tu código. Todavía no juntaste descuento este mes: compartilo y sumás {porcentaje} % por cada persona nueva que compre.',

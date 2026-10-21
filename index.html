@@ -518,7 +518,9 @@
       <label class="field" id="codigoField" hidden>
         <span data-contenido="recomendacion.titulo">Código de descuento (opcional)</span>
         <input type="text" name="codigo_recomendacion" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej: ANA-K7P">
-        <small class="field-hint" data-contenido="recomendacion.ayuda">¿Te lo pasó alguien? Ponelo acá. Si es tu propio código, te descontamos lo que juntaste.</small>
+        <small class="field-hint" id="codigoAyuda" data-contenido="recomendacion.ayuda">¿Te lo pasó alguien? Ponelo acá. Si es tu propio código, te descontamos lo que juntaste.</small>
+        <!-- Bono por la primera Box de 12: lo arma cinniminies.js con el texto editable recomendacion.bono_aviso -->
+        <small class="field-hint" id="codigoBono" hidden></small>
         <small class="codigo-estado" id="codigoEstado" role="status"></small>
         <!-- Con su propio código: cuánto descuento tiene y cuánto le falta para el tope del mes -->
         <span class="codigo-premio" id="codigoPremio" hidden>
