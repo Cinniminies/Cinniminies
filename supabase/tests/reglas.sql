@@ -359,6 +359,25 @@ begin
   raise exception 'TODO OK';
 end $$;
 
+-- Pedido web con entrega (23/10): el envío va en el total; al confirmarlo, la venta no lo cobra dos veces.
+do $$
+declare
+  r jsonb; v jsonb; pid uuid; r2 jsonb;
+begin
+  r := crear_pedido_web('{"nombre":"PRUEBA envio","telefono":"099000000","modalidad":"entrega","direccion":"Calle 1","pago":"transferencia","prueba":true,"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}');
+  assert (r->>'envio')::numeric = 25 and (r->>'total')::numeric = precio_vigente((select id from formatos where nombre = 'Box de 6'), null) + 25,
+         'entrega: ' || r::text;
+  select id into pid from pedidos where codigo = r->>'codigo';
+  v := confirmar_pedido(pid);
+  assert (select precio_cobrado + cobro_envio from ventas where id = (v->>'venta_id')::uuid) = (r->>'total')::numeric,
+         'la venta cobra lo mismo que el pedido';
+  r2 := crear_pedido_web('{"nombre":"PRUEBA retiro","telefono":"099000000","modalidad":"retiro","pago":"efectivo","prueba":true,"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}');
+  assert (r2->>'envio')::numeric = 0, 'retiro sin envío';
+  assert (catalogo_web()->>'envio')::numeric = 25, 'el catálogo trae el precio del envío';
+  raise exception 'TODO OK';
+end $$;
+
+
 -- Revisión del backend: borrar la venta de un pedido lo devuelve a "nuevo", tope general de 40
 -- pedidos por hora, y en contenido_web un admin solo puede cambiar el valor.
 do $$
@@ -1027,21 +1046,3 @@ begin
   raise exception 'TODO OK';
 end $$;
 
-
--- Pedido web con entrega (23/10): el envío va en el total; al confirmarlo, la venta no lo cobra dos veces.
-do $$
-declare
-  r jsonb; v jsonb; pid uuid; r2 jsonb;
-begin
-  r := crear_pedido_web('{"nombre":"PRUEBA envio","telefono":"099000000","modalidad":"entrega","direccion":"Calle 1","pago":"transferencia","prueba":true,"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}');
-  assert (r->>'envio')::numeric = 25 and (r->>'total')::numeric = precio_vigente((select id from formatos where nombre = 'Box de 6'), null) + 25,
-         'entrega: ' || r::text;
-  select id into pid from pedidos where codigo = r->>'codigo';
-  v := confirmar_pedido(pid);
-  assert (select precio_cobrado + cobro_envio from ventas where id = (v->>'venta_id')::uuid) = (r->>'total')::numeric,
-         'la venta cobra lo mismo que el pedido';
-  r2 := crear_pedido_web('{"nombre":"PRUEBA retiro","telefono":"099000000","modalidad":"retiro","pago":"efectivo","prueba":true,"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}');
-  assert (r2->>'envio')::numeric = 0, 'retiro sin envío';
-  assert (catalogo_web()->>'envio')::numeric = 25, 'el catálogo trae el precio del envío';
-  raise exception 'TODO OK';
-end $$;
