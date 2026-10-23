@@ -415,10 +415,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!wasComplete && boxIsComplete(box)) {
       // la personalizada se puede pedir desde el mínimo, pero sigue admitiendo rolls hasta el máximo
       if (isCustomBox(box)) {
-        openBoxCompleteModal(`Tu caja personalizada ya tiene ${filled} rolls: podés pedirla así o seguir sumando hasta ${CUSTOM_MAX}.`,
-          '¡Ya podés pedir!');
+        openBoxCompleteModal(
+          textoWeb('carrito.minimo_texto', 'Tu caja personalizada ya tiene {rolls} rolls: podés pedirla así o seguir sumando hasta {maximo}.',
+            { rolls: filled, maximo: CUSTOM_MAX }),
+          textoWeb('carrito.minimo_titulo', '¡Ya podés pedir!'));
       } else {
-        openBoxCompleteModal(`Tu caja de ${box.size} rolls quedó completa.`);
+        openBoxCompleteModal(
+          textoWeb('carrito.completa_texto', 'Tu caja de {rolls} rolls quedó completa.', { rolls: box.size }),
+          textoWeb('carrito.completa_titulo', '¡Caja completa!'));
       }
     }
   });
@@ -1008,11 +1012,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const cajas = cartTotal();
     const envio = stepForm.modalidad.value === 'Coordinar entrega' ? PRECIO_ENVIO : 0;
     formTotal.textContent = !cajas ? ''
-      : envio ? `Total: $${cajas + envio} (cajas $${cajas} + envío $${envio})`
-      : `Total: $${cajas}`;
+      : envio ? textoWeb('form.total_envio', 'Total: ${total} (cajas ${cajas} + envío ${envio})',
+        { total: cajas + envio, cajas, envio })
+      : textoWeb('form.total', 'Total: ${total}', { total: cajas });
     const ayudaEnvio = document.getElementById('ayudaEnvio');
-    if (ayudaEnvio) ayudaEnvio.textContent = `El envío cuesta $${PRECIO_ENVIO} y se suma al total.`;
+    if (ayudaEnvio) ayudaEnvio.textContent = textoWeb('form.ayuda_envio', 'El envío cuesta ${envio} y se suma al total.',
+      { envio: PRECIO_ENVIO });
   }
+  document.addEventListener('textos-web', actualizarTotalForm);
 
   function updateSubmitBtn() {
     actualizarTotalForm();
