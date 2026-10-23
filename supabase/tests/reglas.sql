@@ -1044,6 +1044,7 @@ begin
   assert p.fecha = hoy(), 'fecha de hoy por defecto';
   select * into despues from v_stock where insumo_id = har;
   assert despues.teorico = antes.teorico - 1000 and despues.perdido = antes.perdido + 1000, 'resta del teórico';
+  assert despues.hay = antes.hay, 'la pérdida no toca Hay';
   assert (select coalesce(sum(gastos), 0) from v_resumen_mensual) = gastos_antes, 'no es un gasto';
 
   -- Al contar, lo perdido no cuenta como usado (no mueve los desvíos de la receta)
@@ -1052,6 +1053,15 @@ begin
   assert (select usado from conteos where insumo_id = har order by creado_en desc limit 1)
          is not distinct from (case when antes.fecha_conteo is not null then despues.usado_tandas + despues.usado_ventas end),
          'usado sin la pérdida';
+
+  -- "Hay" = último conteo + compras después (entran medidas); lo que sale no lo toca
+  update conteos set creado_en = creado_en - interval '1 second'   -- en la prueba todo pasa en el mismo now()
+   where insumo_id = har and creado_en = now();
+  update perdidas set creado_en = creado_en - interval '2 seconds' where id = p.id;   -- la pérdida fue antes de contar
+  r := registrar_compra(jsonb_build_object('insumo_id', har, 'cantidad', 1, 'unidad', 'kg', 'total', 40));
+  select * into despues from v_stock where insumo_id = har;
+  assert despues.hay = (select cantidad from conteos where insumo_id = har order by creado_en desc limit 1) + 1000
+         and despues.teorico = despues.hay, 'la compra suma a Hay y al teórico';
 
   -- Packaging nuevo: las ventas de antes de su alta no le restan (sin conteo de arranque)
   declare
