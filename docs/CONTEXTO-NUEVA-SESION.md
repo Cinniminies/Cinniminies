@@ -138,7 +138,7 @@ Todo lo anterior está en `main` y publicado en https://cinniminies.vercel.app/a
 ## 4. Pendientes y decisiones abiertas
 
 - **Etapa 2, aceptación:** semana de carga en paralelo. Diferencia esperada: en la app el costo de caja incluye
-  papel y sticker (Box de 6 $38,65; Box de 12 $45,63) y en la planilla no.
+  papel y sticker (Box de 6 $39,27; Box de 12 $44,67 desde el 23/10, con el papel por cm) y en la planilla no.
 - **Etapa 3, aceptación:** que los dueños repitan lo de "Pistacho" y después lo desactiven o borren.
 - **Hosting:** Vercel Hobby es para uso no comercial; decidir Pro o mover a Netlify/Cloudflare antes del uso
   "en serio" (handoff 3.1). Mantener `api/` simple para poder portarlo.
