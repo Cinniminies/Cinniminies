@@ -450,7 +450,7 @@ create table conteos (                    -- conteo físico de stock
 - **Stock teórico de un insumo** = último conteo + compras posteriores − consumos de tandas posteriores − (si es caja) cajas usadas en ventas posteriores.
 - Alertas cuando el teórico queda por debajo del mínimo.
 - El **desvío** (teórico − contado) se ve al cargar un conteo.
-- Papel manteca y stickers: cada caja usada descuenta lo que indica `caja_insumos` (Box de 12: 2 papel + 1 sticker; Box de 6: 1 papel + 1 sticker).
+- Papel manteca y stickers: cada caja usada descuenta lo que indica `caja_insumos` (Box de 12: 2 papel + 1 sticker; Box de 6: 1 papel + 1 sticker). **Desde el 23/10 el papel manteca va por cm** (rollo de 7,5 m a $75): Box de 3 = 18 cm, Box de 6 = 26 cm, Box de 12 = 30 cm; el insumo viejo en hojas quedó inactivo.
 
 ### 5.8 "¿Qué compro?" (reemplaza la hoja CALCULADORA)
 - Entrada: tandas planeadas por sabor.

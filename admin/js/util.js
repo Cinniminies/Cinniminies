@@ -66,6 +66,7 @@ export function cantidad(n, unidad) {
   const v = Number(n);
   if (unidad === 'g' && Math.abs(v) >= 1000) return `${numero(v / 1000)} kg`;
   if (unidad === 'ml' && Math.abs(v) >= 1000) return `${numero(v / 1000)} L`;
+  if (unidad === 'cm' && Math.abs(v) >= 100) return `${numero(v / 100)} m`;
   return `${numero(v)} ${unidad}`;
 }
 

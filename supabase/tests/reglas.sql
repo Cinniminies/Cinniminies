@@ -117,7 +117,7 @@ begin
   select jsonb_object_agg(nombre, teorico) into despues from v_stock
    where nombre in ('Caja Box de 6', 'Papel manteca', 'Stickers');
   assert (despues->>'Caja Box de 6')::numeric = (antes->>'Caja Box de 6')::numeric - 1, 'stock caja 6';
-  assert (despues->>'Papel manteca')::numeric = (antes->>'Papel manteca')::numeric - 1, 'stock papel';
+  assert (despues->>'Papel manteca')::numeric = (antes->>'Papel manteca')::numeric - 26, 'stock papel: 26 cm';
   assert (despues->>'Stickers')::numeric = (antes->>'Stickers')::numeric - 1, 'stock stickers';
 
   raise exception 'TODO OK';
@@ -247,6 +247,12 @@ begin
   r := registrar_venta(jsonb_build_object('lineas', jsonb_build_array(jsonb_build_object('formato_id', b6,
          'sabores', jsonb_build_array(jsonb_build_object('sabor_id', pis, 'unidades', 6))))));
   assert (r->>'precio_lista')::numeric = 250, 'box de 6 pistacho';
+
+  -- Papel manteca por cm: el rollo se carga en metros
+  r := registrar_compra(jsonb_build_object('insumo_id', papel, 'cantidad', 7.5, 'unidad', 'm', 'total', 75));
+  assert (r->>'cantidad_base')::numeric = 750 and (r->>'costo_unitario')::numeric = 0.1, 'rollo de 7,5 m a $10/m';
+  assert round(costo_caja(caja6), 2) = round(costo_insumo(caja6) + 2.6 + costo_insumo((select id from insumos where nombre = 'Stickers')), 2),
+         'caja 6 con 26 cm de papel';
 
   -- Packaging de caja
   perform guardar_packaging_caja(caja6, jsonb_build_array(jsonb_build_object('insumo_id', papel, 'cantidad', 2)));
@@ -642,6 +648,8 @@ declare
   antes numeric;
 begin
   update ventas set por_hacer = false where por_hacer;   -- se deshace al final
+  -- Los que pasan a hechos toman hecho_en = now(): que queden antes del conteo de más abajo
+  update ventas set hecho_en = hecho_en - interval '2 seconds' where hecho_en = now();
   assert (select stock from stock_disponible() where insumo_id = c6) = (select teorico from v_stock where insumo_id = c6),
          'disponible = teórico';
   antes := (select teorico from v_stock where insumo_id = c6);
@@ -659,6 +667,7 @@ begin
   assert (select necesario from cajas_plan() where insumo_id = papel)
          = 2 * (select cantidad from caja_insumos where caja_insumo_id = c6 and insumo_id = papel)
            + (select cantidad from caja_insumos where caja_insumo_id = c12 and insumo_id = papel), 'papel manteca según cada caja';
+  assert (select necesario from cajas_plan() where insumo_id = papel) = 82, 'papel: 2 × 26 + 30 cm';
   assert not exists (select 1 from cajas_plan(jsonb_build_object('ventas', '[]'::jsonb))), 'sin pedidos elegidos, sin cajas';
 
   select * into r from que_comprar('{}', jsonb_build_object(c6, 2)) where insumo_id = c6;

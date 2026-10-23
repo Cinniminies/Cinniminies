@@ -5,8 +5,8 @@ import { irA, refrescarSi } from '../app.js';
 import { subnavProduccion } from '../componentes.js';
 
 // Unidades que se pueden elegir según la unidad base del insumo (la primera es la de siempre).
-const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'] };
-const FACTOR = { g: 1, kg: 1000, ml: 1, L: 1000, un: 1, paq: 1 };
+const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'], cm: ['m', 'cm'] };
+const FACTOR = { g: 1, kg: 1000, ml: 1, L: 1000, un: 1, paq: 1, cm: 1, m: 100 };
 
 // Lo que se recuerda entre cargas (proveedor y fecha suelen repetirse en una misma salida).
 const recordar = { fecha: null, proveedor: '' };
@@ -62,8 +62,8 @@ export async function mostrar(cont) {
     const base = cant * FACTOR[f.unidad];
     const unitario = total / base;
     const antes = costoDe[i.id]?.costo_unitario;
-    const porPresentacion = i.unidad_base === 'g' || i.unidad_base === 'ml' ? 1000 : 1;
-    const txtUnidad = porPresentacion === 1000 ? (i.unidad_base === 'g' ? 'kg' : 'L') : i.unidad_base;
+    const porPresentacion = { g: 1000, ml: 1000, cm: 100 }[i.unidad_base] || 1;
+    const txtUnidad = { g: 'kg', ml: 'L', cm: 'm' }[i.unidad_base] || i.unidad_base;
     vaciar(vistaPrevia,
       `= ${numero(base)} ${i.unidad_base} · ${pesos(unitario * porPresentacion)} por ${txtUnidad}`,
       antes ? ` (antes ${pesos(antes * porPresentacion)})` : '');

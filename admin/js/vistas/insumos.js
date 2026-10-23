@@ -7,10 +7,10 @@ import { puntos, cambio, impactoPorRoll, impactoPorCaja } from '../historial.js'
 
 const TIPOS = [{ valor: 'ingrediente', texto: 'Ingrediente' }, { valor: 'packaging', texto: 'Packaging' }];
 const UNIDADES = [{ valor: 'g', texto: 'gramos (g)' }, { valor: 'ml', texto: 'mililitros (ml)' },
-  { valor: 'un', texto: 'unidades (un)' }, { valor: 'paq', texto: 'paquetes (paq)' }];
-// Precio legible por unidad de compra: el costo por gramo se muestra por kg, el de ml por litro.
+  { valor: 'un', texto: 'unidades (un)' }, { valor: 'paq', texto: 'paquetes (paq)' }, { valor: 'cm', texto: 'centímetros (cm)' }];
+// Precio legible por unidad de compra: el costo por gramo se muestra por kg, el de ml por litro y el de cm por metro.
 const porPresentacion = (costo, unidad) => (unidad === 'g' ? `${pesos(costo * 1000)}/kg`
-  : unidad === 'ml' ? `${pesos(costo * 1000)}/L` : `${pesos(costo)}/${unidad}`);
+  : unidad === 'ml' ? `${pesos(costo * 1000)}/L` : unidad === 'cm' ? `${pesos(costo * 100)}/m` : `${pesos(costo)}/${unidad}`);
 
 export async function mostrar(cont, { id }) {
   return id ? ficha(cont, id === 'nuevo' ? null : id) : lista(cont);
@@ -44,7 +44,7 @@ async function lista(cont) {
 }
 
 async function ficha(cont, id) {
-  const [cat, costo, lleva, usos, historial] = await Promise.all([
+  const [cat, costo, lleva, usos, historial, costos] = await Promise.all([
     catalogo(true),
     id ? q(sb.from('v_costo_insumo').select('*').eq('insumo_id', id).maybeSingle()) : null,
     id ? q(sb.from('caja_insumos').select('insumo_id,cantidad').eq('caja_insumo_id', id)) : [],
@@ -53,7 +53,9 @@ async function ficha(cont, id) {
       contar('venta_lineas', (c) => c.eq('caja_insumo_id', id)),
     ]) : [0, 0, 0, 0, 0, 0],
     id ? leerHistorial(id) : null,
+    q(sb.from('v_costo_insumo').select('insumo_id,costo_unitario')),
   ]);
+  const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, Number(c.costo_unitario) || 0]));
   const insumo = id ? cat.insumo(id) : null;
   if (id && !insumo) throw new Error('El insumo no existe');
   const [compras, enRecetas] = usos;
@@ -65,23 +67,41 @@ async function ficha(cont, id) {
   // Packaging que lleva esta caja (solo para cajas)
   const extra = lleva.map((l) => ({ insumo_id: l.insumo_id, cantidad: Number(l.cantidad) }));
   const filasExtra = h('div');
-  const otrosPackaging = cat.insumos.filter((i) => i.tipo === 'packaging' && i.id !== id);
+  const totalCaja = h('p', { class: 'ayuda' });
+  const otrosPackaging = cat.insumos.filter((i) => i.tipo === 'packaging' && i.id !== id
+    && (i.activo || extra.some((x) => x.insumo_id === i.id)));
+  // Costo de la caja con lo que lleva (papel por cm, stickers…), como lo calcula costo_caja.
+  function dibujarTotal() {
+    const partes = extra.filter((x) => x.insumo_id && x.cantidad > 0)
+      .map((x) => ({ nombre: cat.insumo(x.insumo_id)?.nombre || '', costo: x.cantidad * (costoDe[x.insumo_id] || 0) }));
+    const caja = id ? costoDe[id] || 0 : 0;
+    const total = caja + partes.reduce((s, p) => s + p.costo, 0);
+    totalCaja.textContent = `Costo por caja: ${[`caja ${pesos(caja)}`, ...partes.map((p) => `${p.nombre.toLowerCase()} ${pesos(p.costo)}`)].join(' + ')}`
+      + ` = ${pesos(total)}`;
+  }
   function dibujarExtra() {
     vaciar(filasExtra, extra.map((x, i) => {
-      const sel = h('select', { onchange: (e) => { x.insumo_id = e.target.value; } },
-        h('option', { value: '' }, 'Packaging…'), otrosPackaging.map((o) => h('option', { value: o.id }, o.nombre)));
+      const unidad = h('small', {}, cat.insumo(x.insumo_id)?.unidad_base || 'un');
+      const sel = h('select', { onchange: (e) => {
+        x.insumo_id = e.target.value;
+        unidad.textContent = cat.insumo(x.insumo_id)?.unidad_base || 'un';
+        dibujarTotal();
+      } },
+      h('option', { value: '' }, 'Packaging…'), otrosPackaging.map((o) => h('option', { value: o.id }, o.nombre)));
       sel.value = x.insumo_id || '';
       return h('div', { class: 'receta-fila' }, sel,
         h('div', { class: 'unidad' }, h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: x.cantidad || '',
-          oninput: (e) => { x.cantidad = Number(e.target.value); } }), h('small', {}, 'un')),
+          oninput: (e) => { x.cantidad = Number(e.target.value); dibujarTotal(); } }), unidad),
         h('button', { type: 'button', class: 'quitar', 'aria-label': 'Quitar', onclick: () => { extra.splice(i, 1); dibujarExtra(); } }, '×'));
     }));
+    dibujarTotal();
   }
   const esCaja = () => datos.tipo === 'packaging' && /^caja/i.test(datos.nombre || '');
   const seccionCaja = h('div', { class: 'card' },
     h('h3', {}, 'Lo que lleva cada caja'),
     h('p', { class: 'ayuda' }, 'Cada caja usada en una venta descuenta esto del stock y lo suma al costo de caja.'),
     filasExtra,
+    totalCaja,
     h('button', { type: 'button', class: 'btn chico', onclick: () => { extra.push({ insumo_id: '', cantidad: 1 }); dibujarExtra(); } }, '+ Packaging'));
   const actualizarCaja = () => { seccionCaja.hidden = !esCaja(); };
 
@@ -123,7 +143,8 @@ async function ficha(cont, id) {
   const ayudaRef = h('div', { class: 'ayuda' });
   const actualizarAyudaRef = () => {
     ayudaRef.textContent = `Por ${unidadTxt()}. Se usa solo si todavía no hay compras con cantidad. `
-      + (datos.unidad_base === 'g' ? 'Ej.: harina a $210 los 5 kg → 0,042.' : '');
+      + (datos.unidad_base === 'g' ? 'Ej.: harina a $210 los 5 kg → 0,042.'
+        : datos.unidad_base === 'cm' ? 'Ej.: rollo de 7,5 m a $75 → 0,1.' : '');
   };
   actualizarAyudaRef();
 
@@ -170,8 +191,8 @@ async function leerHistorial(id) {
 
 function seccionHistorial({ compras, recetas, costos, enCajas }, insumo, cat) {
   // Por kg o por litro si la unidad base es g o ml, como en el resto de la ficha.
-  const escala = ['g', 'ml'].includes(insumo.unidad_base) ? 1000 : 1;
-  const unidad = { g: 'kg', ml: 'L' }[insumo.unidad_base] || insumo.unidad_base;
+  const escala = ['g', 'ml'].includes(insumo.unidad_base) ? 1000 : insumo.unidad_base === 'cm' ? 100 : 1;
+  const unidad = { g: 'kg', ml: 'L', cm: 'm' }[insumo.unidad_base] || insumo.unidad_base;
   const pts = puntos(compras);
   const titulo = h('h3', {}, 'Historial de precios');
   if (pts.length < 2) {
