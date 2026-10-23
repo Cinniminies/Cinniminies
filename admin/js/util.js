@@ -126,7 +126,7 @@ export const ETIQUETAS = {
   estado_pago: { pagado: 'Pagado', pendiente: 'Pendiente' },
   tipo: { venta: 'Venta', consumo_propio: 'Consumo propio', regalo: 'Regalo' },
   gasto: {
-    merma: 'Merma', tanda_descartada: 'Tanda descartada', gasto_operativo: 'Gasto',
+    merma: 'Merma', tanda_descartada: 'Tanda descartada', gasto_operativo: 'Gasto', mejora: 'Mejoras del negocio',
     comision: 'Comisión', retiro_socios: 'Retiro socios', ajuste_caja: 'Ajuste de caja', otro: 'Otro',
   },
   ingreso: { aporte_socios: 'Aporte socios', otro: 'Otro ingreso' },

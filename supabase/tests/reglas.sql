@@ -186,8 +186,18 @@ begin
     fallo := sqlerrm;
   end;
   assert fallo = 'Leche se mide en ml', 'unidad incompatible: ' || coalesce(fallo, 'no falló');
-  r := registrar_compra('{"categoria": "equipamiento", "descripcion": "Rodillo", "total": 300}');
-  assert (select categoria from compras where id = (r->>'compra_id')::uuid) = 'equipamiento', 'equipamiento';
+  r := registrar_compra('{"categoria": "otro", "descripcion": "Rodillo", "total": 300}');
+  assert (select categoria from compras where id = (r->>'compra_id')::uuid) = 'otro', 'compra sin insumo';
+  -- Las mejoras del negocio (palote, balanza) ya no son compras: van en Gastos con tipo 'mejora'
+  fallo := null;
+  begin
+    perform registrar_compra('{"categoria": "equipamiento", "descripcion": "Palote", "total": 300}');
+  exception when others then
+    fallo := sqlerrm;
+  end;
+  assert fallo like 'Las mejoras del negocio%', 'equipamiento rechazado: ' || coalesce(fallo, 'no falló');
+  insert into gastos (fecha, descripcion, tipo, monto) values ('2026-09-15', 'PRUEBA palote', 'mejora', 300);
+  assert (select es_gasto from v_gastos where descripcion = 'PRUEBA palote'), 'la mejora es un gasto';
 
   -- Fusionar clientes: las ventas pasan al que queda, que hereda el contacto
   insert into clientes (nombre) values ('Dup 1') returning id into c1;

@@ -6,6 +6,7 @@ const AYUDA = {
   merma: 'Rolls quemados, muestras regaladas…',
   tanda_descartada: 'Una tanda que salió mal. Cargá también la tanda en Tandas para que descuente los insumos.',
   gasto_operativo: 'Bolsas, transporte, cosas chicas del negocio.',
+  mejora: 'Cosas para trabajar mejor: un palote de amasar, moldes, la balanza… Cuenta como gasto del mes.',
   comision: 'Comisiones del banco o por ventas.',
   retiro_socios: 'Plata que sacan ustedes (salidas, comida…). No cuenta como gasto del negocio, pero sale de la caja.',
   ajuste_caja: 'Para que la caja teórica coincida con la real. No cuenta como gasto.',

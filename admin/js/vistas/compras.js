@@ -58,6 +58,10 @@ export async function mostrar(cont) {
     const i = insumo();
     const cant = Number(f.cantidad);
     const total = Number(f.total);
+    if (f.insumo === '__otro') {
+      vaciar(vistaPrevia, 'Si es algo para trabajar mejor (palote, moldes…), cargalo en Gastos → Mejoras del negocio.');
+      return;
+    }
     if (!i || !cant || !total) { vaciar(vistaPrevia); return; }
     const base = cant * FACTOR[f.unidad];
     const unitario = total / base;
@@ -78,7 +82,6 @@ export async function mostrar(cont) {
   h('optgroup', { label: 'Packaging' },
     cat.insumos.filter((i) => i.tipo === 'packaging' && i.activo).map((i) => h('option', { value: i.id }, i.nombre))),
   h('optgroup', { label: 'Otros (no entran en costos ni stock)' },
-    h('option', { value: '__equipamiento' }, 'Equipamiento (balanza, moldes…)'),
     h('option', { value: '__otro' }, 'Otro')));
 
   const guardar = h('button', { class: 'btn primario bloque', type: 'button' }, 'Guardar compra');
