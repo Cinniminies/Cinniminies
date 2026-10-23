@@ -475,7 +475,7 @@ create table conteos (                    -- conteo físico de stock
 4. **Ventas:** lista con filtros (mes, estado, cliente). Tocar una venta permite editarla o marcarla como pagada. Si una edición cambia precios, **recalcula el snapshot solo si el usuario lo pide**.
 5. **Tandas:** alta rápida ("2 × Canela") e historial.
 6. **Compras:** alta (insumo desde la lista, cantidad y unidad → `cantidad_base` automática con las conversiones g/kg, ml/L, un, paq), proveedor con autocompletar e historial.
-7. **Gastos y retiros:** alta con tipo (merma / tanda descartada / gasto / comisión / **retiro socios**).
+7. **Gastos y retiros:** alta con tipo (merma / tanda descartada / gasto / comisión / **retiro socios**). Desde el 23/10 también **mejoras del negocio** (palote, moldes, balanza): cuenta como gasto; "Equipamiento" salió de Compras y la balanza pasó a este tipo.
 8. **Stock:** tabla del teórico, botón "Cargar conteo" y "¿Qué compro?".
 9. **Catálogo:**
    - **Sabores:** alta, edición y activar/ocultar en la web. La receta se edita con "copiar receta de…".
@@ -518,7 +518,7 @@ Cada etapa termina con una demo a los dueños y con los criterios de aceptación
   - **COMPRAS:**
     - Mapear el insumo desde "Ingrediente (final)" o "Ingrediente".
     - Cajas, stickers y papel manteca → packaging. Las compras de "Cajas" sin tamaño se asignan por precio unitario: **$30 → Caja Box de 6, $35 → Caja Box de 12** (confirmado). Si alguna no encaja, listarla para que la revisen.
-    - Balanza → equipamiento.
+    - Balanza → equipamiento. (El 23/10 pasó a Gastos → mejoras del negocio.)
     - Parsear cantidades viejas en texto ("5kg", "500gr", "2L", "100g") a `cantidad_base`.
   - **TANDAS:** una tanda por fila. `tanda_consumos` con los valores de las columnas de ingredientes: la fila del 30/08 (Canela) tiene consumos atípicos y hay que respetarlos tal cual.
   - **MERMAS → gastos:**
