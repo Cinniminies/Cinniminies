@@ -412,10 +412,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // recién completada esta caja: ofrecemos seguir pidiendo o ir al carrito
     if (!wasComplete && boxIsComplete(box)) {
-      const message = isCustomBox(box)
-        ? `Tu caja personalizada quedó lista con ${filled} rolls.`
-        : `Tu caja de ${box.size} rolls quedó completa.`;
-      openBoxCompleteModal(message);
+      // la personalizada se puede pedir desde el mínimo, pero sigue admitiendo rolls hasta el máximo
+      if (isCustomBox(box)) {
+        openBoxCompleteModal(`Tu caja personalizada ya tiene ${filled} rolls: podés pedirla así o seguir sumando hasta ${CUSTOM_MAX}.`,
+          '¡Ya podés pedir!');
+      } else {
+        openBoxCompleteModal(`Tu caja de ${box.size} rolls quedó completa.`);
+      }
     }
   });
 
@@ -668,10 +671,12 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Popup de "caja completa" ---------- */
   const boxCompleteModal = document.getElementById('boxCompleteModal');
   const boxCompleteText = document.getElementById('boxCompleteText');
+  const boxCompleteTitulo = document.getElementById('boxCompleteTitulo');
 
-  function openBoxCompleteModal(message) {
+  function openBoxCompleteModal(message, titulo = '¡Caja completa!') {
     if (!boxCompleteModal) return;
     if (boxCompleteText) boxCompleteText.textContent = message;
+    if (boxCompleteTitulo) boxCompleteTitulo.textContent = titulo;
     boxCompleteModal.classList.add('is-open');
   }
   function closeBoxCompleteModal() {
@@ -746,10 +751,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(Boolean).join(' ');
   }
 
+  const telError = document.getElementById('telError') || {};
+
   // Filtra mientras escriben: letras y símbolos nunca llegan a entrar al campo.
   telInput?.addEventListener('input', () => {
     const limpio = normalizarTel(telInput.value);
     if (telInput.value !== limpio) telInput.value = limpio;
+    if (TEL_URUGUAYO.test(limpio)) telError.hidden = true;
+  });
+  // Con el botón gris no se veía por qué no dejaba confirmar: se avisa al salir del campo.
+  telInput?.addEventListener('blur', () => {
+    const tel = normalizarTel(telInput.value);
+    telError.hidden = tel === '' || TEL_URUGUAYO.test(tel);
   });
 
   /* ---------- Nombre: sin números ---------- */

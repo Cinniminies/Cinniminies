@@ -1086,6 +1086,13 @@ a:hover{ color: var(--canela-hover); }
   color: #B2462E;
 }
 
+.field-error{
+  font-size: 12px;
+  font-weight: 600;
+  color: #B2462E;
+}
+.field-error[hidden]{ display: none; }
+
 .form-error{
   color: #B2462E;
   font-size: 13px;
