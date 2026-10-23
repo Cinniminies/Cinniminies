@@ -111,7 +111,7 @@
       "name": "¿Hacen envíos a domicilio?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se cobra aparte."
+        "text": "Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se suma al total del pedido."
       }
     },
     {
@@ -306,7 +306,7 @@
         </div>
         <div class="roll-card-body">
           <h3>Roll de Oreo</h3>
-          <p>Trozos de oreo dentro de la masa y en el glaseado. ¿Qué esperás para probarlo?</p>
+          <p>Trozos de Oreo dentro de la masa y en el glaseado. ¿Qué esperás para probarlo?</p>
           <div class="roll-card-foot">
             <span class="roll-price" data-flavor-price="oreo">Precio: Incluido en la caja</span>
             <div class="roll-add-group">
@@ -350,7 +350,7 @@
       <ul class="local-list">
         <li><span>Zona</span><span data-contenido="local.zona">Cerca de Barrio Obrero, Paysandú</span></li>
         <li><span>¿Cuándo estamos?</span><span data-contenido="local.cuando">Los días sábado</span></li>
-        <li><span>¿A qué hora?</span><span data-contenido="local.hora">Alrededor del mediodia</span></li>
+        <li><span>¿A qué hora?</span><span data-contenido="local.hora">Alrededor del mediodía</span></li>
 
       </ul>
     </div>
@@ -382,7 +382,7 @@
       </details>
       <details data-faq>
         <summary data-contenido="faq.4.pregunta">¿Hacen envíos a domicilio?</summary>
-        <p data-contenido="faq.4.respuesta">Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se cobra aparte.</p>
+        <p data-contenido="faq.4.respuesta">Sí. Al hacer el pedido elegís retiro (cerca de Barrio Obrero, en Paysandú) o entrega en tu casa; el envío se suma al total del pedido.</p>
       </details>
       <details data-faq>
         <summary data-contenido="faq.5.pregunta">¿Qué días entregan?</summary>
@@ -488,7 +488,7 @@
       <label class="field field-direccion is-hidden" id="direccionField">
         <span>Dirección de entrega <span class="required-mark">*</span></span>
         <input type="text" name="direccion" placeholder="Ej: Bruno Goyeneche 976">
-        <small class="field-hint">El envío se cobra aparte: te confirmamos el costo por WhatsApp.</small>
+        <small class="field-hint" id="ayudaEnvio">El envío cuesta $25 y se suma al total.</small>
       </label>
       <div class="field">
         <span>¿Cómo vas a pagar? <span class="required-mark">*</span></span>
@@ -541,6 +541,7 @@
       <input type="hidden" name="order_detail" id="formOrderDetail">
       <input type="hidden" name="subject" value="Nuevo pedido · Cinniminies">
 
+      <p class="form-total" id="formTotal"></p>
       <button type="submit" class="btn-primary cart-submit" id="cartSubmit" disabled>Confirmar pedido</button>
       <p class="form-hint" id="formHint"></p>
       <p class="form-error" id="formError"></p>
