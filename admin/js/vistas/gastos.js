@@ -3,7 +3,7 @@ import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, 
 import { irA, refrescarSi } from '../app.js';
 
 const AYUDA = {
-  merma: 'Rolls quemados, muestras regaladas…',
+  merma: 'Rolls quemados, muestras regaladas… Si se perdió un ingrediente (bolsa rota), cargalo en Producción → Stock → Registrar pérdida.',
   tanda_descartada: 'Una tanda que salió mal. Cargá también la tanda en Tandas para que descuente los insumos.',
   gasto_operativo: 'Bolsas, transporte, cosas chicas del negocio.',
   comision: 'Comisiones del banco o por ventas.',

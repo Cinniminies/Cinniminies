@@ -1,16 +1,21 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, interruptor, plural, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton } from '../util.js';
+import {
+  h, vaciar, chips, interruptor, plural, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton,
+  campo, campoFecha, grupo,
+} from '../util.js';
 import { subnavProduccion } from '../componentes.js';
-import { irA } from '../app.js';
+import { catalogo } from '../catalogo.js';
+import { irA, refrescarSi } from '../app.js';
 import {
   filas as filasDesvio, resumen as resumenDesvios, ordenar, escala, porConteo, REVISAR,
   estadoAjuste, propuesta, cambios, MINIMO_AJUSTE,
 } from '../desvios.js';
 
-// 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas), alertas y conteos.
+// 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas − pérdidas), alertas y conteos.
 // Tres columnas: "Registro" para cargar lo contado, "Hay" (el último conteo) y "Debería haber" (el teórico).
 // Cada conteo guarda su desvío (ver Desvíos) y el último se puede deshacer.
 export async function mostrar(cont, { id }) {
+  if (id === 'perdida') return perdida(cont);
   return id === 'desvios' ? desvios(cont) : resumen(cont, id === 'conteo');
 }
 
@@ -74,9 +79,10 @@ async function resumen(cont, enfocar) {
   vaciar(cont, h('div', { class: 'con-guardar' },
     subnavProduccion('stock'),
     h('p', { class: 'ayuda' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo; ',
-      '"Debería haber" arranca de ahí y suma lo comprado y resta lo que usaron las tandas y las cajas vendidas después.'),
+      '"Debería haber" arranca de ahí y suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después.'),
     alertas ? h('p', {}, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
+      h('a', { class: 'btn', href: '#/stock/perdida' }, 'Registrar pérdida'),
       ultimo ? botonDeshacer(ultimo) : null),
     tabla('ingrediente', 'Ingredientes'),
     tabla('packaging', 'Packaging')),
@@ -112,6 +118,98 @@ function resultado(cont, r, unidad) {
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock' }, 'Volver al stock'),
       h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
       botonDeshacer({ fecha: hoyISO() }, 'Deshacer este conteo'))));
+}
+
+// Pérdida de un insumo (se rompió una bolsa, se venció algo): sale del stock teórico. Lo que valía se muestra,
+// pero no se suma a gastos: la plata ya se contó al cargar la compra.
+const UNIDADES_PERDIDA = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'], cm: ['m', 'cm'] };
+const FACTOR_PERDIDA = { g: 1, kg: 1000, ml: 1, L: 1000, un: 1, paq: 1, cm: 1, m: 100 };
+
+async function perdida(cont) {
+  const [cat, costos, ultimas] = await Promise.all([
+    catalogo(),
+    q(sb.from('v_costo_insumo').select('insumo_id,costo_unitario')),
+    q(sb.from('perdidas').select('id,fecha,cantidad,costo,motivo,insumos(nombre,unidad_base)')
+      .order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(20)),
+  ]);
+  const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, Number(c.costo_unitario) || 0]));
+  const f = { fecha: hoyISO(), insumo: '', cantidad: '', unidad: null, motivo: '' };
+  const insumo = () => (f.insumo ? cat.insumo(f.insumo) : null);
+  const base = () => Number(f.cantidad) * (FACTOR_PERDIDA[f.unidad] || 1);
+
+  const unidadesCont = h('div');
+  const vistaPrevia = h('p', { class: 'ayuda' });
+  function previa() {
+    const i = insumo();
+    if (!i || !(Number(f.cantidad) > 0)) { vaciar(vistaPrevia); return; }
+    vaciar(vistaPrevia, `= ${cantidad(base(), i.unidad_base)} · valía ${pesos(base() * (costoDe[i.id] || 0))}`);
+  }
+  function dibujarUnidades() {
+    const i = insumo();
+    const lista = i ? UNIDADES_PERDIDA[i.unidad_base] || [i.unidad_base] : [];
+    if (!lista.includes(f.unidad)) f.unidad = lista[0] || null;
+    vaciar(unidadesCont, lista.length > 1
+      ? grupo('Unidad', chips(lista.map((u) => ({ valor: u, texto: u })), f.unidad, (u) => { f.unidad = u; previa(); }))
+      : null);
+  }
+
+  const activos = (tipo) => cat.insumos.filter((i) => i.tipo === tipo && i.activo).map((i) => h('option', { value: i.id }, i.nombre));
+  const selInsumo = h('select', { onchange: (e) => { f.insumo = e.target.value; dibujarUnidades(); previa(); } },
+    h('option', { value: '' }, 'Elegí qué se perdió…'),
+    h('optgroup', { label: 'Ingredientes' }, activos('ingrediente')),
+    h('optgroup', { label: 'Packaging' }, activos('packaging')));
+
+  const guardar = h('button', { class: 'btn primario bloque', type: 'button' }, 'Guardar pérdida');
+  guardar.onclick = () => conBoton(guardar, async () => {
+    const i = insumo();
+    if (!i) throw new Error('Elegí qué se perdió');
+    if (!(Number(f.cantidad) > 0)) throw new Error('Poné cuánto se perdió');
+    const r = await q(sb.from('perdidas').insert({
+      fecha: f.fecha, insumo_id: i.id, cantidad: base(), motivo: f.motivo.trim() || null,
+    }).select('id,costo').single());
+    toast(`Pérdida guardada: ${cantidad(base(), i.unidad_base)} de ${i.nombre.toLowerCase()} (${pesos(r.costo)})`, {
+      accion: {
+        texto: 'Deshacer',
+        fn: async () => { await q(sb.from('perdidas').delete().eq('id', r.id)); toast('Pérdida deshecha'); refrescarSi('#/stock/perdida'); },
+      },
+    });
+    irA('#/stock/perdida');
+  });
+
+  vaciar(cont,
+    subnavProduccion('stock'),
+    h('div', { class: 'card' },
+      h('p', { class: 'ayuda' }, 'Se rompió una bolsa, se venció algo… Lo que cargues sale del stock teórico. '
+        + 'Lo que valía queda anotado, pero no se suma a gastos: esa plata ya se contó al cargar la compra.'),
+      campoFecha(f.fecha, (v) => { f.fecha = v; }),
+      campo('Qué', selInsumo),
+      h('div', { class: 'fila-campos' },
+        campo('Cantidad', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any',
+          oninput: (e) => { f.cantidad = e.target.value; previa(); } }))),
+      unidadesCont,
+      vistaPrevia,
+      campo('Motivo', h('input', { placeholder: 'Se rompió la bolsa', oninput: (e) => { f.motivo = e.target.value; } })),
+      guardar),
+
+    h('h2', {}, 'Últimas pérdidas'),
+    ultimas.length
+      ? h('ul', { class: 'lista' }, ultimas.map((p) => {
+        const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
+        borrar.onclick = () => conBoton(borrar, async () => {
+          if (!confirm(`¿Borrar la pérdida de ${p.insumos.nombre} del ${fechaCorta(p.fecha)}? Vuelve al stock.`)) return;
+          await q(sb.from('perdidas').delete().eq('id', p.id));
+          toast('Borrada');
+          irA('#/stock/perdida');
+        });
+        return h('li', {}, h('div', { class: 'fila' },
+          h('div', { class: 'princ' },
+            h('div', { class: 't1' }, `${p.insumos.nombre} · ${cantidad(p.cantidad, p.insumos.unidad_base)}`),
+            h('div', { class: 't2' }, `${fechaCorta(p.fecha)}${p.motivo ? ' · ' + p.motivo : ''}`)),
+          h('span', { class: 'monto' }, pesos(p.costo)),
+          borrar));
+      }))
+      : h('p', { class: 'vacio' }, 'Todavía no hay pérdidas cargadas.'),
+    h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock' }, 'Volver al stock')));
 }
 
 // Desvíos: por insumo, lo que dicen las recetas contra lo que se usó de verdad (desde el último ajuste

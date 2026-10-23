@@ -1026,3 +1026,42 @@ begin
   reset role;
   raise exception 'TODO OK';
 end $$;
+
+
+-- Pérdida de insumos (23/10): resta del stock teórico, guarda lo que valía y no suma a gastos ni a los desvíos.
+do $$
+declare
+  har uuid := (select id from insumos where nombre = 'Harina');
+  antes record;
+  despues record;
+  gastos_antes numeric := (select coalesce(sum(gastos), 0) from v_resumen_mensual);
+  p perdidas%rowtype;
+  r jsonb;
+begin
+  select * into antes from v_stock where insumo_id = har;
+  insert into perdidas (insumo_id, cantidad, motivo) values (har, 1000, 'PRUEBA bolsa rota') returning * into p;
+  assert p.costo = round(1000 * costo_insumo(har), 2), 'costo de lo perdido';
+  assert p.fecha = hoy(), 'fecha de hoy por defecto';
+  select * into despues from v_stock where insumo_id = har;
+  assert despues.teorico = antes.teorico - 1000 and despues.perdido = antes.perdido + 1000, 'resta del teórico';
+  assert (select coalesce(sum(gastos), 0) from v_resumen_mensual) = gastos_antes, 'no es un gasto';
+
+  -- Al contar, lo perdido no cuenta como usado (no mueve los desvíos de la receta)
+  r := registrar_conteo(jsonb_build_object('items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', despues.teorico))));
+  assert (r->0->>'desvio')::numeric = 0, 'conteo igual al teórico';
+  assert (select usado from conteos where insumo_id = har order by creado_en desc limit 1)
+         is not distinct from (case when antes.fecha_conteo is not null then despues.usado_tandas + despues.usado_ventas end),
+         'usado sin la pérdida';
+
+  -- Packaging nuevo: las ventas de antes de su alta no le restan (sin conteo de arranque)
+  declare
+    nuevo uuid;
+  begin
+    insert into insumos (nombre, tipo, unidad_base) values ('PRUEBA cinta', 'packaging', 'cm') returning id into nuevo;
+    update insumos set creado_en = now() + interval '1 second' where id = nuevo;
+    insert into caja_insumos values ((select id from insumos where nombre = 'Caja Box de 6'), nuevo, 10);
+    assert (select teorico from v_stock where insumo_id = nuevo) = 0, 'packaging nuevo arranca en 0';
+  end;
+
+  raise exception 'TODO OK';
+end $$;
