@@ -1086,6 +1086,19 @@ a:hover{ color: var(--canela-hover); }
   color: #B2462E;
 }
 
+.form-total{
+  font-weight: 700;
+  color: var(--cafe);
+  margin: 4px 0 10px;
+}
+
+.field-error{
+  font-size: 12px;
+  font-weight: 600;
+  color: #B2462E;
+}
+.field-error[hidden]{ display: none; }
+
 .form-error{
   color: #B2462E;
   font-size: 13px;

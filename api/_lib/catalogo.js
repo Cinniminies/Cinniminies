@@ -42,6 +42,7 @@ function limpiar(c) {
       precio_unidad: num(s.precio_unidad),
     })),
     contenido: limpiarContenido(c?.contenido),
+    envio: num(c?.envio),
     formatos: (c?.formatos || []).map((f) => ({
       nombre: txt(f.nombre),
       tipo: f.tipo,

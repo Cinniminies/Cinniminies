@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // /api/catalogo (lo que se carga en /admin) y los reemplaza. Si la API falla, quedan estos y las
   // tarjetas escritas en index.html, así la web nunca se queda sin menú.
   const BOX_PRICES = { 6: 250, 12: 450 };
+  let PRECIO_ENVIO = 25; // con entrega se suma al total (parámetro precio_envio, viene en /api/catalogo)
   const CUSTOM_FLAVOR_PRICES = { canela: 50, dulce: 55, oreo: 60, nutella: 65 };
   let CUSTOM_MIN = 3;
   let CUSTOM_MAX = 12;
@@ -412,10 +413,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // recién completada esta caja: ofrecemos seguir pidiendo o ir al carrito
     if (!wasComplete && boxIsComplete(box)) {
-      const message = isCustomBox(box)
-        ? `Tu caja personalizada quedó lista con ${filled} rolls.`
-        : `Tu caja de ${box.size} rolls quedó completa.`;
-      openBoxCompleteModal(message);
+      // la personalizada se puede pedir desde el mínimo, pero sigue admitiendo rolls hasta el máximo
+      if (isCustomBox(box)) {
+        openBoxCompleteModal(`Tu caja personalizada ya tiene ${filled} rolls: podés pedirla así o seguir sumando hasta ${CUSTOM_MAX}.`,
+          '¡Ya podés pedir!');
+      } else {
+        openBoxCompleteModal(`Tu caja de ${box.size} rolls quedó completa.`);
+      }
     }
   });
 
@@ -620,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const r = await fetch('/api/catalogo', { signal: corte.signal });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const cat = await r.json();
+      if (Number.isFinite(cat.envio)) PRECIO_ENVIO = cat.envio;
       try { aplicarContenido(cat.contenido); } catch (e) { console.warn('No se pudieron aplicar los textos:', e.message); }
       actualizarPreguntas();
       actualizarCuenta();
@@ -668,10 +673,12 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Popup de "caja completa" ---------- */
   const boxCompleteModal = document.getElementById('boxCompleteModal');
   const boxCompleteText = document.getElementById('boxCompleteText');
+  const boxCompleteTitulo = document.getElementById('boxCompleteTitulo');
 
-  function openBoxCompleteModal(message) {
+  function openBoxCompleteModal(message, titulo = '¡Caja completa!') {
     if (!boxCompleteModal) return;
     if (boxCompleteText) boxCompleteText.textContent = message;
+    if (boxCompleteTitulo) boxCompleteTitulo.textContent = titulo;
     boxCompleteModal.classList.add('is-open');
   }
   function closeBoxCompleteModal() {
@@ -746,10 +753,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(Boolean).join(' ');
   }
 
+  const telError = document.getElementById('telError') || {};
+
   // Filtra mientras escriben: letras y símbolos nunca llegan a entrar al campo.
   telInput?.addEventListener('input', () => {
     const limpio = normalizarTel(telInput.value);
     if (telInput.value !== limpio) telInput.value = limpio;
+    if (TEL_URUGUAYO.test(limpio)) telError.hidden = true;
+  });
+  // Con el botón gris no se veía por qué no dejaba confirmar: se avisa al salir del campo.
+  telInput?.addEventListener('blur', () => {
+    const tel = normalizarTel(telInput.value);
+    telError.hidden = tel === '' || TEL_URUGUAYO.test(tel);
   });
 
   /* ---------- Nombre: sin números ---------- */
@@ -986,7 +1001,21 @@ document.addEventListener('DOMContentLoaded', () => {
       && !cartHasIncompleteBox();
   }
 
+  // Total con el envío, arriba del botón: lo mismo que va a guardar la base.
+  const formTotal = document.getElementById('formTotal');
+  function actualizarTotalForm() {
+    if (!formTotal || !stepForm) return;
+    const cajas = cartTotal();
+    const envio = stepForm.modalidad.value === 'Coordinar entrega' ? PRECIO_ENVIO : 0;
+    formTotal.textContent = !cajas ? ''
+      : envio ? `Total: $${cajas + envio} (cajas $${cajas} + envío $${envio})`
+      : `Total: $${cajas}`;
+    const ayudaEnvio = document.getElementById('ayudaEnvio');
+    if (ayudaEnvio) ayudaEnvio.textContent = `El envío cuesta $${PRECIO_ENVIO} y se suma al total.`;
+  }
+
   function updateSubmitBtn() {
+    actualizarTotalForm();
     if (!submitBtn || enviandoPedido) return;
     const listo = formularioCompleto();
     submitBtn.disabled = !listo;
@@ -1223,7 +1252,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return `- ${boxLabel}: ${flavorList}`;
     }).join('\n');
 
-    const total = guardado?.total ?? cartTotal();
+    const envio = guardado ? Number(guardado.envio) || 0 : (esEntrega ? PRECIO_ENVIO : 0);
+    const total = guardado?.total ?? cartTotal() + envio;
+    const lineaEnvio = envio ? `Envío: $${envio}` : '';
     // Lo que hizo la base con el código: descuento propio aplicado o de quién vino recomendado.
     const rec = guardado?.recomendacion;
     const codigoUsado = codigoField && !codigoField.hidden ? codigoInput.value.trim().toUpperCase() : '';
@@ -1241,6 +1272,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `Pago: ${pago}`,
       detailLines,
       lineaCodigo,
+      lineaEnvio,
       `Total: $${total}`,
       notas ? `Notas: ${notas}` : ''
     ].filter(Boolean).join('\n');
@@ -1287,7 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Armar el link de WhatsApp con todo prearmado
     const waMessage = encodeURIComponent(
-      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}${lineaCodigo ? `\n${lineaCodigo}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
+      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}${lineaCodigo ? `\n${lineaCodigo}` : ''}${lineaEnvio ? `\n${lineaEnvio}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
     );
     const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 
