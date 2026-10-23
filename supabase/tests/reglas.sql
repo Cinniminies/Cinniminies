@@ -1045,4 +1045,3 @@ begin
   reset role;
   raise exception 'TODO OK';
 end $$;
-
