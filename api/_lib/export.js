@@ -60,8 +60,8 @@ const VISTAS = {
     titulo: 'Stock teórico por insumo',
     columnas: [
       ['nombre', 'texto'], ['tipo', 'texto'], ['unidad_base', 'texto'],
-      ['fecha_conteo', 'fecha'], ['conteo', 'numero'], ['comprado', 'numero'],
-      ['usado_tandas', 'numero'], ['usado_ventas', 'numero'], ['teorico', 'numero'],
+      ['fecha_conteo', 'fecha'], ['conteo', 'numero'], ['hay', 'numero'], ['comprado', 'numero'],
+      ['usado_tandas', 'numero'], ['usado_ventas', 'numero'], ['perdido', 'numero'], ['teorico', 'numero'],
       ['stock_minimo', 'numero'], ['costo_unitario', 'dinero'], ['reponer', 'bool'],
       ['valor', 'dinero'],
     ],
