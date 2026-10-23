@@ -12,8 +12,8 @@ import {
 } from '../desvios.js';
 
 // 5.7 Stock teórico (último conteo + compras − tandas − cajas usadas − pérdidas), alertas y conteos.
-// Tres columnas: "Registro" para cargar lo contado, "Hay" (el último conteo + lo comprado después, que entra
-// medido) y "Debería haber" (el teórico).
+// Tres columnas: "Registro" para cargar lo contado, "Hay" (el último conteo + lo comprado − lo perdido después,
+// que se cargan medidos) y "Debería haber" (el teórico).
 // Cada conteo guarda su desvío (ver Desvíos) y el último se puede deshacer.
 export async function mostrar(cont, { id }) {
   if (id === 'perdida') return perdida(cont);
@@ -79,7 +79,7 @@ async function resumen(cont, enfocar) {
 
   vaciar(cont, h('div', { class: 'con-guardar' },
     subnavProduccion('stock'),
-    h('p', { class: 'ayuda' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo más lo que compraste después; ',
+    h('p', { class: 'ayuda' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo más lo que compraste y menos lo que se perdió después; ',
       '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después.'),
     alertas ? h('p', {}, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
