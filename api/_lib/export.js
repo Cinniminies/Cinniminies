@@ -21,7 +21,7 @@ const VISTAS = {
       ['precio_lista', 'dinero'], ['precio_cobrado', 'dinero'], ['descuento', 'dinero'],
       ['cobro_envio', 'dinero'], ['total', 'dinero'], ['costo_produccion', 'dinero'],
       ['costo_caja', 'dinero'], ['ganancia', 'dinero'], ['notas', 'texto'],
-      ['creado_en', 'fechahora'],
+      ['creado_en', 'fechahora'], ['propina', 'dinero'],
     ],
     orden: ['fecha', 'creado_en', 'id'],
   },

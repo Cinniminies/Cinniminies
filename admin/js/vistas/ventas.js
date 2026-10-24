@@ -162,6 +162,7 @@ async function detalle(cont, id) {
         fila('Precio de lista', pesos(v.precio_lista)),
         Number(v.descuento) ? fila(Number(v.descuento) > 0 ? 'Descuento' : 'Recargo', pesos(-v.descuento)) : null,
         Number(v.cobro_envio) ? fila('Envío', pesos(v.cobro_envio)) : null,
+        Number(v.propina) ? fila('Propina', pesos(v.propina)) : null,
         fila('Total', h('strong', {}, pesos(v.total))),
         fila('Costo de producción', pesos(v.costo_produccion)),
         fila('Costo de caja', pesos(v.costo_caja)),
@@ -199,6 +200,10 @@ async function editar(cont, id) {
   const envio = h('input', {
     type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: v.cobro_envio,
     oninput: (e) => { cambios.cobro_envio = e.target.value; },
+  });
+  const propina = h('input', {
+    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: Number(v.propina) || '', placeholder: '0',
+    oninput: (e) => { cambios.propina = e.target.value === '' ? 0 : Number(e.target.value); },
   });
   const campoEnvio = campo('Cobro de envío', envio);
   campoEnvio.hidden = v.entrega !== 'envio';
@@ -248,6 +253,7 @@ async function editar(cont, id) {
     grupo('Estado', chips(opciones(ETIQUETAS.estado_pago), v.estado_pago, (e) => { cambios.estado_pago = e; })),
     grupo('Tipo', chips(opciones(ETIQUETAS.tipo), v.tipo, (t) => { cambios.tipo = t; })),
     campo('Precio cobrado (sin envío)', precio, `Precio de lista: ${pesos(v.precio_lista)}. Vacío = precio de lista.`),
+    campo('Propina', propina, 'Aparte del precio: suma a lo cobrado y a la ganancia.'),
     campo('Origen', origen),
     campo('Notas', h('textarea', { value: v.notas || '', oninput: (e) => { cambios.notas = e.target.value; } })),
     h('details', { class: 'plegable', ontoggle: (e) => editor.mostrarCajas(e.target.open) },
