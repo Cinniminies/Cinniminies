@@ -363,7 +363,7 @@ end $$;
 do $$
 declare fallos int := 0;
 begin
-  begin update contenido_web set valor = '095226739' where clave = 'contacto.whatsapp'; exception when check_violation then fallos := fallos + 1; end;
+  begin update contenido_web set valor = '099111333' where clave = 'contacto.whatsapp'; exception when check_violation then fallos := fallos + 1; end;
   begin update contenido_web set valor = '@cinni' where clave = 'contacto.instagram'; exception when check_violation then fallos := fallos + 1; end;
   begin update contenido_web set valor = 'javascript:alert(1)' where clave = 'hero.foto'; exception when check_violation then fallos := fallos + 1; end;
   begin update contenido_web set valor = '' where clave = 'hero.frase'; exception when check_violation then fallos := fallos + 1; end;

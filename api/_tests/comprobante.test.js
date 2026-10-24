@@ -5,7 +5,7 @@ const { tipoReal, armarComprobante, guardarComprobante, ErrorComprobante, MAX_AR
 const handler = require('../comprobante.js');
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(20)]);
-const valido = { codigo: 'cm-2026-ab12', telefono: '095 226 739', archivo: `data:image/png;base64,${PNG.toString('base64')}` };
+const valido = { codigo: 'cm-2026-ab12', telefono: '099 111 333', archivo: `data:image/png;base64,${PNG.toString('base64')}` };
 
 test('tipoReal: por los primeros bytes', () => {
   assert.deepEqual(tipoReal(PNG), ['image/png', 'png']);
@@ -18,7 +18,7 @@ test('tipoReal: por los primeros bytes', () => {
 test('armarComprobante: normaliza y valida', () => {
   const c = armarComprobante(valido);
   assert.equal(c.codigo, 'CM-2026-AB12');
-  assert.equal(c.telefono, '095226739');
+  assert.equal(c.telefono, '099111333');
   assert.equal(c.tipo, 'image/png');
   assert.throws(() => armarComprobante({ ...valido, codigo: 'x' }), /número de pedido/);
   assert.throws(() => armarComprobante({ ...valido, telefono: '123' }), /celular/);

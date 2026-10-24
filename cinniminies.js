@@ -573,6 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const v = valor(el.dataset.contenido);
       if (v !== null) el.innerHTML = marcado(v);
     });
+    document.querySelectorAll('[data-contenido-placeholder]').forEach(el => {
+      const v = valor(el.dataset.contenidoPlaceholder);
+      if (v !== null) el.placeholder = v;
+    });
     document.querySelectorAll('[data-contenido-img]').forEach(img => {
       const v = valor(img.dataset.contenidoImg);
       if (!v || !/^(\/?img\/[\w./-]+|https:\/\/[^\s"'<>]+)$/.test(v)) return;

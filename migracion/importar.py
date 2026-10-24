@@ -56,8 +56,10 @@ CAJA_DE_FORMATO = {4: "Caja Box de 6", 6: "Caja Box de 6", 10: "Caja Box de 12",
 PESO_COSTO = {"Canela": 9.5096, "Dulce de Leche": 9.5458, "Oreo": 15.0061, "Nutella": 17.5427,
               SIN_DETALLE: 9.5096}
 
-# Correcciones confirmadas con los dueños
-ALIAS_CLIENTES = {"rominamuller": "Romina Salinas"}
+# Correcciones confirmadas con los dueños. Los alias de clientes (nombre mal cargado → nombre real) son
+# datos personales: van en migracion/datos/alias_clientes.json (fuera del repo), {"nombrenormalizado": "Nombre"}.
+_ALIAS = Path(__file__).parent / "datos" / "alias_clientes.json"
+ALIAS_CLIENTES = json.loads(_ALIAS.read_text(encoding="utf-8")) if _ALIAS.exists() else {}
 CLIENTES_DESCARTADOS = {"hola"}
 FILA_BOX12_CANELA = 110  # "Box de 12 Canela" con 2/2/2 cargado: se entregó 12 Canela
 
