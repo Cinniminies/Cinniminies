@@ -17,3 +17,9 @@ __pycache__/
 
 # Dependencias de api/ (npm install)
 node_modules/
+
+# Documentación interna (planes, números del negocio, notas de clientes): solo en la compu, no se publica
+docs/
+
+# Permisos locales de Claude Code
+.claude/settings.local.json

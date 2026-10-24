@@ -3,7 +3,7 @@
 --
 -- Antes v_stock descontaba las cajas al cargar la venta. Si había un conteo entre la carga y el horneado,
 -- las cajas del pedido seguían en el estante y se contaban: el teórico las volvía a sumar y, al hacer el
--- pedido, ya no las descontaba nadie. Pasó con 3 Box de 12 (Weber, Piovano, Long): cargadas el 13 y 16/10,
+-- pedido, ya no las descontaba nadie. Pasó con 3 Box de 12 de tres clientes: cargadas el 13 y 16/10,
 -- contadas el 16/10, hechas el 17/10 con el Plan de horneado; el conteo del 17/10 dio 0 contra 3 de teórico.
 --
 -- * ventas.hecho_en: cuándo dejó de estar por hacer (null mientras está por hacer). Lo pone un trigger:

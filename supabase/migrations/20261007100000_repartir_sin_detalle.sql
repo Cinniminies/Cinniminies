@@ -3,15 +3,15 @@
 --
 -- Criterio (29/09/2026):
 -- 1. Clientes que siempre compraron lo mismo: todo ese sabor.
---    · Liliana Perg (5 cajas): todas sus compras conocidas, antes y después, son 100 % Canela.
---    · Andreina Guarino (2 cajas): Canela en todas sus compras hasta agosto (y 2 Canela al día siguiente).
--- 2. Giovanna Firpo (02/07): siempre mezcla mitad Canela y mitad del sabor nuevo; la otra mitad se
+--    · Cliente A (5 cajas): todas sus compras conocidas, antes y después, son 100 % Canela.
+--    · Cliente B (2 cajas): Canela en todas sus compras hasta agosto (y 2 Canela al día siguiente).
+-- 2. Cliente C (02/07): siempre mezcla mitad Canela y mitad del sabor nuevo; la otra mitad se
 --    reparte como la mezcla DDL/Oreo de esa semana (13 a 10) → Canela 3, DDL 2, Oreo 1.
 -- 3. Clientes con una sola compra: mezcla de sabores del período (sin las "Sin detalle"),
 --    redondeada a la caja por mayor resto.
---    · 05/06 a 01/07 (Canela 57 %, DDL 43 %): Rosana Nuñez → Canela 3, DDL 3.
---    · 02/07 a 03/07 (Canela 45 %, DDL 31 %, Oreo 24 %): Martin Diaz → Canela 3, DDL 2, Oreo 1.
---    · 09/07 a 16/07 (Canela 61 %, Oreo 22 %, DDL 17 %): Alejandra Gutierrez → Canela 4, DDL 1, Oreo 1.
+--    · 05/06 a 01/07 (Canela 57 %, DDL 43 %): Cliente D → Canela 3, DDL 3.
+--    · 02/07 a 03/07 (Canela 45 %, DDL 31 %, Oreo 24 %): Cliente E → Canela 3, DDL 2, Oreo 1.
+--    · 09/07 a 16/07 (Canela 61 %, Oreo 22 %, DDL 17 %): Cliente F → Canela 4, DDL 1, Oreo 1.
 -- Resultado: Canela 61, DDL 8, Oreo 3.
 --
 -- Costo por roll: el mismo snapshot que tienen las otras ventas de ese sabor en esa fecha
@@ -20,20 +20,20 @@
 
 create temp table reparto (fila int, sabor text, unidades int, costo numeric) on commit drop;
 insert into reparto values
-  (35, 'Canela', 3, 10.223765), (35, 'Dulce de Leche', 3, 9.800961),    -- Rosana Nuñez 05/06
-  (39, 'Canela', 12, 10.223765),                                         -- Andreina Guarino 05/06
-  (45, 'Canela', 6, 10.184278),                                          -- Liliana Perg 12/06
-  (49, 'Canela', 6, 10.094278),                                          -- Liliana Perg 18/06
+  (35, 'Canela', 3, 10.223765), (35, 'Dulce de Leche', 3, 9.800961),    -- Cliente D 05/06
+  (39, 'Canela', 12, 10.223765),                                         -- Cliente B 05/06
+  (45, 'Canela', 6, 10.184278),                                          -- Cliente A 12/06
+  (49, 'Canela', 6, 10.094278),                                          -- Cliente A 18/06
   (52, 'Canela', 3, 9.617694), (52, 'Dulce de Leche', 2, 9.408528),
-  (52, 'Oreo', 1, 15.112417),                                            -- Giovanna Firpo 02/07
-  (53, 'Canela', 6, 9.617694),                                           -- Liliana Perg 02/07
+  (52, 'Oreo', 1, 15.112417),                                            -- Cliente C 02/07
+  (53, 'Canela', 6, 9.617694),                                           -- Cliente A 02/07
   (56, 'Canela', 3, 9.617694), (56, 'Dulce de Leche', 2, 9.408528),
-  (56, 'Oreo', 1, 15.112417),                                            -- Martin Diaz 02/07
-  (57, 'Canela', 6, 9.617694),                                           -- Liliana Perg 03/07
+  (56, 'Oreo', 1, 15.112417),                                            -- Cliente E 02/07
+  (57, 'Canela', 6, 9.617694),                                           -- Cliente A 03/07
   (65, 'Canela', 4, 9.680694), (65, 'Dulce de Leche', 1, 9.464528),
-  (65, 'Oreo', 1, 15.175417),                                            -- Alejandra Gutierrez 09/07
-  (69, 'Canela', 6, 9.680694),                                           -- Liliana Perg 15/07
-  (70, 'Canela', 6, 9.680694);                                           -- Andreina Guarino 16/07
+  (65, 'Oreo', 1, 15.175417),                                            -- Cliente F 09/07
+  (69, 'Canela', 6, 9.680694),                                           -- Cliente A 15/07
+  (70, 'Canela', 6, 9.680694);                                           -- Cliente B 16/07
 
 do $$
 declare

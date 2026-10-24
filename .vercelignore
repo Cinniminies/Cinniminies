@@ -1,0 +1,10 @@
+# Vercel publica los archivos del repo tal cual: lo que no es la web, /admin ni api/ no se sube.
+docs/
+migracion/
+supabase/
+scripts/
+admin/tests/
+api/_tests/
+**/*.md
+.claude/
+.env.example
