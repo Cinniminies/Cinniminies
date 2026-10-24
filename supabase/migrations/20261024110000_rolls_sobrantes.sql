@@ -1,7 +1,9 @@
 -- Rolls que sobraron de cada horneado y no se vendieron (pedido del 24/10/2026: "solo informe").
 --
 -- Un horneado = los días de tandas seguidos (por ejemplo sábado y domingo). Por horneado y sabor:
--- producidos (tandas) − usados (ventas, regalos y consumo propio) = sobrantes; su costo se toma como pérdida.
+-- producidos (tandas) − usados (ventas, regalos y consumo propio) = sobrantes.
+-- Pérdida: solo los sobrantes dentro de lo que rinde la receta (tandas × rolls por tanda). Si una tanda de 12
+-- dio 13, ese roll de más salió con los mismos ingredientes: si no se vende no se perdió nada.
 -- No se carga nada a mano y no va a gastos (la plata ya salió en las compras): es para ver.
 --
 -- ¿Qué ventas son de cada horneado?
@@ -59,8 +61,10 @@ with dias as (
 ), horneados as (
   select g, min(fecha) as inicio, max(fecha) as fin from grupos group by g
 ), prod as (
-  select h.g, t.sabor_id, sum(t.rolls)::int as rolls
-    from tandas t join horneados h on t.fecha between h.inicio and h.fin
+  select h.g, t.sabor_id, sum(t.rolls)::int as rolls, sum(t.cantidad * s.rolls_por_tanda) as esperados
+    from tandas t
+    join sabores s on s.id = t.sabor_id
+    join horneados h on t.fecha between h.inicio and h.fin
    group by 1, 2
 ), ventas_h as (
   select v.id,
@@ -84,7 +88,9 @@ select h.inicio,
        coalesce(p.rolls, 0) as producidos,
        coalesce(u.rolls, 0) as usados,
        greatest(coalesce(p.rolls, 0) - coalesce(u.rolls, 0), 0) as sobrantes,
-       round(greatest(coalesce(p.rolls, 0) - coalesce(u.rolls, 0), 0) * coalesce(costo_roll(s.id, h.fin), 0), 2) as costo
+       greatest(floor(least(coalesce(p.rolls, 0), coalesce(p.esperados, 0)))::int - coalesce(u.rolls, 0), 0) as perdidos,
+       round(greatest(floor(least(coalesce(p.rolls, 0), coalesce(p.esperados, 0)))::int - coalesce(u.rolls, 0), 0)
+             * coalesce(costo_roll(s.id, h.fin), 0), 2) as costo
   from horneados h
   cross join sabores s
   left join prod p on p.g = h.g and p.sabor_id = s.id

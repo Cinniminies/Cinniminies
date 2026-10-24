@@ -105,21 +105,23 @@ function seccionSobrantes(filas, cat) {
     h('h2', {}, 'Rolls que sobraron'),
     h('p', { class: 'ayuda' }, 'Por horneado: lo que salió de las tandas menos lo vendido, regalado o comido. '
       + 'Los rolls sueltos que vendas en los días siguientes se descuentan del último horneado. '
-      + 'El costo es lo que se perdió; no se suma a gastos porque esa plata ya salió en las compras.'),
+      + 'Solo es pérdida lo que sobra dentro de lo que rinde la receta: si una tanda de 12 dio 13, el de más no cuenta. '
+      + 'No se suma a gastos porque esa plata ya salió en las compras.'),
     horneados.map((fs) => {
       const sob = suma(fs, 'sobrantes');
+      const perd = suma(fs, 'perdidos');
       return h('details', { class: 'plegable' },
-        h('summary', {}, `${titulo(fs[0])} · `, sob ? `${plural(sob, 'roll')} sin vender · ${pesos(suma(fs, 'costo'))}` : 'no sobró nada'),
+        h('summary', {}, `${titulo(fs[0])} · `, sob ? `${plural(sob, 'roll')} sin vender · ${perd ? `perdido ${pesos(suma(fs, 'costo'))}` : 'sin pérdida'}` : 'no sobró nada'),
         h('table', { class: 'tabla' },
           h('tr', {}, h('th', {}, 'Sabor'), h('th', { class: 'num-der' }, 'Hechos'), h('th', { class: 'num-der' }, 'Vendidos'),
-            h('th', { class: 'num-der' }, 'Sobraron'), h('th', { class: 'num-der' }, 'Costo')),
+            h('th', { class: 'num-der' }, 'Sobraron'), h('th', { class: 'num-der' }, 'Perdido')),
           fs.sort((a, b) => orden(a) - orden(b)).map((f) => h('tr', {}, h('td', {}, f.nombre),
             h('td', { class: 'num-der' }, f.producidos),
             h('td', { class: 'num-der' }, f.usados),
             h('td', { class: 'num-der' }, Number(f.sobrantes) ? h('strong', {}, f.sobrantes) : '—'),
-            h('td', { class: 'num-der' }, Number(f.costo) ? pesos(f.costo) : '—')))));
+            h('td', { class: 'num-der' }, Number(f.costo) ? `${f.perdidos} · ${pesos(f.costo)}` : '—')))));
     }),
-    h('p', { class: 'ayuda' }, `Perdido desde septiembre: ${pesos(total)} (${plural(suma(filas, 'sobrantes'), 'roll')}).`),
+    h('p', { class: 'ayuda' }, `Perdido desde septiembre: ${pesos(total)} (${plural(suma(filas, 'perdidos'), 'roll')}).`),
   ];
 }
 
