@@ -660,13 +660,13 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .leyenda .perdido { --c: var(--graf-perdido); }
 
 /* ---------- Dispositivos ---------- */
-.pendientes { display: grid; gap: .75rem; margin-bottom: 1.25rem; }
-@media (min-width: 700px) { .pendientes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } }
-.pendiente { background: var(--card); border: 2px solid var(--marca); border-radius: var(--radio); padding: 1rem; box-shadow: var(--sombra); }
-.pendiente .etq { font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--marca); }
-.pendiente h3 { margin: .2rem 0 .1rem; font-size: 1.1rem; }
-.codigo { display: flex; gap: .35rem; margin: .7rem 0 .9rem; }
-.codigo span { display: grid; place-items: center; width: 2.4rem; height: 2.8rem; border-radius: 10px; background: var(--marca-suave);
+.disp-pendientes { display: grid; gap: .75rem; margin-bottom: 1.25rem; }
+@media (min-width: 700px) { .disp-pendientes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } }
+.disp-pendiente { background: var(--card); border: 2px solid var(--marca); border-radius: var(--radio); padding: 1rem; box-shadow: var(--sombra); }
+.disp-pendiente .etq { font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--marca); }
+.disp-pendiente h3 { margin: .2rem 0 .1rem; font-size: 1.1rem; }
+.disp-codigo { display: flex; gap: .35rem; margin: .7rem 0 .9rem; }
+.disp-codigo span { display: grid; place-items: center; width: 2.4rem; height: 2.8rem; border-radius: 10px; background: var(--marca-suave);
   color: var(--marca); font: 700 1.5rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .disps { display: grid; gap: .6rem; }
 @media (min-width: 700px) { .disps { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); } }
