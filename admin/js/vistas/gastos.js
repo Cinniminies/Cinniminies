@@ -67,8 +67,8 @@ export async function mostrar(cont, { id } = {}) {
     irA(aca);
   });
 
-  vaciar(cont,
-    h('div', { class: 'card' },
+  vaciar(cont, h('div', { class: 'dos-col' },
+    h('div', { class: 'card col-fija' },
       h('div', { class: 'sentido' }, chips([{ valor: 'sale', texto: 'Sale plata' }, { valor: 'entra', texto: 'Entra plata' }],
         entra ? 'entra' : 'sale', (v) => {
           entra = v === 'entra';
@@ -83,9 +83,10 @@ export async function mostrar(cont, { id } = {}) {
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),
       guardar),
 
+    h('div', {},
     h('h2', {}, 'Últimos movimientos'),
     historial.length
-      ? h('ul', { class: 'lista' }, historial.map((g) => {
+      ? h('ul', { class: 'lista en-grilla' }, historial.map((g) => {
         const esIngreso = g.tabla === 'ingresos';
         const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
         borrar.onclick = () => conBoton(borrar, async () => {
@@ -102,5 +103,5 @@ export async function mostrar(cont, { id } = {}) {
           h('span', { class: 'monto' + (esIngreso ? ' entra' : '') }, esIngreso ? `+ ${pesos(g.monto)}` : pesos(g.monto)),
           borrar));
       }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay gastos ni ingresos.'));
+      : h('p', { class: 'vacio' }, 'Todavía no hay gastos ni ingresos.'))));
 }

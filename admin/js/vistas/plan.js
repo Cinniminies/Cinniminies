@@ -138,10 +138,18 @@ export async function mostrar(cont) {
     dibujarTiempo();
   }
 
-  // Ingredientes de una tanda mezclada: cada sabor pone su receta en proporción a sus rolls
-  // (lo mismo que se descuenta del stock al registrar). Una columna por sabor y el total para pesar.
+  // Ingredientes de una tanda mezclada, como lista para pesar: el total grande y, abajo, cuánto pone cada sabor
+  // (su receta en proporción a sus rolls, lo mismo que se descuenta del stock). Cada sabor de masa compartida
+  // tiene su color fijo (--serie-1, 2, 3 en el orden del catálogo), así se reconoce en todas las tandas.
   function desglose(t) {
-    const partes = t.sabores.map((s) => ({ ...s, parte: s.rolls / (cat.sabor(s.sabor_id)?.rolls_por_tanda || 12) }));
+    const colorDe = (id) => {
+      const i = compartidos.findIndex((x) => x.id === id);
+      return i >= 0 && i < 3 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
+    };
+    const partes = t.sabores.map((s) => ({
+      ...s, corto: cat.sabor(s.sabor_id)?.nombre_corto || s.nombre, color: colorDe(s.sabor_id),
+      parte: s.rolls / (cat.sabor(s.sabor_id)?.rolls_por_tanda || 12),
+    }));
     const filas = new Map();
     for (const p of partes) {
       for (const r of recetas.filter((x) => x.sabor_id === p.sabor_id && Number(x.cantidad) > 0)) {
@@ -152,17 +160,22 @@ export async function mostrar(cont) {
     const lista = [...filas.values()].filter((f) => f.insumo).sort((a, b) => a.insumo.nombre.localeCompare(b.insumo.nombre));
     const redondo = (n, u) => cantidad(u === 'un' || u === 'paq' ? Math.round(n * 10) / 10 : Math.round(n), u);
     return h('details', { class: 'plegable', style: 'margin-top:.5rem' },
-      h('summary', {}, 'Ingredientes de esta tanda'),
-      h('table', { class: 'tabla' },
-        h('tr', {}, h('th', {}, 'Ingrediente'),
-          partes.map((p) => h('th', { class: 'num-der' }, cat.sabor(p.sabor_id)?.nombre_corto || p.nombre)),
-          h('th', { class: 'num-der' }, 'Total')),
-        lista.map((f) => h('tr', {}, h('td', {}, f.insumo.nombre),
-          partes.map((p) => h('td', { class: 'num-der' }, f.por[p.sabor_id] ? redondo(f.por[p.sabor_id], f.insumo.unidad_base) : '—')),
-          h('td', { class: 'num-der' }, h('strong', {},
-            redondo(Object.values(f.por).reduce((a, b) => a + b, 0), f.insumo.unidad_base)))))),
-      h('p', { class: 'ayuda', style: 'margin:.25rem 0 0' }, 'Cada sabor pone su receta en proporción a sus rolls. '
-        + 'El total es lo que pesás para esta tanda.'));
+      h('summary', {}, 'Ingredientes para pesar'),
+      h('div', { class: 'leyenda' }, partes.map((p) => h('span', { style: `--c:${p.color}` }, h('i'), `${p.nombre} · ${p.rolls} rolls`))),
+      h('ul', { class: 'pesar' }, lista.map((f) => {
+        const u = f.insumo.unidad_base;
+        const total = Object.values(f.por).reduce((a, b) => a + b, 0);
+        const aportes = partes.filter((p) => f.por[p.sabor_id]);
+        return h('li', {},
+          h('div', { class: 'pesar-cab' }, h('span', {}, f.insumo.nombre), h('strong', {}, redondo(total, u))),
+          h('div', { class: 'pesar-barra', 'aria-hidden': 'true' }, aportes.map((p) => h('span', {
+            style: `--c:${p.color};flex:${f.por[p.sabor_id]}`, title: `${p.nombre}: ${redondo(f.por[p.sabor_id], u)}`,
+          }))),
+          h('div', { class: 'pesar-partes' }, aportes.length > 1
+            ? aportes.map((p) => `${p.corto} ${redondo(f.por[p.sabor_id], u)}`).join(' · ')
+            : `Solo ${aportes[0].nombre}`));
+      })),
+      h('p', { class: 'ayuda', style: 'margin:.5rem 0 0' }, 'Cada sabor pone su receta en proporción a sus rolls.'));
   }
 
   // Calculadora de tiempo: arranca con las tandas del plan (se pueden cambiar) y los tiempos guardados.
@@ -244,8 +257,10 @@ export async function mostrar(cont) {
     : h('p', { class: 'vacio', style: 'padding:0' }, 'No hay ventas por hacer. Al cargar una venta, elegí "Por hacer"; '
       + 'los pedidos web confirmados entran solos.');
 
+  // En la compu: a la izquierda qué se hornea (pedidos y extra); a la derecha el resultado y el tiempo.
   vaciar(cont,
     subnavProduccion('plan'),
+    h('div', { class: 'dos-col' }, h('div', { class: 'col-fija' },
     h('div', { class: 'card' },
       campo('Día de horneado', fecha),
       pedidosNuevos.length ? h('p', { class: 'ayuda' }, h('a', { href: '#/pedidos' },
@@ -260,8 +275,8 @@ export async function mostrar(cont) {
       sabores.map((s) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, s.nombre, s.masa_propia ? h('div', { class: 'ayuda' }, 'Masa propia') : null),
         stepper(estado.extra[s.id] || 0, (v) => { estado.extra[s.id] = v; calcular(); }, { min: 0, max: 48, paso: 6 })))),
-    resultado,
-    tiempo);
+),
+    h('div', {}, resultado, tiempo)));
   vaciar(resultado, h('p', { class: 'cargando' }, 'Calculando…'));
   calcular();
 }
