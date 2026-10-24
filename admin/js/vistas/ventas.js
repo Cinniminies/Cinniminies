@@ -103,7 +103,7 @@ async function leerVenta(id) {
   const [v, lineas] = await Promise.all([
     q(sb.from('v_ventas').select('*').eq('id', id).maybeSingle()),
     q(sb.from('venta_lineas')
-      .select('id,formato_id,cantidad,caja_insumo_id,precio_lista,costo_caja,formatos(nombre,tipo),insumos(nombre),venta_linea_sabores(sabor_id,unidades,costo_unitario,sabores(nombre))')
+      .select('id,formato_id,cantidad,caja_insumo_id,precio_lista,costo_caja,formatos(nombre,tipo),insumos(nombre),venta_linea_sabores(sabor_id,unidades,costo_unitario,sin_glaseado,sabores(nombre))')
       .eq('venta_id', id)),
   ]);
   if (!v) throw new Error('La venta no existe (¿la borraron?)');
@@ -155,7 +155,8 @@ async function detalle(cont, id) {
       lineas.map((l) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' },
           h('strong', {}, `${l.cantidad > 1 ? l.cantidad + ' × ' : ''}${l.formatos.nombre}`),
-          h('div', { class: 'ayuda' }, l.venta_linea_sabores.map((s) => `${s.sabores.nombre} ${s.unidades}`).join(' · '),
+          h('div', { class: 'ayuda' }, l.venta_linea_sabores.map((s) => `${s.sabores.nombre} ${s.unidades}${
+            s.sin_glaseado ? ` (${s.sin_glaseado === s.unidades ? '' : s.sin_glaseado + ' '}sin glaseado)` : ''}`).join(' · '),
             ` · ${l.insumos?.nombre || 'sin caja'}`)),
         h('span', { class: 'monto' }, pesos(l.precio_lista)))),
       h('table', { class: 'tabla', style: 'margin-top:.75rem' },
@@ -188,6 +189,7 @@ async function editar(cont, id) {
     cantidad: l.cantidad,
     caja: l.caja_insumo_id,
     sabores: Object.fromEntries(l.venta_linea_sabores.map((s) => [s.sabor_id, s.unidades])),
+    sinGlaseado: Object.fromEntries(l.venta_linea_sabores.filter((s) => s.sin_glaseado).map((s) => [s.sabor_id, s.sin_glaseado])),
   }));
   let productosTocados = false;
   const editor = editorLineas(cat, lineasEdit, () => { productosTocados = true; });

@@ -189,6 +189,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--marca); out
 .stepper-fila .nombre { flex: 1; }
 .stepper-fila .nombre small { color: var(--suave); }
 .stepper-fila .nombre .link { text-decoration-style: dotted; text-underline-offset: 3px; }
+.stepper-fila.sub { padding: 0 0 .35rem 1rem; }
+.stepper-fila + .stepper-fila.sub { border-top: 0; }
 .stepper { display: flex; align-items: center; gap: .35rem; }
 .stepper button {
   width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid var(--borde);

@@ -57,7 +57,8 @@ export function elegirCliente(lista, inicial, alCambiar, origenes = []) {
 }
 
 // Editor de los productos de una venta: una o más líneas (formato + sabores + caja).
-// `lineas`: [{ formato_id, cantidad, caja (undefined = la de siempre | null | id), sabores: {sabor_id: unidades} }].
+// `lineas`: [{ formato_id, cantidad, caja (undefined = la de siempre | null | id), sabores: {sabor_id: unidades},
+//             sinGlaseado: {sabor_id: rolls sin glaseado} }].
 // El editor modifica ese mismo array (así quien lo usa puede guardar el borrador).
 export function editorLineas(cat, lineas, alCambiar) {
   const cont = h('div', { class: 'editor-lineas' });
@@ -92,15 +93,31 @@ export function editorLineas(cat, lineas, alCambiar) {
       const libre = tope - (total - actual);
       const completar = f.tipo === 'caja_fija' && libre > actual
         ? () => { l.sabores[s.id] = libre; avisar(); } : null;
-      return h('div', { class: 'stepper-fila' },
+      const sinGlaseado = l.sinGlaseado?.[s.id] || 0;
+      if (sinGlaseado > actual) { if (actual) l.sinGlaseado[s.id] = actual; else delete l.sinGlaseado[s.id]; }
+      return [h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' },
           completar
             ? h('button', { type: 'button', class: 'link', onclick: completar, title: 'Completar la caja con este sabor' }, s.nombre)
             : s.nombre,
           s.activo ? null : h('small', {}, ' (inactivo)')),
         stepper(actual, (v) => { if (v) l.sabores[s.id] = v; else delete l.sabores[s.id]; avisar(); },
-          { min: 0, max: Math.max(actual, libre) }));
+          { min: 0, max: Math.max(actual, libre) })),
+      // Cuántos de ese sabor van sin glaseado (solo si se abrió la opción en esta línea)
+      l.verGlaseado && actual ? h('div', { class: 'stepper-fila sub' },
+        h('div', { class: 'nombre' }, h('small', {}, `↳ ${s.nombre} sin glaseado`)),
+        stepper(Math.min(sinGlaseado, actual), (v) => {
+          l.sinGlaseado = l.sinGlaseado || {};
+          if (v) l.sinGlaseado[s.id] = v; else delete l.sinGlaseado[s.id];
+          alCambiar();
+        }, { min: 0, max: actual })) : null];
     }) : [];
+    const totalSinGlaseado = Object.entries(l.sinGlaseado || {})
+      .reduce((a, [id, n]) => a + Math.min(n, l.sabores[id] || 0), 0);
+    const botonGlaseado = f && total ? h('button', {
+      type: 'button', class: 'link',
+      onclick: () => { l.verGlaseado = !l.verGlaseado; dibujar(); },
+    }, l.verGlaseado ? 'Listo' : totalSinGlaseado ? `${totalSinGlaseado} sin glaseado · cambiar` : 'Algunos sin glaseado') : null;
 
     let selectorCaja = null;
     if (f && mostrarCajas) {
@@ -137,6 +154,7 @@ export function editorLineas(cat, lineas, alCambiar) {
       f ? h('div', { class: 'etq-grupo' }, 'Sabores',
         f.tipo === 'caja_fija' ? h('small', { class: 'ayuda' }, ' · tocá un sabor para completar la caja') : null) : null,
       filasSabores,
+      botonGlaseado ? h('p', { class: 'ayuda', style: 'margin:.25rem 0' }, botonGlaseado) : null,
       selectorCaja);
   }
 
@@ -157,7 +175,9 @@ export function editorLineas(cat, lineas, alCambiar) {
       const linea = {
         formato_id: l.formato_id,
         cantidad: f?.tipo === 'caja_fija' ? l.cantidad : 1,
-        sabores: Object.entries(l.sabores).map(([sabor_id, unidades]) => ({ sabor_id, unidades })),
+        sabores: Object.entries(l.sabores).map(([sabor_id, unidades]) => ({
+          sabor_id, unidades, sin_glaseado: Math.min(l.sinGlaseado?.[sabor_id] || 0, unidades),
+        })),
       };
       if (l.caja !== undefined) linea.caja_insumo_id = l.caja;
       return linea;
