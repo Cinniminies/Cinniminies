@@ -1,5 +1,5 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
 import { subnavProduccion } from '../componentes.js';
@@ -7,11 +7,12 @@ import { subnavProduccion } from '../componentes.js';
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
 // con la receta del día (snapshot en tanda_consumos).
 export async function mostrar(cont) {
-  const [cat, historial, produccion] = await Promise.all([
+  const [cat, historial, produccion, sobrantes] = await Promise.all([
     catalogo(),
     q(sb.from('tandas').select('id,fecha,cantidad,rolls,notas,sabores(nombre)')
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(30)),
     q(sb.from('v_produccion_sabor').select('*')),
+    q(sb.from('v_sobrantes').select('*').order('inicio', { ascending: false })),
   ]);
   const f = { fecha: hoyISO(), sabor_id: null, cantidad: 1, rolls: '', notas: '' };
   const rollsPorTanda = () => cat.sabor(f.sabor_id)?.rolls_por_tanda || 12;
@@ -57,6 +58,8 @@ export async function mostrar(cont) {
           h('td', { class: 'num-der' }, numero(p.rolls_producidos, 0)), h('td', { class: 'num-der' }, numero(p.rolls_vendidos, 0))))),
     ] : null,
 
+    seccionSobrantes(sobrantes, cat),
+
     h('h2', {}, 'Últimas tandas'),
     historial.length
       ? h('ul', { class: 'lista' }, historial.map((t) => {
@@ -82,6 +85,42 @@ export async function mostrar(cont) {
           editar, borrar));
       }))
       : h('p', { class: 'vacio' }, 'Todavía no hay tandas.'));
+}
+
+// Rolls que sobraron de cada horneado (v_sobrantes): producidos menos vendidos, regalados o comidos.
+// Solo informativo: su costo es la pérdida, pero no va a gastos (la plata ya salió en las compras).
+function seccionSobrantes(filas, cat) {
+  if (!filas.length) return null;
+  const porHorneado = new Map();
+  for (const f of filas) {
+    if (!porHorneado.has(f.inicio)) porHorneado.set(f.inicio, []);
+    porHorneado.get(f.inicio).push(f);
+  }
+  const horneados = [...porHorneado.values()].slice(0, 8);
+  const suma = (fs, k) => fs.reduce((a, f) => a + Number(f[k]), 0);
+  const orden = (f) => cat.sabor(f.sabor_id)?.orden ?? 0;
+  const titulo = (f) => (f.inicio === f.fin ? fechaCorta(f.inicio) : `${fechaCorta(f.inicio)} y ${fechaCorta(f.fin)}`);
+  const total = suma(filas, 'costo');
+  return [
+    h('h2', {}, 'Rolls que sobraron'),
+    h('p', { class: 'ayuda' }, 'Por horneado: lo que salió de las tandas menos lo vendido, regalado o comido. '
+      + 'Los rolls sueltos que vendas en los días siguientes se descuentan del último horneado. '
+      + 'El costo es lo que se perdió; no se suma a gastos porque esa plata ya salió en las compras.'),
+    horneados.map((fs) => {
+      const sob = suma(fs, 'sobrantes');
+      return h('details', { class: 'plegable' },
+        h('summary', {}, `${titulo(fs[0])} · `, sob ? `${plural(sob, 'roll')} sin vender · ${pesos(suma(fs, 'costo'))}` : 'no sobró nada'),
+        h('table', { class: 'tabla' },
+          h('tr', {}, h('th', {}, 'Sabor'), h('th', { class: 'num-der' }, 'Hechos'), h('th', { class: 'num-der' }, 'Vendidos'),
+            h('th', { class: 'num-der' }, 'Sobraron'), h('th', { class: 'num-der' }, 'Costo')),
+          fs.sort((a, b) => orden(a) - orden(b)).map((f) => h('tr', {}, h('td', {}, f.nombre),
+            h('td', { class: 'num-der' }, f.producidos),
+            h('td', { class: 'num-der' }, f.usados),
+            h('td', { class: 'num-der' }, Number(f.sobrantes) ? h('strong', {}, f.sobrantes) : '—'),
+            h('td', { class: 'num-der' }, Number(f.costo) ? pesos(f.costo) : '—')))));
+    }),
+    h('p', { class: 'ayuda' }, `Perdido desde septiembre: ${pesos(total)} (${plural(suma(filas, 'sobrantes'), 'roll')}).`),
+  ];
 }
 
 // Corregir cuántas tandas se hicieron (por ejemplo, si salieron más que las del Plan de horneado).
