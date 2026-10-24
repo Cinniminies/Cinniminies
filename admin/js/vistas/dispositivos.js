@@ -33,11 +33,11 @@ export async function mostrar(cont) {
       toast(`${d.nombre} autorizado`);
       irA('#/dispositivos');
     });
-    return h('div', { class: 'pendiente' },
+    return h('div', { class: 'disp-pendiente' },
       h('div', { class: 'etq' }, 'Pide autorización'),
       h('h3', {}, d.nombre),
       h('div', { class: 'ayuda' }, `${d.usuario || 'Sin usuario'} · pedido el ${dia(d.creado_en)}`),
-      h('div', { class: 'codigo', 'aria-label': `Código ${d.codigo}` }, [...d.codigo].map((c) => h('span', {}, c))),
+      h('div', { class: 'disp-codigo', 'aria-label': `Código ${d.codigo}` }, [...d.codigo].map((c) => h('span', {}, c))),
       h('p', { class: 'ayuda', style: 'margin:0 0 .75rem' }, 'Autorizalo solo si es el mismo código que ves en ese dispositivo.'),
       h('div', { class: 'acciones', style: 'margin:0' }, autorizar, botonQuitar(d, 'Rechazar')));
   };
@@ -54,7 +54,7 @@ export async function mostrar(cont) {
   vaciar(cont,
     pendientes.length ? [
       h('h2', { style: 'margin-top:0' }, plural(pendientes.length, 'dispositivo espera', 'dispositivos esperan'), ' autorización'),
-      h('div', { class: 'pendientes' }, pendientes.map(tarjetaPendiente)),
+      h('div', { class: 'disp-pendientes' }, pendientes.map(tarjetaPendiente)),
     ] : null,
     h('h2', { style: pendientes.length ? null : 'margin-top:0' }, 'Autorizados'),
     h('p', { class: 'ayuda' }, 'La app solo funciona en estos dispositivos, aunque alguien sepa la contraseña. '
