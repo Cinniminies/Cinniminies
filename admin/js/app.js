@@ -14,6 +14,7 @@ const RUTAS = {
   comprar: ['Producción', () => import('./vistas/comprar.js'), 'produccion', null],
   plan: ['Producción', () => import('./vistas/plan.js'), 'produccion', null],
   mas: ['Más', () => import('./vistas/mas.js'), 'mas', null],
+  dispositivos: ['Dispositivos', () => import('./vistas/dispositivos.js'), 'mas', '#/mas'],
   web: ['Textos e imágenes de la web', () => import('./vistas/web.js'), 'mas', '#/mas'],
   pedidos: ['Pedidos web', () => import('./vistas/pedidos.js'), 'mas', '#/mas'],
   recomendaciones: ['Recomendaciones', () => import('./vistas/recomendaciones.js'), 'mas', '#/mas'],
@@ -262,6 +263,12 @@ async function alCambiarSesion(session) {
       await sb.auth.signOut(); // dispara SIGNED_OUT → pantallaLogin(mensajeLogin)
       return;
     }
+    const disp = await estadoDispositivo();
+    if (disp.estado !== 'autorizado') {
+      sesion.usuario = null;
+      pantallaDispositivo(disp);
+      return;
+    }
     sesion.nombre = admin.nombre;
     sesion.prueba = admin.es_prueba;
     // El usuario de prueba (migracion/usuario_prueba.py) carga en la base real: que se note.
@@ -276,6 +283,54 @@ async function alCambiarSesion(session) {
   tabs.hidden = false;
   if (!location.hash.startsWith('#/')) history.replaceState(null, '', location.pathname + '#/panel');
   enrutar();
+}
+
+// Si la base todavía no tiene los dispositivos autorizados (migración sin aplicar), se sigue como antes.
+async function estadoDispositivo() {
+  const { data, error } = await sb.rpc('estado_dispositivo');
+  if (error && /estado_dispositivo/.test(error.message) && /(find|exist)/i.test(error.message)) return { estado: 'autorizado' };
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Nombre sugerido para reconocer el dispositivo en la lista: "iPhone · app", "Android · Chrome"…
+function nombreSugerido() {
+  const ua = navigator.userAgent;
+  const so = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android'
+    : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'Dispositivo';
+  const app = matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'app'
+    : /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'navegador';
+  return `${so} · ${app}`;
+}
+
+// Bloqueo: con la sesión iniciada pero desde un dispositivo que no está autorizado.
+function pantallaDispositivo(disp) {
+  tabs.hidden = true;
+  atras.hidden = true;
+  marca.hidden = false;
+  titulo.textContent = '';
+  const reintentar = async () => alCambiarSesion((await sb.auth.getSession()).data.session);
+  const salir = h('button', { class: 'link', type: 'button', onclick: () => sb.auth.signOut() }, 'Salir');
+  const nombre = h('input', { value: disp.nombre || nombreSugerido(), maxlength: 60, required: true });
+  const pedir = h('button', { class: 'btn primario bloque', type: 'button' }, 'Pedir autorización');
+  pedir.onclick = () => conBoton(pedir, async () => {
+    const r = await q(sb.rpc('pedir_dispositivo', { p_nombre: nombre.value }));
+    if (r.estado === 'autorizado') { toast('Dispositivo autorizado'); await reintentar(); } else pantallaDispositivo(r);
+  });
+  const ya = h('button', { class: 'btn primario bloque', type: 'button' }, 'Ya lo autorizaron');
+  ya.onclick = () => conBoton(ya, reintentar);
+
+  vaciar(vista, h('div', { class: 'login' },
+    h('h1', {}, h('img', { class: 'logo-login', src: 'icons/logo.svg', alt: 'Cinniminies' })),
+    h('div', { class: 'card' },
+      h('h2', { style: 'margin-top:0' }, 'Este dispositivo no está autorizado'),
+      disp.estado === 'pendiente'
+        ? [h('p', {}, 'Ya está pedido. Desde un celular o compu donde ya uses la app, entrá a Más → Dispositivos y autorizá ',
+          h('strong', {}, disp.nombre), ' (código ', h('strong', {}, disp.codigo), ').'), ya]
+        : [h('p', {}, 'Por seguridad, la app solo funciona en los dispositivos que autorizan ustedes. '
+          + 'Pedí la autorización y aprobala desde uno donde ya uses la app (Más → Dispositivos).'),
+        campo('Nombre de este dispositivo', nombre, 'Para reconocerlo en la lista.'), pedir]),
+    h('p', { class: 'pie' }, salir)));
 }
 
 window.addEventListener('hashchange', enrutar);
