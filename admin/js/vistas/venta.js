@@ -9,7 +9,7 @@ import { elegirCliente, editorLineas } from '../componentes.js';
 let estado = null;
 const nuevoEstado = (fecha = hoyISO()) => ({
   fecha, cliente: null, origen: '', entrega: 'retiro', medio_pago: null, estado_pago: 'pagado',
-  tipo: 'venta', precio_especial: '', notas: '', lineas: [], abierto: false, por_hacer: false,
+  tipo: 'venta', precio_especial: '', propina: '', notas: '', lineas: [], abierto: false, por_hacer: false,
 });
 
 export async function mostrar(cont) {
@@ -28,6 +28,7 @@ function payload() {
     notas: estado.notas,
     por_hacer: estado.por_hacer,
     precio_especial: estado.precio_especial === '' ? null : Number(estado.precio_especial),
+    propina: estado.propina === '' ? 0 : Number(estado.propina),
     lineas: null,
   };
   if (estado.origen.trim()) p.origen = estado.origen.trim();
@@ -58,16 +59,17 @@ function formulario(cont, cat, clientes, origenes) {
     try {
       const r = await rpc('calcular_venta', { p });
       if (este !== pedido) return;
-      const total = Number(r.precio_cobrado) + Number(r.cobro_envio);
+      const total = Number(r.precio_cobrado) + Number(r.cobro_envio) + p.propina;
       vaciar(resumen,
         h('div', { class: 'r' }, h('span', {}, `Lista (${r.rolls} rolls)`), h('span', {}, pesos(r.precio_lista))),
         Number(r.descuento) ? h('div', { class: 'r' }, h('span', {}, Number(r.descuento) > 0 ? 'Descuento' : 'Recargo'),
           h('span', {}, pesos(-r.descuento))) : null,
         Number(r.cobro_envio) ? h('div', { class: 'r' }, h('span', {}, 'Envío'), h('span', {}, pesos(r.cobro_envio))) : null,
+        p.propina ? h('div', { class: 'r' }, h('span', {}, 'Propina'), h('span', {}, pesos(p.propina))) : null,
         h('div', { class: 'r total' }, h('span', {}, 'Cobrás'), h('span', {}, pesos(total))),
         h('div', { class: 'r' }, h('span', {}, 'Costo rolls + caja'),
           h('span', {}, pesos(Number(r.costo_produccion) + Number(r.costo_caja)))),
-        h('div', { class: 'r gan' }, h('span', {}, 'Ganancia'), h('span', {}, pesos(r.ganancia))));
+        h('div', { class: 'r gan' }, h('span', {}, 'Ganancia'), h('span', {}, pesos(Number(r.ganancia) + p.propina))));
       guardar.textContent = `Guardar venta · ${pesos(total)}`;
     } catch (e) {
       if (este !== pedido) return;
@@ -91,11 +93,15 @@ function formulario(cont, cat, clientes, origenes) {
     class: 'plegable', open: estado.abierto,
     ontoggle: (e) => { estado.abierto = e.target.open; editor.mostrarCajas(e.target.open); },
   },
-  h('summary', {}, 'Precio especial, caja y notas'),
+  h('summary', {}, 'Precio especial, propina, caja y notas'),
   campo('Precio especial (lo que se cobró en total, sin envío)', h('input', {
     type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: estado.precio_especial, placeholder: 'Precio de lista',
     oninput: (e) => { estado.precio_especial = e.target.value; recalcular(); },
   })),
+  campo('Propina', h('input', {
+    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: estado.propina, placeholder: '0',
+    oninput: (e) => { estado.propina = e.target.value; recalcular(); },
+  }), 'Aparte del precio: suma a lo cobrado y a la ganancia.'),
   grupo('Tipo', chips(opciones(ETIQUETAS.tipo), estado.tipo, (v) => { estado.tipo = v; })),
   campo('Origen de esta venta', origen),
   campo('Notas', h('textarea', { value: estado.notas, oninput: (e) => { estado.notas = e.target.value; } })),
@@ -135,7 +141,7 @@ function formulario(cont, cat, clientes, origenes) {
 
 function confirmacion(cont, cat, r, guardado) {
   const cliente = guardado.cliente;
-  const total = Number(r.precio_cobrado) + Number(r.cobro_envio);
+  const total = Number(r.precio_cobrado) + Number(r.cobro_envio) + Number(r.propina || 0);
   const detalle = r.lineas.map((l) => `${l.cantidad > 1 ? l.cantidad + ' × ' : ''}${l.formato} (${
     l.sabores.map((s) => `${cat.sabor(s.sabor_id)?.nombre_corto || s.sabor} ${s.unidades}`).join(', ')})`).join(' + ');
 
