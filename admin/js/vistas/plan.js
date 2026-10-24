@@ -16,13 +16,20 @@ import { cronograma, duracion, horaMas, tiemposDe, TIEMPOS_DEFECTO } from '../ti
 const estado = { fecha: null, excluidas: new Set(), extra: {}, completar: null, tandas: null, inicio: '09:00' };
 
 export async function mostrar(cont) {
-  const [cat, recetas, porHacer, pedidosNuevos] = await Promise.all([
+  const [cat, recetas, porHacer, pedidosNuevos, glaseado] = await Promise.all([
     catalogo(),
     q(sb.from('recetas').select('sabor_id,insumo_id,cantidad')),
     q(sb.from('v_ventas').select('id,fecha,cliente,sabores,rolls,estado_pago')
       .eq('por_hacer', true).order('fecha').order('creado_en')),
     q(sb.from('pedidos').select('id').eq('estado', 'nuevo')),
+    q(sb.from('venta_linea_sabores').select('sin_glaseado,venta_lineas!inner(venta_id,ventas!inner(por_hacer))')
+      .gt('sin_glaseado', 0).eq('venta_lineas.ventas.por_hacer', true)),
   ]);
+  const sinGlaseadoPorVenta = {};
+  for (const g of glaseado) {
+    const id = g.venta_lineas.venta_id;
+    sinGlaseadoPorVenta[id] = (sinGlaseadoPorVenta[id] || 0) + g.sin_glaseado;
+  }
   if (!estado.fecha || estado.fecha < proximoSabado()) estado.fecha = proximoSabado();
   // Las que ya no están por hacer no se recuerdan
   for (const id of estado.excluidas) if (!porHacer.some((v) => v.id === id)) estado.excluidas.delete(id);
@@ -41,14 +48,17 @@ export async function mostrar(cont) {
   let pedido = 0;
   let plan = null;
   let cajas = [];
+  let sinGlaseado = {};
 
   const calcular = debounce(async () => {
     const este = ++pedido;
     try {
-      const [r, c] = await Promise.all([rpc('plan_horneado', { p: payload() }), rpc('cajas_plan', { p: payload() })]);
+      const [r, c, g] = await Promise.all([rpc('plan_horneado', { p: payload() }), rpc('cajas_plan', { p: payload() }),
+        rpc('sin_glaseado_plan', { p: payload() })]);
       if (este !== pedido) return;
       plan = r;
       cajas = c;
+      sinGlaseado = g || {};
       dibujarResultado();
     } catch (e) {
       if (este === pedido) vaciar(resultado, h('p', { class: 'mensaje-error' }, e.message));
@@ -105,7 +115,8 @@ export async function mostrar(cont) {
           h('th', { class: 'num-der' }, 'Para vender'), h('th', { class: 'num-der' }, 'Receta')),
         plan.sabores.map((s) => h('tr', {}, h('td', {}, s.nombre),
           h('td', { class: 'num-der' }, s.pedidos),
-          h('td', { class: 'num-der' }, h('strong', {}, s.rolls)),
+          h('td', { class: 'num-der' }, h('strong', {}, s.rolls),
+            sinGlaseado[s.sabor_id] ? h('div', { class: 'ayuda' }, `${sinGlaseado[s.sabor_id]} sin glaseado`) : null),
           h('td', { class: 'num-der' }, s.para_vender || '—'),
           h('td', { class: 'num-der' }, `× ${numero(s.tandas)}`)))),
       h('p', { class: 'ayuda' }, '"Receta" es cuántas veces la receta de ese sabor se usa (una tanda mezclada usa una parte de cada una). '
@@ -228,6 +239,7 @@ export async function mostrar(cont) {
       h('span', {}, h('strong', {}, v.cliente || 'Sin cliente'), ` · ${fechaCorta(v.fecha)} `,
         h('span', { class: 'badge ' + (v.estado_pago === 'pagado' ? 'ok' : 'pendiente') },
           v.estado_pago === 'pagado' ? 'Cobrado' : 'Sin cobrar'),
+        sinGlaseadoPorVenta[v.id] ? [' ', h('span', { class: 'badge alerta' }, `${sinGlaseadoPorVenta[v.id]} sin glaseado`)] : null,
         h('small', {}, `${v.sabores || ''} · `, h('a', { href: `#/ventas/${v.id}` }, 'ver venta'))))))
     : h('p', { class: 'vacio', style: 'padding:0' }, 'No hay ventas por hacer. Al cargar una venta, elegí "Por hacer"; '
       + 'los pedidos web confirmados entran solos.');

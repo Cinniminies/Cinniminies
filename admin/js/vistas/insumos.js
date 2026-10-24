@@ -112,6 +112,7 @@ async function ficha(cont, id) {
     const fila = {
       nombre: datos.nombre.trim(), tipo: datos.tipo, unidad_base: datos.unidad_base,
       stock_minimo: Number(datos.stock_minimo) || 0, costo_referencia: ref, activo: datos.activo,
+      es_glaseado: datos.tipo === 'ingrediente' && !!datos.es_glaseado,
     };
     const guardado = id
       ? await q(sb.from('insumos').update(fila).eq('id', id).select('id').single())
@@ -170,6 +171,8 @@ async function ficha(cont, id) {
           oninput: (e) => { datos.stock_minimo = e.target.value; } }), 'En la unidad base. Avisa cuando queda menos.'),
         campo('Costo de referencia', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: datos.costo_referencia ?? '',
           oninput: (e) => { datos.costo_referencia = e.target.value; } }), ayudaRef)),
+      datos.tipo === 'ingrediente' ? interruptor('Va en el glaseado', !!datos.es_glaseado, (v) => { datos.es_glaseado = v; },
+        'Los rolls que se piden sin glaseado no lo gastan ni lo cuentan en el costo.') : null,
       interruptor('Activo', datos.activo, (v) => { datos.activo = v; }, 'Los inactivos no aparecen para comprar, contar ni en recetas nuevas.')),
     historial ? seccionHistorial(historial, insumo, cat) : null,
     seccionCaja,
