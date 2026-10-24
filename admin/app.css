@@ -19,6 +19,11 @@
   --graf-acento: #a8531d;
   --graf-gris: #978d88;
   --graf-frio: #3d6fa6; /* polo opuesto a --graf-acento en los gráficos divergentes (validado con la guía de dataviz) */
+  /* Sabores de masa compartida, en orden fijo (Canela, DDL, Nutella…); validados con la guía de dataviz */
+  --serie-1: #a8531d;
+  --serie-2: #3d6fa6;
+  --serie-3: #1b9e77;
+  --graf-perdido: #b3401a; /* rolls perdidos: siempre con su etiqueta */
   --radio: 14px;
   --sombra: 0 1px 2px rgba(43, 28, 18, .06), 0 2px 8px rgba(43, 28, 18, .05);
   --display: 'Fraunces', Georgia, serif;
@@ -44,6 +49,10 @@
     --graf-acento: #d07a38;
     --graf-gris: #8a7564;
     --graf-frio: #5b93d6;
+    --serie-1: #d07a38;
+    --serie-2: #5b93d6;
+    --serie-3: #2fa883;
+    --graf-perdido: #d9663e;
     --sombra: none;
     color-scheme: dark;
   }
@@ -598,3 +607,74 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
   .acceso:hover, a.fila:hover .chev, button.fila:hover .chev, summary.fila:hover .chev, .tarea-link:hover .chev,
   .tabs .tab-principal:hover .ico { transform: none !important; }
 }
+
+/* ---------- Pantallas anchas: dos columnas ---------- */
+/* .dos-col: a la izquierda lo que se carga (fija al hacer scroll), a la derecha lo que se consulta.
+   En el celular va una abajo de la otra, como siempre. */
+.dos-col > * { min-width: 0; }
+@media (min-width: 1200px) {
+  .vista:has(.dos-col) { max-width: 1440px; }
+  .dos-col { display: grid; grid-template-columns: minmax(360px, 5fr) 7fr; gap: 0 1.75rem; align-items: start; }
+  .dos-col.ancha-izq { grid-template-columns: 7fr minmax(340px, 4fr); }
+  .dos-col > .col-fija { position: sticky; top: calc(var(--alto-barra) + 1rem); max-height: calc(100vh - var(--alto-barra) - 2rem);
+    overflow-y: auto; scrollbar-width: thin; }
+  .dos-col > * > :first-child, .dos-col > * > .seccion-cab:first-child h2 { margin-top: 0; }
+  .lista.en-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .5rem; background: none; border: 0; box-shadow: none; }
+  .lista.en-grilla > li { background: var(--card); border: 1px solid var(--borde); border-radius: var(--radio); }
+}
+
+/* ---------- Para pesar: ingredientes de una tanda mezclada ---------- */
+.leyenda { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin: .25rem 0 .6rem; font-size: .82rem; color: var(--suave); }
+.leyenda span { display: inline-flex; align-items: center; gap: .35rem; }
+.leyenda i { width: .75rem; height: .75rem; border-radius: 3px; background: var(--c); flex: none; }
+.pesar { list-style: none; margin: 0; padding: 0; display: grid; gap: .15rem 1.5rem; }
+.pesar li { padding: .45rem 0; border-top: 1px dashed var(--borde); }
+.pesar li:first-child { border-top: 0; }
+.pesar-cab { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.pesar-cab strong { font-family: var(--display); font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pesar-barra { display: flex; gap: 2px; height: 6px; margin: .3rem 0 .2rem; }
+.pesar-barra span { background: var(--c); border-radius: 4px; min-width: 4px; }
+.pesar-partes { font-size: .8rem; color: var(--suave); font-variant-numeric: tabular-nums; }
+@media (min-width: 700px) { .pesar { grid-template-columns: 1fr 1fr; } .pesar li:nth-child(2) { border-top: 0; } }
+
+/* ---------- Rolls que sobraron: una tarjeta por horneado ---------- */
+.sobr-hero { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem 1rem; margin-bottom: .25rem; }
+.sobr-hero .hero-num { font-family: var(--display); font-size: 1.9rem; font-weight: 600; color: var(--alerta); line-height: 1.1; }
+.sobr-hero .hero-num.cero { color: var(--ok); }
+.horneados { display: grid; gap: .75rem; }
+@media (min-width: 700px) { .horneados { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } }
+.horneado { background: var(--card); border: 1px solid var(--borde); border-radius: var(--radio); padding: .85rem 1rem; box-shadow: var(--sombra); }
+.horneado-cab { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .55rem; }
+.horneado-cab h3 { margin: 0; font-size: 1rem; }
+.sobr-fila { display: grid; grid-template-columns: 4.6rem 1fr auto; align-items: center; gap: .55rem; padding: .22rem 0; font-size: .88rem; }
+.sobr-fila .nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sobr-pista { display: flex; gap: 2px; height: 10px; }
+.sobr-pista span { border-radius: 4px; min-width: 4px; }
+.sobr-pista .vendido { background: var(--graf-gris); opacity: .55; }
+.sobr-pista .de-mas { background: var(--graf-frio); }
+.sobr-pista .perdido { background: var(--graf-perdido); }
+.sobr-fila .cifra { font-variant-numeric: tabular-nums; color: var(--suave); white-space: nowrap; font-size: .82rem; }
+.sobr-fila .cifra strong { color: var(--texto); }
+.leyenda .vendido { --c: var(--graf-gris); opacity: .8; }
+.leyenda .de-mas { --c: var(--graf-frio); }
+.leyenda .perdido { --c: var(--graf-perdido); }
+
+/* ---------- Dispositivos ---------- */
+.pendientes { display: grid; gap: .75rem; margin-bottom: 1.25rem; }
+@media (min-width: 700px) { .pendientes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); } }
+.pendiente { background: var(--card); border: 2px solid var(--marca); border-radius: var(--radio); padding: 1rem; box-shadow: var(--sombra); }
+.pendiente .etq { font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--marca); }
+.pendiente h3 { margin: .2rem 0 .1rem; font-size: 1.1rem; }
+.codigo { display: flex; gap: .35rem; margin: .7rem 0 .9rem; }
+.codigo span { display: grid; place-items: center; width: 2.4rem; height: 2.8rem; border-radius: 10px; background: var(--marca-suave);
+  color: var(--marca); font: 700 1.5rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.disps { display: grid; gap: .6rem; }
+@media (min-width: 700px) { .disps { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); } }
+.disp { display: flex; gap: .75rem; align-items: flex-start; background: var(--card); border: 1px solid var(--borde); border-radius: var(--radio); padding: .8rem .9rem; }
+.disp.este { border-color: var(--ok); }
+.disp-ico { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 12px; background: var(--marca-suave); color: var(--marca); flex: none; }
+.disp-ico svg { width: 1.3rem; height: 1.3rem; }
+.disp .princ { flex: 1; min-width: 0; }
+.disp .t1 { font-weight: 600; }
+.disp .t2 { font-size: .82rem; color: var(--suave); }
+.disp .btn { margin-top: .5rem; }

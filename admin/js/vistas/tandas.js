@@ -37,8 +37,10 @@ export async function mostrar(cont) {
 
   const produccionPorSabor = produccion.filter((p) => Number(p.tandas) > 0);
 
+  // En la compu: a la izquierda cargar y el total; a la derecha lo que sobró y el historial.
   vaciar(cont,
     subnavProduccion('tandas'),
+    h('div', { class: 'dos-col' }, h('div', { class: 'col-fija' },
     h('div', { class: 'card' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       grupo('Sabor', chips(cat.saboresActivos.map((s) => ({ valor: s.id, texto: s.nombre })), null,
@@ -56,13 +58,14 @@ export async function mostrar(cont) {
           h('th', { class: 'num-der' }, 'Vendidos')),
         produccionPorSabor.map((p) => h('tr', {}, h('td', {}, p.nombre), h('td', { class: 'num-der' }, numero(p.tandas, 1)),
           h('td', { class: 'num-der' }, numero(p.rolls_producidos, 0)), h('td', { class: 'num-der' }, numero(p.rolls_vendidos, 0))))),
-    ] : null,
+    ] : null),
 
+    h('div', {},
     seccionSobrantes(sobrantes, cat),
 
     h('h2', {}, 'Últimas tandas'),
     historial.length
-      ? h('ul', { class: 'lista' }, historial.map((t) => {
+      ? h('ul', { class: 'lista en-grilla' }, historial.map((t) => {
         const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
         borrar.onclick = () => conBoton(borrar, async () => {
           if (!confirm(`¿Borrar la tanda de ${t.sabores.nombre} del ${fechaCorta(t.fecha)}?`)) return;
@@ -84,11 +87,13 @@ export async function mostrar(cont) {
             h('div', { class: 't2' }, `${fechaCorta(t.fecha)} · ${t.rolls} rolls${t.notas ? ' · ' + t.notas : ''}`)),
           editar, borrar));
       }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay tandas.'));
+      : h('p', { class: 'vacio' }, 'Todavía no hay tandas.'))));
 }
 
 // Rolls que sobraron de cada horneado (v_sobrantes): producidos menos vendidos, regalados o comidos.
 // Solo informativo: su costo es la pérdida, pero no va a gastos (la plata ya salió en las compras).
+// Arriba el total perdido; después una tarjeta por horneado con una barra por sabor:
+// vendido (gris) · salió de más (no es pérdida) · perdido.
 function seccionSobrantes(filas, cat) {
   if (!filas.length) return null;
   const porHorneado = new Map();
@@ -96,32 +101,64 @@ function seccionSobrantes(filas, cat) {
     if (!porHorneado.has(f.inicio)) porHorneado.set(f.inicio, []);
     porHorneado.get(f.inicio).push(f);
   }
-  const horneados = [...porHorneado.values()].slice(0, 8);
   const suma = (fs, k) => fs.reduce((a, f) => a + Number(f[k]), 0);
   const orden = (f) => cat.sabor(f.sabor_id)?.orden ?? 0;
   const titulo = (f) => (f.inicio === f.fin ? fechaCorta(f.inicio) : `${fechaCorta(f.inicio)} y ${fechaCorta(f.fin)}`);
   const total = suma(filas, 'costo');
+  const perdidosTotal = suma(filas, 'perdidos');
+
+  const filaSabor = (f, escala) => {
+    const hechos = Number(f.producidos);
+    const vendidos = Number(f.usados);
+    const perdidos = Number(f.perdidos);
+    const deMas = Math.max(Number(f.sobrantes) - perdidos, 0);
+    const vendidoBarra = Math.min(vendidos, hechos);
+    const seg = (clase, n, texto) => (n > 0
+      ? h('span', { class: clase, style: `flex:${n}`, title: `${f.nombre}: ${texto}` }) : null);
+    return h('div', { class: 'sobr-fila' },
+      h('span', { class: 'nombre', title: f.nombre }, f.nombre.length > 9 ? cat.sabor(f.sabor_id)?.nombre_corto || f.nombre : f.nombre),
+      h('div', { class: 'sobr-pista', style: `width:${Math.max(hechos, vendidos) / escala * 100}%` },
+        seg('vendido', vendidoBarra, plural(vendidos, 'vendido')),
+        seg('de-mas', deMas, `${plural(deMas, 'roll')} de más (no es pérdida)`),
+        seg('perdido', perdidos, `${plural(perdidos, 'perdido')} · ${pesos(f.costo)}`)),
+      h('span', { class: 'cifra' }, h('strong', {}, vendidos), ` de ${hechos}`,
+        perdidos ? h('span', { style: 'color:var(--alerta)' }, ` · −${perdidos}`) : null));
+  };
+
+  const tarjeta = (fs) => {
+    const escala = Math.max(...fs.map((f) => Math.max(Number(f.producidos), Number(f.usados))), 1);
+    const costo = suma(fs, 'costo');
+    return h('article', { class: 'horneado' },
+      h('div', { class: 'horneado-cab' },
+        h('h3', {}, titulo(fs[0])),
+        costo ? h('span', { class: 'badge alerta' }, `Perdido ${pesos(costo)}`)
+          : h('span', { class: 'badge ok' }, suma(fs, 'sobrantes') ? 'Sin pérdida' : 'No sobró nada')),
+      fs.sort((a, b) => orden(a) - orden(b)).map((f) => filaSabor(f, escala)));
+  };
+
+  const horneados = [...porHorneado.values()];
+  const visibles = h('div', { class: 'horneados' }, horneados.slice(0, 6).map(tarjeta));
+  const verMas = horneados.length > 6 ? h('button', { class: 'btn chico', type: 'button', style: 'margin-top:.6rem' },
+    `Ver ${plural(horneados.length - 6, 'horneado anterior', 'horneados anteriores')}`) : null;
+  if (verMas) verMas.onclick = () => { horneados.slice(6).forEach((fs) => visibles.append(tarjeta(fs))); verMas.remove(); };
+
   return [
     h('h2', {}, 'Rolls que sobraron'),
-    h('p', { class: 'ayuda' }, 'Por horneado: lo que salió de las tandas menos lo vendido, regalado o comido. '
-      + 'Los rolls sueltos que vendas en los días siguientes se descuentan del último horneado. '
-      + 'Solo es pérdida lo que sobra dentro de lo que rinde la receta: si una tanda de 12 dio 13, el de más no cuenta. '
-      + 'No se suma a gastos porque esa plata ya salió en las compras.'),
-    horneados.map((fs) => {
-      const sob = suma(fs, 'sobrantes');
-      const perd = suma(fs, 'perdidos');
-      return h('details', { class: 'plegable' },
-        h('summary', {}, `${titulo(fs[0])} · `, sob ? `${plural(sob, 'roll')} sin vender · ${perd ? `perdido ${pesos(suma(fs, 'costo'))}` : 'sin pérdida'}` : 'no sobró nada'),
-        h('table', { class: 'tabla' },
-          h('tr', {}, h('th', {}, 'Sabor'), h('th', { class: 'num-der' }, 'Hechos'), h('th', { class: 'num-der' }, 'Vendidos'),
-            h('th', { class: 'num-der' }, 'Sobraron'), h('th', { class: 'num-der' }, 'Perdido')),
-          fs.sort((a, b) => orden(a) - orden(b)).map((f) => h('tr', {}, h('td', {}, f.nombre),
-            h('td', { class: 'num-der' }, f.producidos),
-            h('td', { class: 'num-der' }, f.usados),
-            h('td', { class: 'num-der' }, Number(f.sobrantes) ? h('strong', {}, f.sobrantes) : '—'),
-            h('td', { class: 'num-der' }, Number(f.costo) ? `${f.perdidos} · ${pesos(f.costo)}` : '—')))));
-    }),
-    h('p', { class: 'ayuda' }, `Perdido desde septiembre: ${pesos(total)} (${plural(suma(filas, 'perdidos'), 'roll')}).`),
+    h('div', { class: 'sobr-hero' },
+      h('span', { class: 'hero-num' + (total ? '' : ' cero') }, pesos(total)),
+      h('span', { class: 'ayuda' }, total ? `perdidos desde septiembre en ${plural(perdidosTotal, 'roll')}` : 'perdido desde septiembre')),
+    h('div', { class: 'leyenda' },
+      h('span', { class: 'vendido' }, h('i'), 'Vendido, regalado o comido'),
+      h('span', { class: 'de-mas' }, h('i'), 'Salió de más (no es pérdida)'),
+      h('span', { class: 'perdido' }, h('i'), 'Perdido')),
+    visibles,
+    verMas,
+    h('details', { class: 'plegable', style: 'margin-top:.75rem' },
+      h('summary', {}, '¿Cómo se calcula?'),
+      h('p', { class: 'ayuda' }, 'Por horneado: lo que salió de las tandas menos lo vendido, regalado o comido ("3 de 12": vendidos de los hechos). '
+        + 'Los rolls sueltos que vendas en los días siguientes se descuentan del último horneado. '
+        + 'Solo es pérdida lo que sobra dentro de lo que rinde la receta: si una tanda de 12 dio 13, el de más no cuenta. '
+        + 'No se suma a gastos porque esa plata ya salió en las compras.')),
   ];
 }
 

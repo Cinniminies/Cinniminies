@@ -191,7 +191,8 @@ export async function mostrar(cont) {
   const plata = (etiqueta, valor, ayuda) => h('div', { class: 'dato' },
     h('dt', {}, etiqueta, ayuda ? h('small', {}, ayuda) : null), h('dd', {}, valor));
 
-  vaciar(cont,
+  // En la compu: lo pendiente, el resumen y los gráficos a la izquierda; la plata y las últimas ventas a la derecha.
+  vaciar(cont, h('div', { class: 'dos-col ancha-izq' }, h('div', {},
     h('div', { class: 'saludo' },
       h('p', { class: 'saludo-hola' }, `Hola, ${sesion.nombre}`),
       h('p', { class: 'ayuda' }, hoy.charAt(0).toUpperCase() + hoy.slice(1))),
@@ -206,7 +207,9 @@ export async function mostrar(cont) {
 
     h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Resumen'),
       contChips),
-    contPeriodo,
+    contPeriodo),
+
+    h('div', {},
 
     h('h2', { class: 'seccion-titulo' }, 'La plata, acumulado'),
     h('dl', { class: 'card datos' },
@@ -228,6 +231,6 @@ export async function mostrar(cont) {
             v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null),
           h('div', { class: 't2' }, `${fechaCorta(v.fecha)} · ${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
         h('span', { class: 'monto' }, pesos(v.total))))))
-      : h('p', { class: 'vacio' }, 'Todavía no hay ventas.'));
+      : h('p', { class: 'vacio' }, 'Todavía no hay ventas.'))));
   dibujarPeriodo();
 }

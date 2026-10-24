@@ -119,7 +119,8 @@ function formulario(cont, cat, clientes, origenes) {
     confirmacion(cont, cat, r, guardado);
   });
 
-  vaciar(cont, h('div', { class: 'con-guardar' },
+  // En la compu: el formulario a la izquierda y el resumen fijo a la derecha, siempre a la vista.
+  vaciar(cont, h('div', { class: 'con-guardar' }, h('div', { class: 'dos-col ancha-izq' }, h('div', {},
     campoFecha(estado.fecha, (v) => { estado.fecha = v; recalcular(); }),
     grupo('Cliente', selector),
     editor.el,
@@ -132,9 +133,10 @@ function formulario(cont, cat, clientes, origenes) {
     grupo('Estado', chips(opciones(ETIQUETAS.estado_pago), estado.estado_pago, (v) => { estado.estado_pago = v; })),
     grupo('Pedido', chips([{ valor: false, texto: 'Ya entregado' }, { valor: true, texto: 'Por hacer' }], estado.por_hacer,
       (v) => { estado.por_hacer = v; })),
-    opcionesMas,
-    h('h2', {}, 'Resumen'),
-    resumen),
+    opcionesMas),
+    h('div', { class: 'col-fija' },
+      h('h2', {}, 'Resumen'),
+      resumen))),
   h('div', { class: 'guardar' }, guardar));
   recalcular();
 }

@@ -110,7 +110,8 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     subnavProduccion('compras'),
-    h('div', { class: 'card' },
+    h('div', { class: 'dos-col' },
+    h('div', { class: 'card col-fija' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       campo('Qué', selInsumo),
       campo('Descripción', inputDescripcion),
@@ -126,9 +127,10 @@ export async function mostrar(cont) {
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),
       guardar),
 
+    h('div', {},
     h('h2', {}, 'Últimas compras'),
     historial.length
-      ? h('ul', { class: 'lista' }, historial.map((c) => {
+      ? h('ul', { class: 'lista en-grilla' }, historial.map((c) => {
         const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
         borrar.onclick = () => conBoton(borrar, async () => {
           if (!confirm(`¿Borrar la compra "${c.descripcion || c.insumos?.nombre}" del ${fechaCorta(c.fecha)}?`)) return;
@@ -144,5 +146,5 @@ export async function mostrar(cont) {
           h('span', { class: 'monto' }, pesos(c.total)),
           borrar));
       }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay compras.'));
+      : h('p', { class: 'vacio' }, 'Todavía no hay compras.'))));
 }

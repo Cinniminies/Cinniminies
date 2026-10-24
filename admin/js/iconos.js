@@ -8,6 +8,8 @@ const TRAZOS = {
   menu: '<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
   atras: '<path d="M15 18l-6-6 6-6"/>',
   derecha: '<path d="M9 18l6-6-6-6"/>',
+  celular: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>',
+  compu: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
   bolsa: '<path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   gasto: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
   ingreso: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>',
