@@ -96,13 +96,15 @@ export async function mostrar(cont) {
       toast(p ? 'Promo actualizada' : 'Promo creada');
       irA('#/promos');
     });
+    const cuanto = () => (f.tipo === 'porcentaje' ? 'Cuánto (%)' : 'Cuánto por caja ($)');
+    const unidad = h('span', { class: 'etq' }, cuanto());
     dibujarVista();
     return h('div', { class: 'promo-form' },
       campo('Nombre', entrada('nombre', { maxlength: 60, placeholder: sesion.prueba ? 'PRUEBA Halloween' : 'Halloween' }),
         'Lo ve el cliente en el carrito y queda en la nota de la venta.'),
       grupoAyuda('Descuento', chips([{ valor: 'porcentaje', texto: 'Porcentaje' }, { valor: 'monto', texto: 'Monto fijo por caja' }],
-        f.tipo, (v) => { f.tipo = v; dibujarVista(); })),
-      campo(f.tipo === 'porcentaje' ? 'Cuánto (%)' : 'Cuánto ($)', entrada('valor', { type: 'number', inputmode: 'decimal', min: 0.01, step: 0.01 })),
+        f.tipo, (v) => { f.tipo = v; unidad.textContent = cuanto(); dibujarVista(); })),
+      h('label', { class: 'campo' }, unidad, entrada('valor', { type: 'number', inputmode: 'decimal', min: 0.01, step: 0.01 })),
       h('div', { class: 'fila-campos' },
         campo('Desde', entrada('desde', { type: 'date', min: '2024-01-01', max: '2099-12-31' })),
         campo('Hasta (inclusive)', entrada('hasta', { type: 'date', min: '2024-01-01', max: '2099-12-31' }))),
