@@ -1,0 +1,185 @@
+/* ============================================
+   Halloween (temporal): noche fría de tormenta, con la canela como calabaza.
+   Lo carga temporada/halloween.js solo mientras está activa. Todo cuelga de .tema-halloween.
+   ============================================ */
+.tema-halloween{
+  --crema:        #0D1222;
+  --crema-suave:  #1A2238;
+  --crema-card:   #141B2E;
+  --cafe:         #E8EEF8;
+  --cafe-suave:   #A9B5CC;
+  --canela:       #E8862E;
+  --canela-hover: #F29A45;
+  --canela-tostada: #F2A65A;
+  --canela-soft-text: #F5BE7A;
+  --linea:        rgba(200,215,240,0.14);
+  --hw-hielo:     #9FC3E8;
+  --hw-noche:     #05070F;
+  --hw-error:     #FF8A73;
+  color-scheme: dark;
+}
+
+/* ---------- Lo que tenía colores fijos de la paleta crema ---------- */
+.tema-halloween .topbar{ background: rgba(13,18,34,0.86); }
+.tema-halloween .brand img{ content: url("../img/logo-pie.svg"); }
+.tema-halloween .mobile-nav.is-open{ box-shadow: -20px 0 50px rgba(0,0,0,0.5); }
+
+.tema-halloween .hero-title{ color: #F3F6FC; }
+.tema-halloween .hero-sub{ color: rgba(232,238,248,0.82); }
+.tema-halloween .hero-bg-photo{ filter: brightness(0.5) saturate(0.45) contrast(1.1); }
+.tema-halloween .hero-bg-fade{
+  background:
+    linear-gradient(rgba(14,22,48,0.42), rgba(14,22,48,0.42)),
+    linear-gradient(100deg, rgba(5,7,15,0.9) 0%, rgba(8,12,28,0.74) 32%, rgba(14,22,48,0.4) 58%, rgba(14,22,48,0.15) 75%),
+    linear-gradient(0deg, var(--crema) 0%, rgba(13,18,34,0) 22%);
+}
+.tema-halloween .btn-primary{ box-shadow: 0 8px 26px rgba(232,134,46,0.4); }
+.tema-halloween .btn-ghost{ color: #F3F6FC; }
+
+.tema-halloween .roll-swirl-line{ stroke: #3A4767; }
+.tema-halloween .roll-card:hover{ box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(159,195,232,0.25); }
+.tema-halloween .roll-tag{ box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+
+.tema-halloween .contact{ background: var(--hw-noche); color: var(--cafe); }
+.tema-halloween .contact-title,
+.tema-halloween .contact-link{ color: var(--cafe); }
+.tema-halloween .contact-link.is-primary{ color: var(--hw-noche); }
+
+.tema-halloween .cart-fab{ background: var(--canela); color: var(--hw-noche); box-shadow: 0 12px 28px rgba(232,134,46,0.4); }
+.tema-halloween .cart-modal-backdrop,
+.tema-halloween .box-complete-backdrop{ background: rgba(2,4,10,0.7); }
+.tema-halloween .cart-submit:disabled,
+.tema-halloween .cart-submit:disabled:hover,
+.tema-halloween .transfer-enviar:disabled{ background: rgba(232,238,248,0.08); color: rgba(232,238,248,0.4); }
+.tema-halloween .codigo-premio-barra{ background: rgba(232,238,248,0.14); }
+
+.tema-halloween .cart-box.is-incomplete .cart-box-fill,
+.tema-halloween .codigo-estado[data-tipo="error"],
+.tema-halloween .required-mark,
+.tema-halloween .field-error,
+.tema-halloween .form-error,
+.tema-halloween .form-hint.is-missing{ color: var(--hw-error); }
+.tema-halloween .codigo-estado[data-tipo="ok"]{ color: #9CC98A; }
+.tema-halloween .field textarea:not(:placeholder-shown):invalid:not(:focus){ border-color: var(--hw-error); background: rgba(255,138,115,0.06); }
+
+@media (max-width: 980px){
+  .tema-halloween .hero-bg-fade{
+    background:
+      linear-gradient(rgba(14,22,48,0.42), rgba(14,22,48,0.42)),
+      linear-gradient(180deg, rgba(8,12,28,0.35) 0%, rgba(8,12,28,0.6) 45%, rgba(5,7,15,0.94) 80%),
+      linear-gradient(0deg, var(--crema) 0%, rgba(13,18,34,0) 18%);
+  }
+}
+
+/* ---------- Cinta de la edición (texto editable: halloween.cinta) ---------- */
+.tema-halloween .cinta-temporada{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 8px 16px 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(232,134,46,0.55);
+  background: rgba(5,7,15,0.55);
+  color: var(--canela-soft-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.tema-halloween .cinta-temporada::before{
+  content: "";
+  width: 18px; height: 16px;
+  flex: none;
+  background: var(--canela);
+  /* calabacita */
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 16'%3E%3Cpath d='M9 4C7 3 2 3 1 8s3 8 8 8 9-3 8-8-6-5-8-4zM8.4 4.2C8.6 2.5 9 1.2 10.6 0.4l.6.9C10 2 9.8 3 9.7 4.2z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 16'%3E%3Cpath d='M9 4C7 3 2 3 1 8s3 8 8 8 9-3 8-8-6-5-8-4zM8.4 4.2C8.6 2.5 9 1.2 10.6 0.4l.6.9C10 2 9.8 3 9.7 4.2z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* ---------- Decoración del hero (la arma halloween.js) ---------- */
+.hw-deco{ position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+
+.hw-luna{
+  position: absolute;
+  top: 110px; right: 8vw;
+  width: clamp(90px, 13vw, 170px); aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #DCE8F5 0%, #B6C8DE 55%, #8EA4C2 100%);
+  box-shadow: 0 0 60px rgba(159,195,232,0.45), 0 0 160px rgba(159,195,232,0.22);
+  opacity: 0.9;
+}
+
+.hw-murcielago{
+  position: absolute;
+  top: calc(130px + var(--i) * 34px);
+  left: -120px;
+  width: calc(46px + var(--i) * 7px);
+  animation: hw-vuelo 14s linear infinite;
+  animation-delay: calc(var(--i) * -2.3s);
+}
+.hw-murcielago svg{ display: block; width: 100%; fill: var(--hw-noche); stroke: rgba(159,195,232,0.55); stroke-width: 1.2; animation: hw-aleteo 0.28s ease-in-out infinite alternate; }
+@keyframes hw-vuelo{
+  0%  { transform: translate(0, 0) rotate(-6deg); }
+  25% { transform: translate(30vw, -40px) rotate(4deg); }
+  50% { transform: translate(60vw, 20px) rotate(-4deg); }
+  75% { transform: translate(90vw, -30px) rotate(6deg); }
+  100%{ transform: translate(calc(100vw + 240px), 10px) rotate(-6deg); }
+}
+@keyframes hw-aleteo{ from{ transform: scaleY(1); } to{ transform: scaleY(0.45); } }
+
+.hw-tela{ position: absolute; top: 72px; left: 0; width: clamp(130px, 18vw, 220px); opacity: 0.55; }
+.hw-tela svg{ display: block; width: 100%; fill: none; stroke: #C9E2FF; stroke-width: 1.4; }
+.tema-halloween .menu{ position: relative; overflow: hidden; }
+.hw-tela-menu{ top: 0; left: auto; right: 0; transform: scaleX(-1); opacity: 0.3; }
+
+.hw-arana{
+  position: absolute;
+  top: 0; right: 24vw;
+  transform-origin: 50% 0;
+  animation: hw-vaiven 4s ease-in-out infinite;
+}
+.hw-hilo{ display: block; width: 2px; height: 210px; margin: 0 auto; background: rgba(201,226,255,0.6); animation: hw-baja 7s ease-in-out infinite; transform-origin: 50% 0; }
+.hw-arana svg{ display: block; width: 46px; margin: -4px auto 0; fill: var(--hw-noche); stroke: rgba(159,195,232,0.7); }
+.hw-arana .hw-ojo{ fill: #FF9A3C; stroke: none; }
+@keyframes hw-vaiven{ 0%,100%{ transform: rotate(-4deg); } 50%{ transform: rotate(4deg); } }
+@keyframes hw-baja{ 0%,100%{ transform: scaleY(0.75); } 50%{ transform: scaleY(1.1); } }
+.hw-arana svg{ animation: hw-baja-cuerpo 7s ease-in-out infinite; }
+@keyframes hw-baja-cuerpo{ 0%,100%{ transform: translateY(-52px); } 50%{ transform: translateY(21px); } }
+
+/* Rayo y destello cada 9 s: dos golpes de luz seguidos */
+.hw-rayo{
+  position: absolute;
+  top: 0; right: 30vw;
+  height: 46vh;
+  fill: none;
+  stroke: #F2F8FF;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px #C9E2FF) drop-shadow(0 0 18px #9FC3E8);
+  opacity: 0;
+  animation: hw-golpe 9s linear infinite;
+}
+.hw-destello{ position: absolute; inset: 0; background: #C9E2FF; mix-blend-mode: screen; opacity: 0; animation: hw-flash 9s linear infinite; }
+@keyframes hw-golpe{ 0%,70%{ opacity: 0; } 70.5%{ opacity: 1; } 71.5%{ opacity: 0.1; } 72.5%{ opacity: 0.9; } 75%,100%{ opacity: 0; } }
+@keyframes hw-flash{ 0%,70%{ opacity: 0; } 70.5%{ opacity: 0.3; } 71.5%{ opacity: 0.04; } 72.5%{ opacity: 0.22; } 76%,100%{ opacity: 0; } }
+
+.hw-niebla{
+  position: absolute;
+  left: -10%; right: -10%; bottom: 0; height: 35%;
+  background: radial-gradient(ellipse 60% 80% at 30% 100%, rgba(159,195,232,0.16), transparent 70%),
+              radial-gradient(ellipse 50% 70% at 75% 100%, rgba(159,195,232,0.12), transparent 70%);
+  animation: hw-niebla 18s ease-in-out infinite alternate;
+}
+@keyframes hw-niebla{ from{ transform: translateX(-3%); } to{ transform: translateX(3%); } }
+
+@media (max-width: 980px){
+  .hw-luna{ top: 90px; right: 6vw; }
+  .hw-rayo{ right: 18vw; height: 34vh; }
+  .hw-arana{ right: 30vw; }
+  .hw-hilo{ height: 150px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hw-murcielago, .hw-rayo, .hw-destello{ display: none; }
+}
