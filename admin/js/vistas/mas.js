@@ -66,6 +66,7 @@ export async function mostrar(cont) {
       item('#/pedidos', 'carrito', 'Pedidos web', 'Los que llegan desde la web: confirmar o rechazar'),
       item('#/clientes', 'clientes', 'Clientes', 'Libreta, historial y duplicados'),
       item('#/recomendaciones', 'regalo', 'Recomendaciones', 'Campaña de descuento por recomendar, códigos y resultados'),
+      item('#/promos', 'etiqueta', 'Promociones', 'Descuentos por fechas en las Box y sabores que elijas'),
       item('#/gastos', 'gasto', 'Gastos e ingresos', 'Mermas, comisiones, retiros y aportes de socios')),
     seccion('Catálogo',
       item('#/sabores', 'roll', 'Sabores y recetas', 'Activar, ocultar en la web, precio por unidad'),

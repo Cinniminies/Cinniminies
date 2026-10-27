@@ -21,10 +21,33 @@ test('limpiar: tipos, sabores sin id y fotos no permitidas', () => {
   assert.equal(c.sabores[1].precio_unidad, null);
   assert.equal(c.sabores[2].foto, 'https://cdn.ejemplo.com/y.jpg');
   assert.deepEqual(c.formatos[0], { nombre: 'Box de 6', tipo: 'caja_fija', rolls: 6, min_rolls: null, max_rolls: null, precio: 250 });
-  assert.deepEqual(limpiar(null), { sabores: [], contenido: {}, envio: null, formatos: [] });
+  assert.deepEqual(limpiar(null), { sabores: [], contenido: {}, envio: null, formatos: [], promos: [] });
   assert.equal(limpiar({ envio: '25' }).envio, 25, 'precio del envío');
   assert.deepEqual(limpiar({ contenido: { 'hero.titulo': 'Hola', 'mal clave': 'x', 'hero.num': 3, 'hero.largo': 'x'.repeat(1001) } }).contenido,
     { 'hero.titulo': 'Hola' });
+});
+
+test('limpiar: promos con tipo y valor válidos, formatos y sabores', () => {
+  const c = limpiar({ promos: [
+    { nombre: 'Halloween', tipo: 'porcentaje', valor: '6.66', texto: ' Solo el sábado ', hasta: '2026-10-31',
+      formatos: [{ tipo: 'caja_fija', rolls: 6 }, null, { rolls: 12 }], sabores: ['canela', '', 3] },
+    { nombre: 'Rara', tipo: 'regalo', valor: 10 },
+    { nombre: 'Cero', tipo: 'monto', valor: 0 },
+    { tipo: 'monto', valor: 20, hasta: 'mañana' },
+  ] });
+  assert.deepEqual(c.promos, [
+    { nombre: 'Halloween', tipo: 'porcentaje', valor: 6.66, texto: 'Solo el sábado', hasta: '2026-10-31',
+      formatos: [{ tipo: 'caja_fija', rolls: 6 }], sabores: ['canela'] },
+    { nombre: 'Promo', tipo: 'monto', valor: 20, texto: null, hasta: null, formatos: [], sabores: [] },
+  ]);
+});
+
+test('leerCatalogo pide las promos de prueba solo en modo prueba', async () => {
+  const cuerpos = [];
+  const falso = async (url, op) => { cuerpos.push(op.body); return { ok: true, json: async () => ({}) }; };
+  await leerCatalogo({ url: 'https://x.supabase.co', clave: 'eyJk', fetch: falso });
+  await leerCatalogo({ url: 'https://x.supabase.co', clave: 'eyJk', fetch: falso, prueba: true });
+  assert.deepEqual(cuerpos, ['{}', '{"p_prueba":true}']);
 });
 
 test('leerCatalogo llama a la RPC con la clave', async () => {

@@ -678,3 +678,39 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .disp .t1 { font-weight: 600; }
 .disp .t2 { font-size: .82rem; color: var(--suave); }
 .disp .btn { margin-top: .5rem; }
+
+/* Promociones: cada promo es un cupón. A la izquierda el descuento en grande (lo que se busca de un vistazo),
+   separado con un borde punteado; a la derecha cuándo, a qué cajas y sabores, y cómo quedan los precios. */
+.promo-lista { display: grid; gap: .75rem; margin-bottom: 1rem; }
+@media (min-width: 900px) { .promo-lista { grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); } }
+.promo-tarjeta { display: grid; grid-template-columns: 7.5rem 1fr; background: var(--card); border: 1px solid var(--borde);
+  border-radius: var(--radio); box-shadow: var(--sombra); overflow: hidden; }
+.promo-tarjeta.en-curso { border: 2px solid var(--marca); }
+.promo-valor { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .15rem; padding: 1rem .5rem;
+  background: var(--marca-suave); color: var(--marca); border-right: 2px dashed var(--borde); text-align: center; }
+.promo-tarjeta.en-curso .promo-valor { background: var(--marca); color: var(--sobre-marca); border-right-color: var(--card); }
+.promo-valor strong { font-family: var(--display); font-size: 1.7rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.promo-valor span { font-size: .75rem; opacity: .85; }
+.promo-cuerpo { padding: .85rem 1rem; min-width: 0; }
+.promo-cuerpo h3 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.promo-cuando { margin: .2rem 0 .55rem; color: var(--suave); font-size: .9rem; }
+.promo-alcance { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .55rem; }
+.promo-tag { font-size: .78rem; font-weight: 600; padding: .12rem .5rem; border-radius: 999px; background: var(--marca-suave); color: var(--marca); }
+.promo-tag.sabor { background: transparent; border: 1px solid var(--borde); color: var(--texto); }
+.promo-ejemplos { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.promo-ejemplos s, .promo-ejemplo s, .promo-resumen s { color: var(--suave); }
+.promo-texto { margin: .55rem 0 0; font-style: italic; color: var(--suave); font-size: .9rem; overflow-wrap: anywhere; }
+.promo-cuerpo .plegable { margin-top: .6rem; }
+.promo-cuerpo .acciones { margin-top: .5rem; }
+.promo-vista { display: grid; gap: .25rem; }
+.promo-ejemplo { display: flex; justify-content: space-between; padding: .4rem .6rem; border-radius: 10px; background: var(--marca-suave);
+  font-variant-numeric: tabular-nums; }
+.promo-vista:empty::before { content: "Poné cuánto descuenta para ver cómo quedan los precios."; color: var(--suave); font-size: .9rem; }
+@media (max-width: 420px) { .promo-tarjeta { grid-template-columns: 1fr; } .promo-valor { flex-direction: row; gap: .5rem; border-right: 0;
+  border-bottom: 2px dashed var(--borde); padding: .6rem; } }
+
+/* Promo en el resumen de la venta nueva */
+.resumen .r.promo-resumen { color: var(--ok); font-weight: 600; }
+.resumen .r.promo-resumen.sacada { color: var(--suave); font-weight: 400; }
+.promo-boton { background: none; border: 0; padding: 0; margin-left: .25rem; color: var(--marca); font: inherit; font-size: .85rem;
+  font-weight: 600; text-decoration: underline; cursor: pointer; }

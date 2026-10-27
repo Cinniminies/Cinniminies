@@ -1,11 +1,12 @@
 // Catálogo público para la web (Etapa 5): sale de la función catalogo_web() de la base.
 const { encabezados } = require('./supabase.js');
 
-async function leerCatalogo({ url, clave, fetch: pedir = fetch }) {
+// prueba: el servidor local en modo prueba ve las promos del usuario de prueba (nunca Vercel).
+async function leerCatalogo({ url, clave, fetch: pedir = fetch, prueba = false }) {
   const r = await pedir(`${url}/rest/v1/rpc/catalogo_web`, {
     method: 'POST',
     headers: { ...encabezados(clave), 'Content-Type': 'application/json' },
-    body: '{}',
+    body: prueba ? '{"p_prueba":true}' : '{}',
   });
   if (!r.ok) {
     const detalle = await r.text().catch(() => '');
@@ -30,6 +31,23 @@ function limpiarContenido(c) {
     .filter(([k, v]) => /^[a-z]+\.[a-z_]+$/.test(k) && typeof v === 'string' && v.length <= 1000));
 }
 
+// Promos de hoy (/admin → Promociones). formatos y sabores vacíos = todos.
+function limpiarPromos(lista) {
+  if (!Array.isArray(lista)) return [];
+  return lista
+    .filter((p) => (p?.tipo === 'porcentaje' || p?.tipo === 'monto') && num(p.valor) > 0)
+    .map((p) => ({
+      nombre: txt(p.nombre) || 'Promo',
+      tipo: p.tipo,
+      valor: num(p.valor),
+      texto: txt(p.texto),
+      hasta: /^\d{4}-\d{2}-\d{2}$/.test(p.hasta) ? p.hasta : null,
+      formatos: (Array.isArray(p.formatos) ? p.formatos : [])
+        .filter((f) => f && typeof f.tipo === 'string').map((f) => ({ tipo: f.tipo, rolls: num(f.rolls) })),
+      sabores: (Array.isArray(p.sabores) ? p.sabores : []).filter((x) => txt(x)),
+    }));
+}
+
 // Deja solo los campos que usa la web, con los tipos correctos.
 function limpiar(c) {
   return {
@@ -51,7 +69,8 @@ function limpiar(c) {
       max_rolls: num(f.max_rolls),
       precio: num(f.precio),
     })),
+    promos: limpiarPromos(c?.promos),
   };
 }
 
-module.exports = { leerCatalogo, limpiar, limpiarContenido };
+module.exports = { leerCatalogo, limpiar, limpiarContenido, limpiarPromos };

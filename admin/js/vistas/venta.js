@@ -10,6 +10,7 @@ let estado = null;
 const nuevoEstado = (fecha = hoyISO()) => ({
   fecha, cliente: null, origen: '', entrega: 'retiro', medio_pago: null, estado_pago: 'pagado',
   tipo: 'venta', precio_especial: '', propina: '', notas: '', lineas: [], abierto: false, por_hacer: false,
+  sin_promo: false, // la promo vigente (/admin → Promociones) se descuenta sola salvo que se saque
 });
 
 export async function mostrar(cont) {
@@ -29,6 +30,7 @@ function payload() {
     por_hacer: estado.por_hacer,
     precio_especial: estado.precio_especial === '' ? null : Number(estado.precio_especial),
     propina: estado.propina === '' ? 0 : Number(estado.propina),
+    aplicar_promo: !estado.sin_promo,
     lineas: null,
   };
   if (estado.origen.trim()) p.origen = estado.origen.trim();
@@ -60,10 +62,19 @@ function formulario(cont, cat, clientes, origenes) {
       const r = await rpc('calcular_venta', { p });
       if (este !== pedido) return;
       const total = Number(r.precio_cobrado) + Number(r.cobro_envio) + p.propina;
+      // Promo vigente: descontada (si no hay precio especial) o sacada a mano, con el botón para cambiarlo
+      const promo = Number(r.descuento_promo) || 0;
+      const nombres = [...new Set(r.lineas.map((l) => l.promo?.promo).filter(Boolean))].join(', ');
+      const conPromo = promo > 0 && p.aplicar_promo && p.precio_especial == null;
+      const otro = Number(r.descuento) - (conPromo ? promo : 0);
+      const cambiarPromo = h('button', { class: 'promo-boton', type: 'button' }, conPromo ? 'Sacar' : 'Aplicar');
+      cambiarPromo.onclick = () => { estado.sin_promo = conPromo; recalcular(); };
       vaciar(resumen,
         h('div', { class: 'r' }, h('span', {}, `Lista (${r.rolls} rolls)`), h('span', {}, pesos(r.precio_lista))),
-        Number(r.descuento) ? h('div', { class: 'r' }, h('span', {}, Number(r.descuento) > 0 ? 'Descuento' : 'Recargo'),
-          h('span', {}, pesos(-r.descuento))) : null,
+        promo > 0 && p.precio_especial == null ? h('div', { class: `r promo-resumen${conPromo ? '' : ' sacada'}` },
+          h('span', {}, `Promo ${nombres} `, cambiarPromo), h('span', {}, conPromo ? pesos(-promo) : `${pesos(-promo)} sin aplicar`)) : null,
+        otro ? h('div', { class: 'r' }, h('span', {}, otro > 0 ? 'Descuento' : 'Recargo'),
+          h('span', {}, pesos(-otro))) : null,
         Number(r.cobro_envio) ? h('div', { class: 'r' }, h('span', {}, 'Envío'), h('span', {}, pesos(r.cobro_envio))) : null,
         p.propina ? h('div', { class: 'r' }, h('span', {}, 'Propina'), h('span', {}, pesos(p.propina))) : null,
         h('div', { class: 'r total' }, h('span', {}, 'Cobrás'), h('span', {}, pesos(total))),
