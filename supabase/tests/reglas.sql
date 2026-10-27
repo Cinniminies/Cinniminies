@@ -2,6 +2,9 @@
 -- de Supabase (o con execute_sql). No dejan nada guardado: terminan siempre con un error
 -- que deshace todo. Si el mensaje final es "TODO OK", pasaron.
 -- Hay varios bloques `do $$ … $$`: corré uno por vez (cada uno corta la ejecución al terminar).
+-- Desde 20261024130000 (dispositivos autorizados): cada bloque registra un dispositivo de prueba para cada admin
+-- (es_admin() lo pide) y hace `discard plans` después de cada cambio de rol: si no, Postgres reusa planes armados con
+-- la RLS del rol anterior (hoy(), costo_roll fallan al pasar de authenticated a service_role). Todo se deshace con el bloque.
 
 do $$
 declare
@@ -20,6 +23,11 @@ declare
   fallo text;
   linea jsonb;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   -- 5.2 Costos por roll con los precios de referencia del 22/09 (sin compras cargadas).
   if not exists (select 1 from compras) then
     assert round(costo_roll(ca, '2026-09-22'), 2) = 9.51, 'costo Canela';
@@ -140,6 +148,11 @@ declare
   v2 uuid;
   fallo text;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   r := registrar_venta(jsonb_build_object('fecha', '2026-09-20', 'entrega', 'retiro', 'medio_pago', 'efectivo',
          'cliente', jsonb_build_object('nombre', 'Prueba A', 'contacto', '099'),
          'lineas', jsonb_build_array(jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(
@@ -232,6 +245,11 @@ declare
   id1 uuid;
   id2 uuid;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   -- Sabor nuevo con la receta de Canela + pasta de pistacho
   insert into insumos (nombre, tipo, unidad_base, costo_referencia) values ('Pasta de pistacho', 'ingrediente', 'g', 1.2) returning id into pist;
   insert into sabores (nombre, activo) values ('Pistacho', true) returning id into pis;
@@ -296,6 +314,11 @@ end $$;
 do $$
 declare s uuid; r text; canela uuid;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   insert into sabores (nombre, slug) values ('PRUEBA borrar', 'prueba-borrar') returning id into s;
   insert into precios (sabor_id, precio, vigente_desde) values (s, 70, current_date);
   insert into recetas (sabor_id, insumo_id, cantidad) select s, id, 10 from insumos limit 1;
@@ -319,6 +342,11 @@ end $$;
 do $$
 declare r jsonb; v jsonb; ped uuid; fallo text; n int; ventas_antes int := (select count(*) from ventas);
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   -- caja de 6 mezclada + personalizada 1 DDL + 2 Oreo = 250 + 55 + 120 = 425 (con los precios del 25/09)
   r := crear_pedido_web('{"nombre":"PRUEBA Web","telefono":"099 123 456","modalidad":"entrega","direccion":"Calle 1","pago":"Transferencia","notas":"sin nueces",
     "cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":3,"oreo":3}},{"tipo":"personalizado","sabores":{"dulce":1,"oreo":2}}]}', 'hash-prueba');
@@ -363,6 +391,11 @@ end $$;
 do $$
 declare fallos int := 0;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   begin update contenido_web set valor = '099111333' where clave = 'contacto.whatsapp'; exception when check_violation then fallos := fallos + 1; end;
   begin update contenido_web set valor = '@cinni' where clave = 'contacto.instagram'; exception when check_violation then fallos := fallos + 1; end;
   begin update contenido_web set valor = 'javascript:alert(1)' where clave = 'hero.foto'; exception when check_violation then fallos := fallos + 1; end;
@@ -380,6 +413,11 @@ do $$
 declare
   r jsonb; v jsonb; pid uuid; r2 jsonb;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   r := crear_pedido_web('{"nombre":"PRUEBA envio","telefono":"099000000","modalidad":"entrega","direccion":"Calle 1","pago":"transferencia","prueba":true,"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]}');
   assert (r->>'envio')::numeric = 25 and (r->>'total')::numeric = precio_vigente((select id from formatos where nombre = 'Box de 6'), null) + 25,
          'entrega: ' || r::text;
@@ -400,6 +438,11 @@ do $$
 declare r jsonb; v jsonb; ped uuid; fallo text; n int := 0; admin uuid;
   caja text := '"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   r := crear_pedido_web(('{"nombre":"PRUEBA","telefono":"099123456","modalidad":"retiro","pago":"efectivo",' || caja || '}')::jsonb, 'h0');
   select id into ped from pedidos where codigo = r->>'codigo';
   v := confirmar_pedido(ped);
@@ -420,13 +463,13 @@ begin
 
   select user_id into admin from usuarios_admin limit 1;
   perform set_config('request.jwt.claims', json_build_object('sub', admin, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   update contenido_web set valor = 'Otra frase' where clave = 'hero.frase';
   begin
     update contenido_web set tipo = 'texto' where clave = 'contacto.whatsapp';
     fallo := 'no';
   exception when insufficient_privilege then fallo := 'bloqueado'; end;
-  reset role;
+  reset role; discard plans;
   assert fallo = 'bloqueado', 'tipo: ' || fallo;
   assert (select valor from contenido_web where clave = 'hero.frase') = 'Otra frase', 'valor';
 
@@ -439,6 +482,11 @@ do $$
 declare r jsonb; v jsonb; ped uuid; ana uuid; tel text := '098765432'; clientes_antes int;
   caja text := '"cajas":[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   assert cliente_por_telefono(tel) is null, 'el celular de prueba ya es de un cliente';
   assert cliente_por_telefono('099') is null, 'un contacto corto no coincide';
   insert into clientes (nombre, contacto) values ('PRUEBA Ana', '@ana') returning id into ana;
@@ -488,12 +536,17 @@ end $$;
 do $$
 declare yo uuid; otro uuid; fallo text; n int;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   select user_id into yo from usuarios_admin where es_prueba;
   select user_id into otro from usuarios_admin where not es_prueba limit 1;
   insert into push_suscripciones (user_id, endpoint, p256dh, auth) values (otro, 'https://push.prueba/x', 'k', 'a');
 
   perform set_config('request.jwt.claims', json_build_object('sub', yo, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   insert into push_suscripciones (endpoint, p256dh, auth) values ('https://push.prueba/x', 'k', 'a');
   insert into push_suscripciones (endpoint, p256dh, auth) values ('https://push.prueba/x', 'k2', 'a2')
     on conflict (user_id, endpoint) do update set p256dh = excluded.p256dh;
@@ -502,7 +555,7 @@ begin
     insert into push_suscripciones (user_id, endpoint, p256dh, auth) values (otro, 'https://push.prueba/y', 'k', 'a');
     fallo := 'no';
   exception when insufficient_privilege then fallo := 'bloqueado'; end;
-  reset role;
+  reset role; discard plans;
 
   assert n = 1, 've solo la suya: ' || n;
   assert fallo = 'bloqueado', 'a nombre de otro: ' || fallo;
@@ -522,6 +575,11 @@ declare claves text[] := array['nav.menu', 'nav.local', 'nav.contacto', 'nav.ped
   'menu.animacion', 'menu.frase', 'menu.titulo', 'menu.paso_caja', 'carrito.titulo', 'carrito.boton', 'form.titulo',
   'form.ayuda_whatsapp', 'pedido.titulo']; fallo text;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   assert (select count(*) from contenido_web where clave = any(claves) and valor = original and tipo = 'texto') = 15, 'filas nuevas';
   assert (select catalogo_web()->'contenido' ?& claves), 'en el catálogo';
   begin update contenido_web set valor = '' where clave = 'nav.pedido'; fallo := 'no';
@@ -550,6 +608,11 @@ declare
       select jsonb_agg(jsonb_build_object('formato_id', %L::uuid, 'sabores', c)) from jsonb_array_elements(%L::jsonb) c)
       ))->>'venta_id')::uuid$f$;   -- cada elemento del último parámetro es una caja Personalizado (3 a 12 rolls)
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   update ventas set por_hacer = false where por_hacer;   -- se deshace al final
   assert (select masa_propia from sabores where id = oreo) and not (select masa_propia from sabores where id = ca),
          'masa propia: solo Oreo';
@@ -676,6 +739,11 @@ declare
   r record;
   antes numeric;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   update ventas set por_hacer = false where por_hacer;   -- se deshace al final
   -- Los que pasan a hechos toman hecho_en = now(): que queden antes del conteo de más abajo
   update ventas set hecho_en = hecho_en - interval '2 seconds' where hecho_en = now();
@@ -728,6 +796,11 @@ declare
   ra numeric;
   rb numeric;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   select * into a from v_panel;
   select coalesce((select resultado from v_resumen_mensual where mes = '2026-09-01'), 0) into ra;
   insert into ingresos (fecha, descripcion, tipo, monto) values
@@ -759,6 +832,11 @@ declare
                                                   and insumo_id = (select id from insumos where nombre = 'Harina'));
   d record;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   -- Dentro del bloque now() es siempre el mismo: corro hacia atrás el creado_en de lo que se carga antes.
   perform registrar_conteo(jsonb_build_object(
             'items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', 5000))));
@@ -795,6 +873,11 @@ declare
   caja uuid := (select id from insumos where tipo = 'packaging' limit 1);
   n int;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   n := aplicar_recetas_propuestas(jsonb_build_object('items', jsonb_build_array(
          jsonb_build_object('sabor_id', ca, 'insumo_id', har, 'cantidad', 475))));
   assert n = 1, 'una fila';
@@ -824,6 +907,11 @@ declare
   antes numeric := (select teorico from v_stock where insumo_id = (select id from insumos where nombre = 'Harina'));
   r jsonb;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   perform registrar_conteo(jsonb_build_object('items', jsonb_build_array(jsonb_build_object('insumo_id', har, 'cantidad', 1))));
   assert (select teorico from v_stock where insumo_id = har) = 1, 'conteo cargado';
   r := deshacer_ultimo_conteo();
@@ -844,23 +932,28 @@ declare
   r jsonb; pa jsonb; pb jsonb; pc jsonb;
   v_ana uuid; v_bruno uuid; v_cod text; v_pa uuid; v_pb uuid; v_pc uuid;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   -- Usuario de prueba: campaña de prueba
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   perform guardar_campana(jsonb_build_object('nombre', 'PRUEBA campaña', 'desde', hoy() - 1, 'hasta', hoy() + 60));
-  reset role;
+  reset role; discard plans;
 
   -- Web en modo prueba: Ana pide sin código
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
+  set local role service_role; discard plans;
   if (campana_web(true)->>'activa')::boolean is not true then raise exception 'campaña de prueba no activa'; end if;
   if (campana_web(false)->>'activa')::boolean then raise exception 'la web real no debería ver campaña'; end if;
   pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
-  reset role;
+  reset role; discard plans;
 
   -- Admin de prueba: confirma y cobra → Ana recibe su código
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   select id into v_pa from pedidos where codigo = pa->>'codigo';
   if v_pa is null then raise exception 'el usuario de prueba no ve su pedido'; end if;
   r := confirmar_pedido(v_pa, '{}');
@@ -872,11 +965,11 @@ begin
   if saldo_recomendacion(v_ana) <> 5 or (select hasta from bonos_recomendacion where cliente_id = v_ana) <> hoy() + 30 then
     raise exception 'bono de Ana: %', (select row_to_json(x) from bonos_recomendacion x where cliente_id = v_ana);
   end if;
-  reset role;
+  reset role; discard plans;
 
   -- Bruno (nuevo) pide con el código de Ana, en minúsculas y sin guion
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
+  set local role service_role; discard plans;
   r := consultar_codigo(lower(replace(v_cod, '-', ' ')), '091000002', true);
   if r->>'estado' <> 'recomendado' or r->>'nombre' <> 'Ana' then raise exception 'consultar Bruno: %', r; end if;
   if consultar_codigo(v_cod, '091000002', false)->>'estado' <> 'sin_campana' then raise exception 'real con campaña'; end if;
@@ -887,10 +980,10 @@ begin
   end if;
   pb := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true,'codigo_recomendacion',lower(v_cod)));
   if (pb->>'total')::numeric <> 250 then raise exception 'Bruno no paga de lista: %', pb; end if;
-  reset role;
+  reset role; discard plans;
 
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   select id into v_pb from pedidos where codigo = pb->>'codigo';
   if (select estado from recomendaciones where pedido_id = v_pb) <> 'pendiente' then raise exception 'reco no pendiente'; end if;
   -- se confirma ya pagado (la venta se crea antes de enlazarse al pedido)
@@ -907,22 +1000,22 @@ begin
   if saldo_recomendacion(v_ana) <> 5 then raise exception 'saldo Ana con venta impaga'; end if;
   update ventas set estado_pago = 'pagado' where id = (r->>'venta_id')::uuid;
   if saldo_recomendacion(v_ana) <> 10 then raise exception 'saldo Ana repagada'; end if;
-  reset role;
+  reset role; discard plans;
 
   -- Dueño: no ve nada de prueba
   perform set_config('request.jwt.claims', json_build_object('sub', u_dueno, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   if exists (select 1 from pedidos where telefono like '09100000_') or exists (select 1 from v_ventas where cliente like '% Prueba')
      or exists (select 1 from clientes where contacto like '09100000_') or exists (select 1 from recomendaciones)
      or exists (select 1 from codigos_recomendacion) or exists (select 1 from campanas_recomendacion)
      or exists (select 1 from bonos_recomendacion) then
     raise exception 'el dueño ve datos de prueba';
   end if;
-  reset role;
+  reset role; discard plans;
 
   -- Ana usa su 10 % (5 del bono + 5 de Bruno): el personalizado no lleva; con Box de 6 + Box de 12 va a la de 12
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
+  set local role service_role; discard plans;
   r := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',perso,'prueba',true,'codigo_recomendacion',v_cod));
   if (r->>'descuento')::numeric <> 0 or (r->'recomendacion'->>'aplicado')::boolean then raise exception 'personalizado con descuento: %', r; end if;
   pc := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box6 || box12,'prueba',true,'codigo_recomendacion',v_cod));
@@ -942,11 +1035,11 @@ begin
   -- código inexistente: el pedido sale igual, sin descuento
   r := crear_pedido_web(jsonb_build_object('nombre','Caro Prueba','telefono','091000003','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true,'codigo_recomendacion','XXX-999'));
   if r->'recomendacion'->>'estado' <> 'no_existe' or (r->>'total')::numeric <> 250 then raise exception 'código inexistente: %', r; end if;
-  reset role;
+  reset role; discard plans;
 
   -- El canje queda en la nota y en el cobro; si se borra la venta y se rechaza el pedido, el saldo no cambia
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   select id into v_pc from pedidos where codigo = pc->>'codigo';
   r := confirmar_pedido(v_pc, '{}');
   if (select notas from ventas where id = (r->>'venta_id')::uuid) not like '%Descuento por recomendaciones 10% en Box de 12 (−$45)%' then
@@ -963,18 +1056,18 @@ begin
   r := borrar_datos_prueba();
   if (r->>'pedidos')::int <> 5 or (r->>'clientes')::int < 2 or (r->>'campanas')::int <> 1 then raise exception 'borrar: %', r; end if;
   if exists (select 1 from pedidos) or exists (select 1 from ventas) then raise exception 'quedaron datos de prueba'; end if;
-  reset role;
+  reset role; discard plans;
 
   -- Un dueño no puede borrar datos de prueba
   perform set_config('request.jwt.claims', json_build_object('sub', u_dueno, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   begin
     perform borrar_datos_prueba();
     raise exception 'el dueño pudo borrar';
   exception when raise_exception then
     if sqlerrm = 'el dueño pudo borrar' then raise; end if;
   end;
-  reset role;
+  reset role; discard plans;
 
   raise exception 'TODO OK';
 end $$;
@@ -989,17 +1082,22 @@ declare
   r jsonb; pa jsonb; pb jsonb; pc jsonb; pd jsonb;
   v_ana uuid; v_bruno uuid; v_cod text;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   perform guardar_campana(jsonb_build_object('nombre', 'PRUEBA campaña', 'desde', hoy() - 1, 'hasta', hoy() + 60));
-  reset role;
+  reset role; discard plans;
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
+  set local role service_role; discard plans;
   pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
   pb := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true));
-  reset role;
+  reset role; discard plans;
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   r := confirmar_pedido((select id from pedidos where codigo = pa->>'codigo'), '{"estado_pago":"pagado"}');
   select v.cliente_id into v_ana from ventas v where v.id = (r->>'venta_id')::uuid;
   select codigo into v_cod from codigos_recomendacion where cliente_id = v_ana;
@@ -1007,16 +1105,16 @@ begin
   select v.cliente_id into v_bruno from ventas v where v.id = (r->>'venta_id')::uuid;
   -- confirmada ya pagada: bono igual
   if saldo_recomendacion(v_ana) <> 5 then raise exception 'bono Ana confirmada pagada'; end if;
-  reset role;
+  reset role; discard plans;
 
   -- Bruno, que ya es cliente, pide su primera Box de 12: bono recién cuando se paga, y uno solo por campaña
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
+  set local role service_role; discard plans;
   pd := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
   pc := crear_pedido_web(jsonb_build_object('nombre','Bruno Prueba','telefono','091000002','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
-  reset role;
+  reset role; discard plans;
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   r := confirmar_pedido((select id from pedidos where codigo = pd->>'codigo'), '{}');
   if saldo_recomendacion(v_bruno) <> 0 then raise exception 'bono de Bruno sin pagar'; end if;
   update ventas set estado_pago = 'pagado' where id = (r->>'venta_id')::uuid;
@@ -1030,9 +1128,9 @@ begin
   -- Termina la campaña: el bono se sigue pudiendo usar sus 30 días; lo de recomendar, no
   perform guardar_campana(jsonb_build_object('id', (select id from campanas_recomendacion), 'nombre', 'PRUEBA campaña',
                                              'desde', hoy() - 2, 'hasta', hoy() - 1));
-  reset role;
+  reset role; discard plans;
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
+  set local role service_role; discard plans;
   r := campana_web(true);
   if (r->>'activa')::boolean or not (r->>'solo_canje')::boolean then raise exception 'web sin campaña con bonos: %', r; end if;
   if campana_web(false) <> '{"activa": false}' then raise exception 'la web real ve bonos de prueba: %', campana_web(false); end if;
@@ -1047,11 +1145,11 @@ begin
      is distinct from (select campana_id from bonos_recomendacion where cliente_id = v_ana) then
     raise exception 'el canje sin campaña no quedó en la campaña del bono';
   end if;
-  reset role;
+  reset role; discard plans;
 
   -- Fusionar: el bono sigue a la venta; si los dos tenían, queda uno
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
+  set local role authenticated; discard plans;
   perform fusionar_clientes(v_ana, v_bruno);
   if (select count(*) from bonos_recomendacion) <> 1 or saldo_recomendacion(v_ana) <> 5 then
     raise exception 'bonos tras fusionar: %', (select json_agg(x) from bonos_recomendacion x);
@@ -1061,7 +1159,7 @@ begin
   if exists (select 1 from pedidos) or exists (select 1 from ventas) or exists (select 1 from bonos_recomendacion) then
     raise exception 'quedaron datos de prueba';
   end if;
-  reset role;
+  reset role; discard plans;
   raise exception 'TODO OK';
 end $$;
 
@@ -1076,6 +1174,11 @@ declare
   p perdidas%rowtype;
   r jsonb;
 begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
   select * into antes from v_stock where insumo_id = har;
   insert into perdidas (insumo_id, cantidad, motivo) values (har, 1000, 'PRUEBA bolsa rota') returning * into p;
   assert p.costo = round(1000 * costo_insumo(har), 2), 'costo de lo perdido';
@@ -1111,5 +1214,130 @@ begin
     assert (select teorico from v_stock where insumo_id = nuevo) = 0, 'packaging nuevo arranca en 0';
   end;
 
+  raise exception 'TODO OK';
+end $$;
+
+-- Promos (20261027100000_promos.sql): proporción por sabores, la mayor por caja, fechas, prueba vs real,
+-- catálogo, pedido web y código propio contra promo (vale el mayor).
+-- Sin `set local role`: cambiar de rol en la misma transacción reusa planes armados con la RLS del otro rol
+-- (hoy(), costo_roll). Se corre como postgres y solo cambia quién llama (request.jwt.claims).
+do $$
+declare
+  u_prueba uuid := (select user_id from usuarios_admin where es_prueba limit 1);
+  b6 uuid := (select id from formatos where tipo = 'caja_fija' and rolls = 6 and activo limit 1);
+  b12 uuid := (select id from formatos where tipo = 'caja_fija' and rolls = 12 and activo limit 1);
+  can uuid := (select id from sabores where slug = 'canela');
+  oreo uuid := (select id from sabores where slug = 'oreo');
+  p6 numeric := precio_vigente((select id from formatos where tipo = 'caja_fija' and rolls = 6 and activo limit 1), null);
+  p12 numeric := precio_vigente((select id from formatos where tipo = 'caja_fija' and rolls = 12 and activo limit 1), null);
+  lineas jsonb; r jsonb; c jsonb; pa jsonb; pe jsonb; v_ana uuid; v_cod text;
+  box6 jsonb := '[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}}]';
+  box12 jsonb := '[{"tipo":"caja_fija","rolls":12,"sabores":{"canela":12}}]';
+  ambas jsonb := '[{"tipo":"caja_fija","rolls":6,"sabores":{"canela":6}},{"tipo":"caja_fija","rolls":12,"sabores":{"canela":12}}]';
+begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
+  lineas := jsonb_build_array(
+    jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(
+      jsonb_build_object('sabor_id', can, 'unidades', 3), jsonb_build_object('sabor_id', oreo, 'unidades', 3))),
+    jsonb_build_object('formato_id', b12, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', can, 'unidades', 12))));
+
+  -- La carga el usuario de prueba: queda de prueba
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  insert into promos (nombre, tipo, valor, desde, hasta, formatos, sabores)
+  values ('T canela', 'porcentaje', 10, hoy(), hoy(), array[b6], array[can]);
+  if not (select es_prueba from promos where nombre = 'T canela') then raise exception 'la promo debía quedar de prueba'; end if;
+
+  -- Box de 6 mitad canela: 10 % × la mitad; la Box de 12 no está en la promo
+  r := calcular_venta(jsonb_build_object('aplicar_promo', true, 'lineas', lineas));
+  if (r->>'descuento_promo')::numeric <> round(p6 * 0.05) then raise exception 'proporcional: %', r->>'descuento_promo'; end if;
+  if (r->>'precio_cobrado')::numeric <> p6 + p12 - round(p6 * 0.05) then raise exception 'aplicar_promo: %', r->>'precio_cobrado'; end if;
+  if r->'lineas'->1 ? 'promo' then raise exception 'la Box de 12 no debía tener promo'; end if;
+  r := calcular_venta(jsonb_build_object('lineas', lineas));
+  if (r->>'precio_cobrado')::numeric <> p6 + p12 then raise exception 'sin aplicar_promo cobra lista: %', r->>'precio_cobrado'; end if;
+  r := calcular_venta(jsonb_build_object('lineas', lineas, 'prueba', false));
+  if (r->>'descuento_promo')::numeric <> 0 then raise exception 'las ventas reales no ven promos de prueba'; end if;
+
+  -- Dos promos en la misma caja: vale la mayor, no se suman
+  insert into promos (nombre, tipo, valor, desde, hasta) values ('T monto', 'monto', 20, hoy(), hoy() + 1);
+  r := calcular_venta(jsonb_build_object('lineas', lineas));
+  if (r->>'descuento_promo')::numeric <> 40 or r->'lineas'->0->'promo'->>'promo' <> 'T monto' then
+    raise exception 'la mayor por caja: %', r; end if;
+  update promos set activa = false where nombre = 'T monto';
+  if (calcular_venta(jsonb_build_object('lineas', lineas))->>'descuento_promo')::numeric <> round(p6 * 0.05) then raise exception 'apagada cuenta'; end if;
+  update promos set activa = true, desde = hoy() + 1 where nombre = 'T monto';
+  if (calcular_venta(jsonb_build_object('lineas', lineas))->>'descuento_promo')::numeric <> round(p6 * 0.05) then raise exception 'programada cuenta'; end if;
+  update promos set desde = hoy() where nombre = 'T monto';
+
+  -- Catálogo: la web real no ve las de prueba
+  c := catalogo_web(true);
+  if jsonb_array_length(c->'promos') <> 2 then raise exception 'catálogo de prueba: %', c->'promos'; end if;
+  if exists (select 1 from jsonb_array_elements(catalogo_web()->'promos') x where x->>'nombre' like 'T %') then
+    raise exception 'la web real ve promos de prueba'; end if;
+
+  -- Pedido web: Box de 6 de canela → 10 % (25) le gana a $20
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
+  pe := crear_pedido_web(jsonb_build_object('nombre','Eva Prueba','telefono','091000005','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true));
+  if (pe->>'descuento_promo')::numeric <> round(p6 * 0.10) or (pe->>'total')::numeric <> p6 - round(p6 * 0.10) or pe->>'promo' <> 'T canela' then
+    raise exception 'pedido web: %', pe; end if;
+  if (select descuento_promo from pedidos where codigo = pe->>'codigo') <> round(p6 * 0.10) then raise exception 'pedido no guardó la promo'; end if;
+
+  -- Ana paga su Box de 12 durante una campaña: 5 % propio
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  perform guardar_campana(jsonb_build_object('nombre', 'PRUEBA campaña', 'desde', hoy() - 1, 'hasta', hoy() + 60));
+  -- (el pedido de Ana se hizo antes de la campaña: lo rehacemos)
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  r := confirmar_pedido((select id from pedidos where codigo = pa->>'codigo'), '{"estado_pago":"pagado"}');
+  select v.cliente_id into v_ana from ventas v where v.id = (r->>'venta_id')::uuid;
+  select codigo into v_cod from codigos_recomendacion where cliente_id = v_ana;
+  if saldo_recomendacion(v_ana) <> 5 then raise exception 'Ana sin saldo'; end if;
+  -- la venta confirmada de Eva anota la promo
+  r := confirmar_pedido((select id from pedidos where codigo = pe->>'codigo'), '{}');
+  if (select notas from ventas where id = (r->>'venta_id')::uuid) not like '%T canela (−$%' then raise exception 'nota de la promo'; end if;
+  if (select precio_cobrado from ventas where id = (r->>'venta_id')::uuid) <> p6 - round(p6 * 0.10) then raise exception 'venta de Eva'; end if;
+
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  -- Box de 6 de canela con su código: la promo (10 %) le gana al 5 % → no se usa el código
+  r := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo',
+    'cajas',box6,'prueba',true,'codigo_recomendacion',v_cod));
+  if (r->>'descuento')::numeric <> 0 or (r->>'total')::numeric <> p6 - round(p6 * 0.10) or (r->'recomendacion'->>'aplicado')::boolean then
+    raise exception 'promo mayor que el código: %', r; end if;
+  -- Box de 6 + Box de 12: promo en la de 6 y el código en la de 12 (donde la promo da $20 < 5 %)
+  r := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo',
+    'cajas',ambas,'prueba',true,'codigo_recomendacion',v_cod));
+  if (r->>'descuento')::numeric <> round(p12 * 0.05) or (r->>'descuento_promo')::numeric <> round(p6 * 0.10)
+     or (r->>'total')::numeric <> p6 + p12 - round(p6 * 0.10) - round(p12 * 0.05) then
+    raise exception 'código en la de 12: %', r; end if;
+  raise exception 'TODO OK';
+end $$;
+
+-- Borrar datos de prueba también borra las promos de prueba, y nunca las reales (20261027110000).
+do $$
+declare
+  u_prueba uuid := (select user_id from usuarios_admin where es_prueba limit 1);
+  r jsonb;
+begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
+  insert into promos (nombre, tipo, valor, desde, hasta, es_prueba) values ('T real', 'monto', 10, hoy(), hoy(), false);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  set local role authenticated; discard plans;
+  insert into promos (nombre, tipo, valor, desde, hasta) values ('T prueba', 'monto', 10, hoy(), hoy());
+  r := borrar_datos_prueba();
+  reset role; discard plans;
+
+  if (r->>'promos')::int <> 1 then raise exception 'promos borradas: %', r; end if;
+  if exists (select 1 from promos where nombre = 'T prueba') then raise exception 'quedó la promo de prueba'; end if;
+  if not exists (select 1 from promos where nombre = 'T real') then raise exception 'borró una promo real'; end if;
   raise exception 'TODO OK';
 end $$;

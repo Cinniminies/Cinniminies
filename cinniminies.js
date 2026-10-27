@@ -133,6 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const CUSTOM_FLAVOR_PRICES = { canela: 50, dulce: 55, oreo: 60, nutella: 65 };
   let CUSTOM_MIN = 3;
   let CUSTOM_MAX = 12;
+  // Promos de hoy (/admin → Promociones), vienen en /api/catalogo. Cada una: { nombre, tipo: 'porcentaje' | 'monto',
+  // valor, texto, formatos: [{ tipo, rolls }], sabores: [slug] } (vacíos = todos). La cuenta final la hace la base.
+  let PROMOS = [];
 
   // cart: lista de cajas. Cada caja: { size, flavors: { canela: 2, dulce: 1, ... } }
   // size puede ser 6, 12, o 'custom' (caja personalizada de 3 a 12 unidades)
@@ -222,8 +225,48 @@ document.addEventListener('DOMContentLoaded', () => {
     return cart.reduce((sum, box) => sum + boxFilled(box), 0);
   }
 
-  function cartTotal() {
+  // ¿La promo es para este tamaño de caja? (6, 12 o 'custom')
+  function promoParaTamano(p, size) {
+    if (!p.formatos.length) return true;
+    return p.formatos.some(f => size === 'custom' ? f.tipo === 'personalizado' : f.tipo === 'caja_fija' && f.rolls === size);
+  }
+
+  // La promo que más descuenta en una caja completa, como privado.promo_de_linea: % o monto por caja, en
+  // proporción a los rolls de los sabores de la promo (3 de canela en una de 6 = la mitad). No se suman.
+  function promoDeCaja(box, promos = PROMOS) {
+    const precio = boxPrice(box);
+    const filled = boxFilled(box);
+    if (!precio || !filled) return null;
+    let mejor = null;
+    for (const p of promos) {
+      if (!promoParaTamano(p, box.size)) continue;
+      const rolls = p.sabores.length
+        ? Object.entries(box.flavors).reduce((n, [id, qty]) => n + (p.sabores.includes(id) ? qty : 0), 0)
+        : filled;
+      const base = p.tipo === 'porcentaje' ? precio * p.valor / 100 : p.valor;
+      // toFixed: que 16,65 no quede en 16,6499… por los decimales de JavaScript y redondee distinto que la base
+      const monto = Math.min(precio, Math.round(Number((base * rolls / filled).toFixed(6))));
+      if (monto > 0 && (!mejor || monto > mejor.monto)) mejor = { nombre: p.nombre, monto };
+    }
+    return mejor;
+  }
+
+  function cartPromo() {
+    return cart.reduce((sum, box) => sum + (promoDeCaja(box)?.monto || 0), 0);
+  }
+
+  function cartList() {
     return cart.reduce((sum, box) => sum + boxPrice(box), 0);
+  }
+
+  // Lo que se paga por las cajas, ya con las promos
+  function cartTotal() {
+    return cartList() - cartPromo();
+  }
+
+  // "−6,66 %" o "−$50"
+  function etiquetaPromo(p) {
+    return p.tipo === 'porcentaje' ? `−${String(p.valor).replace('.', ',')} %` : `−$${p.valor}`;
   }
 
   function cartHasIncompleteBox() {
@@ -307,12 +350,14 @@ document.addEventListener('DOMContentLoaded', () => {
         fillLabel = `${filled}/${box.size} ${complete ? '✓ completa' : 'falta completar'}`;
       }
 
+      const promo = complete ? promoDeCaja(box) : null;
       return `
         <div class="cart-box ${!complete ? 'is-incomplete' : ''}">
           <div class="cart-box-head">
             <span>${boxLabel}</span>
             <span class="cart-box-fill">${fillLabel}</span>
           </div>
+          ${promo ? `<p class="cart-box-promo">${esc(promo.nombre)}: −$${promo.monto}</p>` : ''}
           ${flavorRows}
         </div>
       `;
@@ -321,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rollLabel = rollCount === 1 ? 'roll' : 'rolls';
     cartSummaryEl.innerHTML = `
       <span>${rollCount} ${rollLabel} en ${cart.length} caja${cart.length > 1 ? 's' : ''}</span>
-      <strong>$${cartTotal()}</strong>
+      <strong>${cartPromo() ? `<s>$${cartList()}</s> ` : ''}$${cartTotal()}</strong>
     `;
 
     if (cartContinueBtn) {
@@ -495,6 +540,37 @@ document.addEventListener('DOMContentLoaded', () => {
             el('button', { class: 'roll-add', 'data-name': nombre, 'data-id': s.id }, 'Agregar al pedido')))));
   }
 
+  // Precio de una caja fija en el selector: tachado si una promo sin sabores elegidos la baja entera
+  function precioConPromo(size, precio) {
+    const promo = promoDeCaja({ size, flavors: { _: size } }, PROMOS.filter(p => !p.sabores.length));
+    return promo
+      ? el('span', { class: 'box-cost' }, el('s', {}, `$${precio}`), ` $${precio - promo.monto}`)
+      : el('span', { class: 'box-cost' }, `$${precio}`);
+  }
+
+  // Etiqueta "−6,66 %" (y en qué sabores) en las cajas que tienen alguna promo
+  function marcaPromo(size) {
+    const p = PROMOS.find(x => promoParaTamano(x, size));
+    if (!p) return null;
+    return el('span', { class: 'box-promo' }, p.sabores.length ? `${etiquetaPromo(p)} en ${nombresSabores(p.sabores)}` : etiquetaPromo(p));
+  }
+
+  let nombresDeSabor = {};
+  function nombresSabores(slugs) {
+    const n = slugs.map(id => nombresDeSabor[id] || id);
+    return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n[n.length - 1]}` : n[0];
+  }
+
+  // Cinta arriba del selector de cajas con el texto de cada promo (el que se escribe en /admin → Promociones)
+  function mostrarCintaPromo(sabores) {
+    nombresDeSabor = Object.fromEntries(sabores.map(s => [s.id, s.nombre]));
+    const cinta = document.getElementById('promoCinta');
+    if (!cinta) return;
+    const textos = PROMOS.map(p => p.texto || `${p.nombre}: ${etiquetaPromo(p)}${p.sabores.length ? ` en ${nombresSabores(p.sabores)}` : ''}`);
+    cinta.textContent = textos.join(' · ');
+    cinta.hidden = !textos.length;
+  }
+
   function aplicarCatalogo(cat) {
     const sabores = (cat?.sabores || []).filter(s => s.id && s.nombre);
     const cajas = (cat?.formatos || []).filter(f => f.tipo === 'caja_fija' && f.rolls > 0 && f.precio != null)
@@ -506,6 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cajas.forEach(f => { BOX_PRICES[f.rolls] = f.precio; });
     for (const k of Object.keys(CUSTOM_FLAVOR_PRICES)) delete CUSTOM_FLAVOR_PRICES[k];
     sabores.forEach(s => { if (s.precio_unidad != null) CUSTOM_FLAVOR_PRICES[s.id] = s.precio_unidad; });
+    PROMOS = Array.isArray(cat?.promos) ? cat.promos : [];
     if (personalizado) {
       CUSTOM_MIN = personalizado.min_rolls || 1;
       CUSTOM_MAX = personalizado.max_rolls || Math.max(CUSTOM_MIN, 12);
@@ -515,12 +592,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const elegido = String(getSelectedBoxSize());
     const opciones = cajas.map(f => el('button', { class: 'box-option', 'data-qty': f.rolls, 'data-price': f.precio },
       el('span', { class: 'box-qty' }, String(f.rolls)), el('span', { class: 'box-desc' }, 'rolls'),
-      el('span', { class: 'box-cost' }, `$${f.precio}`)));
+      precioConPromo(f.rolls, f.precio), marcaPromo(f.rolls)));
     if (personalizado) {
       opciones.push(el('button', { class: 'box-option', 'data-qty': 'custom' },
         el('span', { class: 'box-qty' }, `${CUSTOM_MIN} a ${CUSTOM_MAX}`), el('span', { class: 'box-desc' }, 'a tu gusto'),
-        el('span', { class: 'box-cost' }, 'según sabor')));
+        el('span', { class: 'box-cost' }, 'según sabor'), marcaPromo('custom')));
     }
+    mostrarCintaPromo(sabores);
     (opciones.find(b => b.dataset.qty === elegido) || opciones[0]).classList.add('is-active');
     boxOptionsEl.replaceChildren(...opciones);
 
@@ -843,7 +921,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function descuentoEstimado(pct) {
     const fijas = cart.filter(box => !isCustomBox(box));
     if (!fijas.length) return null;
-    const box = fijas.reduce((a, b) => (boxPrice(b) > boxPrice(a) ? b : a));
+    const gana = (b) => Math.round(boxPrice(b) * pct / 100) - (promoDeCaja(b)?.monto || 0);
+    const box = fijas.reduce((a, b) => (gana(b) > gana(a) ? b : a));
+    if (gana(box) <= 0) return { monto: 0, caja: `Box de ${box.size}`, promoMayor: true };
     return { monto: Math.round(boxPrice(box) * pct / 100), caja: `Box de ${box.size}` };
   }
 
@@ -862,7 +942,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ? textoWeb('recomendacion.tope_titulo', '¡Llegaste al máximo: {tope} % de descuento!', { tope })
       : textoWeb('recomendacion.premio_titulo', 'Tenés {saldo} % de descuento', { saldo: pct });
     document.getElementById('codigoPremioSub').textContent = [
-      est ? `−$${est.monto} en tu ${est.caja}.` : 'Sumá una Box de 6 o de 12 al pedido para usarlo.',
+      est?.promoMayor
+        ? textoWeb('recomendacion.promo_mayor', 'Esta vez la promo de tu {caja} descuenta más: tu descuento te sigue esperando.', { caja: est.caja })
+        : est ? `−$${est.monto} en tu ${est.caja}.` : 'Sumá una Box de 6 o de 12 al pedido para usarlo.',
       c.bono && c.bono_hasta
         ? textoWeb('recomendacion.bono_premio', 'Incluye {bono} % por tu primera Box de 12, hasta el {vence}.',
           { bono: c.bono, vence: diaMes(c.bono_hasta) })
@@ -1266,6 +1348,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const envio = guardado ? Number(guardado.envio) || 0 : (esEntrega ? PRECIO_ENVIO : 0);
     const total = guardado?.total ?? cartTotal() + envio;
     const lineaEnvio = envio ? `Envío: $${envio}` : '';
+    const promoPedido = guardado ? Number(guardado.descuento_promo) || 0 : cartPromo();
+    const lineaPromo = promoPedido ? `${guardado?.promo || 'Promo'}: -$${promoPedido}` : '';
     // Lo que hizo la base con el código: descuento propio aplicado o de quién vino recomendado.
     const rec = guardado?.recomendacion;
     const codigoUsado = codigoField && !codigoField.hidden ? codigoInput.value.trim().toUpperCase() : '';
@@ -1282,6 +1366,7 @@ document.addEventListener('DOMContentLoaded', () => {
       esEntrega && direccion ? `Dirección: ${direccion}` : '',
       `Pago: ${pago}`,
       detailLines,
+      lineaPromo,
       lineaCodigo,
       lineaEnvio,
       `Total: $${total}`,
@@ -1330,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Armar el link de WhatsApp con todo prearmado
     const waMessage = encodeURIComponent(
-      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}${lineaCodigo ? `\n${lineaCodigo}` : ''}${lineaEnvio ? `\n${lineaEnvio}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
+      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}${lineaPromo ? `\n${lineaPromo}` : ''}${lineaCodigo ? `\n${lineaCodigo}` : ''}${lineaEnvio ? `\n${lineaEnvio}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
     );
     const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 

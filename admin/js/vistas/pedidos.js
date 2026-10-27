@@ -89,6 +89,12 @@ function bloqueCliente(p, lista, origenes) {
   };
 }
 
+// Promo del pedido (/admin → Promociones): ya restada del total
+function promoDelPedido(p) {
+  if (!(Number(p.descuento_promo) > 0)) return null;
+  return h('p', {}, h('span', { class: 'badge ok' }, p.promo || 'Promo'), ` ${pesos(-p.descuento_promo)} (ya restado del total)`);
+}
+
 // Código de recomendación del pedido: descuento propio ya restado del total, o de quién vino recomendado
 // (la recomendación se valida sola cuando la venta queda pagada).
 function recomendacion(p) {
@@ -163,6 +169,7 @@ export async function mostrar(cont) {
           p.modalidad === 'entrega' ? `Entrega: ${p.direccion}` : 'Retiro',
           ETIQUETAS.medio_pago[p.medio_pago]].join(' · ')),
       h('ul', { class: 'lista plana' }, cajas),
+      promoDelPedido(p),
       recomendacion(p),
       p.notas ? h('p', {}, h('em', {}, `“${p.notas}”`)) : null,
       p.comprobante

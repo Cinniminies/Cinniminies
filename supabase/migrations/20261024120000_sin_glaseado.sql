@@ -1,4 +1,5 @@
 -- Rolls sin glaseado (pedido del 24/10/2026).
+-- En la base se aplicó en dos partes por el tamaño (sin_glaseado y sin_glaseado_2, desde guardar_lineas): es este archivo entero.
 --
 -- * insumos.es_glaseado: los ingredientes que van solo en el glaseado (hoy, el azúcar impalpable). Se marca
 --   en /admin → Insumos.
