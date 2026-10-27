@@ -1116,6 +1116,8 @@ end $$;
 
 -- Promos (20261027100000_promos.sql): proporción por sabores, la mayor por caja, fechas, prueba vs real,
 -- catálogo, pedido web y código propio contra promo (vale el mayor).
+-- Sin `set local role`: cambiar de rol en la misma transacción reusa planes armados con la RLS del otro rol
+-- (hoy(), costo_roll). Se corre como postgres y solo cambia quién llama (request.jwt.claims).
 do $$
 declare
   u_prueba uuid := (select user_id from usuarios_admin where es_prueba limit 1);
@@ -1134,10 +1136,13 @@ begin
     jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(
       jsonb_build_object('sabor_id', can, 'unidades', 3), jsonb_build_object('sabor_id', oreo, 'unidades', 3))),
     jsonb_build_object('formato_id', b12, 'sabores', jsonb_build_array(jsonb_build_object('sabor_id', can, 'unidades', 12))));
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno para el usuario de prueba, solo en esta prueba
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  values (u_prueba, encode(sha256(convert_to('prueba-promos-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'Prueba promos', true);
+  perform set_config('request.headers', '{"x-dispositivo":"prueba-promos-0123456789abcdef0123456789"}', true);
 
   -- La carga el usuario de prueba: queda de prueba
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
   insert into promos (nombre, tipo, valor, desde, hasta, formatos, sabores)
   values ('T canela', 'porcentaje', 10, hoy(), hoy(), array[b6], array[can]);
   if not (select es_prueba from promos where nombre = 'T canela') then raise exception 'la promo debía quedar de prueba'; end if;
@@ -1162,7 +1167,6 @@ begin
   update promos set activa = true, desde = hoy() + 1 where nombre = 'T monto';
   if (calcular_venta(jsonb_build_object('lineas', lineas))->>'descuento_promo')::numeric <> round(p6 * 0.05) then raise exception 'programada cuenta'; end if;
   update promos set desde = hoy() where nombre = 'T monto';
-  reset role;
 
   -- Catálogo: la web real no ve las de prueba
   c := catalogo_web(true);
@@ -1172,26 +1176,19 @@ begin
 
   -- Pedido web: Box de 6 de canela → 10 % (25) le gana a $20
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
   pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
   pe := crear_pedido_web(jsonb_build_object('nombre','Eva Prueba','telefono','091000005','modalidad','retiro','pago','efectivo','cajas',box6,'prueba',true));
   if (pe->>'descuento_promo')::numeric <> round(p6 * 0.10) or (pe->>'total')::numeric <> p6 - round(p6 * 0.10) or pe->>'promo' <> 'T canela' then
     raise exception 'pedido web: %', pe; end if;
   if (select descuento_promo from pedidos where codigo = pe->>'codigo') <> round(p6 * 0.10) then raise exception 'pedido no guardó la promo'; end if;
-  reset role;
 
   -- Ana paga su Box de 12 durante una campaña: 5 % propio
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
   perform guardar_campana(jsonb_build_object('nombre', 'PRUEBA campaña', 'desde', hoy() - 1, 'hasta', hoy() + 60));
   -- (el pedido de Ana se hizo antes de la campaña: lo rehacemos)
-  reset role;
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
   pa := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo','cajas',box12,'prueba',true));
-  reset role;
   perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
-  set local role authenticated;
   r := confirmar_pedido((select id from pedidos where codigo = pa->>'codigo'), '{"estado_pago":"pagado"}');
   select v.cliente_id into v_ana from ventas v where v.id = (r->>'venta_id')::uuid;
   select codigo into v_cod from codigos_recomendacion where cliente_id = v_ana;
@@ -1200,10 +1197,8 @@ begin
   r := confirmar_pedido((select id from pedidos where codigo = pe->>'codigo'), '{}');
   if (select notas from ventas where id = (r->>'venta_id')::uuid) not like '%T canela (−$%' then raise exception 'nota de la promo'; end if;
   if (select precio_cobrado from ventas where id = (r->>'venta_id')::uuid) <> p6 - round(p6 * 0.10) then raise exception 'venta de Eva'; end if;
-  reset role;
 
   perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
-  set local role service_role;
   -- Box de 6 de canela con su código: la promo (10 %) le gana al 5 % → no se usa el código
   r := crear_pedido_web(jsonb_build_object('nombre','Ana Prueba','telefono','091000001','modalidad','retiro','pago','efectivo',
     'cajas',box6,'prueba',true,'codigo_recomendacion',v_cod));
@@ -1215,6 +1210,5 @@ begin
   if (r->>'descuento')::numeric <> round(p12 * 0.05) or (r->>'descuento_promo')::numeric <> round(p6 * 0.10)
      or (r->>'total')::numeric <> p6 + p12 - round(p6 * 0.10) - round(p12 * 0.05) then
     raise exception 'código en la de 12: %', r; end if;
-  reset role;
   raise exception 'TODO OK';
 end $$;
