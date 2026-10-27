@@ -51,11 +51,11 @@ export async function mostrar(cont) {
   // Solo el usuario de prueba: borra pedidos, ventas, clientes y campañas de prueba (y los comprobantes del bucket).
   const borrarPrueba = h('button', { class: 'btn peligro', type: 'button' }, 'Borrar datos de prueba');
   borrarPrueba.onclick = () => conBoton(borrarPrueba, async () => {
-    if (!confirm('¿Borrar todos los pedidos, ventas, clientes y campañas de prueba? No se puede deshacer.')) return;
+    if (!confirm('¿Borrar todos los pedidos, ventas, clientes, campañas y promos de prueba? No se puede deshacer.')) return;
     const conComprobante = await q(sb.from('pedidos').select('comprobante').not('comprobante', 'is', null));
     if (conComprobante.length) await sb.storage.from('comprobantes').remove(conComprobante.map((p) => p.comprobante));
     const r = await rpc('borrar_datos_prueba');
-    toast(`Borrados: ${plural(r.pedidos, 'pedido')}, ${plural(r.ventas, 'venta')}, ${plural(r.clientes, 'cliente')}, ${plural(r.campanas, 'campaña')}`);
+    toast(`Borrados: ${plural(r.pedidos, 'pedido')}, ${plural(r.ventas, 'venta')}, ${plural(r.clientes, 'cliente')}, ${plural(r.campanas, 'campaña')}, ${plural(r.promos ?? 0, 'promo')}`);
     irA('#/recomendaciones');
   });
 

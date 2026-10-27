@@ -1316,3 +1316,28 @@ begin
     raise exception 'código en la de 12: %', r; end if;
   raise exception 'TODO OK';
 end $$;
+
+-- Borrar datos de prueba también borra las promos de prueba, y nunca las reales (20261027110000).
+do $$
+declare
+  u_prueba uuid := (select user_id from usuarios_admin where es_prueba limit 1);
+  r jsonb;
+begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
+  insert into promos (nombre, tipo, valor, desde, hasta, es_prueba) values ('T real', 'monto', 10, hoy(), hoy(), false);
+
+  perform set_config('request.jwt.claims', json_build_object('sub', u_prueba, 'role', 'authenticated')::text, true);
+  set local role authenticated; discard plans;
+  insert into promos (nombre, tipo, valor, desde, hasta) values ('T prueba', 'monto', 10, hoy(), hoy());
+  r := borrar_datos_prueba();
+  reset role; discard plans;
+
+  if (r->>'promos')::int <> 1 then raise exception 'promos borradas: %', r; end if;
+  if exists (select 1 from promos where nombre = 'T prueba') then raise exception 'quedó la promo de prueba'; end if;
+  if not exists (select 1 from promos where nombre = 'T real') then raise exception 'borró una promo real'; end if;
+  raise exception 'TODO OK';
+end $$;

@@ -156,7 +156,8 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     sesion.prueba ? h('div', { class: 'card' }, h('p', { style: 'margin:0' }, h('strong', {}, 'Modo prueba. '),
-      'Las promos que cargues acá solo valen en los pedidos y ventas de prueba: la web de verdad no las ve.')) : null,
+      'Las promos que cargues acá solo valen en los pedidos y ventas de prueba: la web de verdad no las ve. '
+      + 'Se borran con los demás datos de prueba (Recomendaciones → Borrar datos de prueba).')) : null,
     h('p', { class: 'ayuda' }, 'Se aplican solas en la web y en la venta nueva. Si dos promos tocan la misma caja, o una promo y un código de '
       + 'recomendación, vale la que más descuenta.'),
     h('details', { class: 'plegable', open: !promos.length }, h('summary', {}, 'Nueva promo'), formulario(null)),
