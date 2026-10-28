@@ -1,11 +1,12 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, grupo, pesos, numero, plural, fechaCorta, fechaLarga, nombreMes, hoyISO, toast, conBoton, debounce,
+  h, vaciar, chips, campo, grupo, pesos, numero, plural, fechaCorta, fechaLarga, nombreMes, hoyISO, proximoSabado, toast, conBoton, debounce,
   ETIQUETAS, opciones, linkWhatsapp,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
-import { elegirCliente, editorLineas } from '../componentes.js';
+import { elegirCliente, editorLineas, tituloSemana } from '../componentes.js';
 import { irA } from '../app.js';
+import { textoPanel } from '../textos.js';
 import { campanaVigente, codigoDe, bonoDe, linkCodigo } from '../recomendacion.js';
 
 // Filtros de la lista: se conservan al volver del detalle.
@@ -58,13 +59,17 @@ async function lista(cont) {
       dias[dias.length - 1].ventas.push(v);
     }
     vaciar(resultados,
-      h('div', { class: 'resumen-lista' },
+      !ventas.length ? null : h('div', { class: 'resumen-lista' },
         h('div', {}, h('span', { class: 'etq' }, limitada ? 'Últimas' : 'Ventas'), h('strong', {}, numero(ventas.length, 0))),
         h('div', {}, h('span', { class: 'etq' }, 'Total'), h('strong', {}, pesos(suma(ventas)))),
         h('div', {}, h('span', { class: 'etq' }, 'Pendiente'), h('strong', { class: pendiente ? 'texto-alerta' : null }, pesos(pendiente)))),
       dias.length
-        ? dias.map((d) => h('section', { class: 'dia' },
-          h('h2', { class: 'dia-cab' }, h('span', {}, fechaCorta(d.fecha)),
+        ? dias.map((d, i) => [
+          // Cada semana de pedidos (domingo a sábado) arranca con su sábado de entrega
+          i === 0 || proximoSabado(dias[i - 1].fecha) !== proximoSabado(d.fecha)
+            ? h('h2', { class: 'semana-lista' }, tituloSemana(proximoSabado(d.fecha))) : null,
+          h('section', { class: 'dia' },
+          h('h3', { class: 'dia-cab' }, h('span', {}, fechaCorta(d.fecha)),
             h('span', { class: 'ayuda' }, `${plural(d.ventas.length, 'venta')} · ${pesos(suma(d.ventas))}`)),
           h('ul', { class: 'lista' }, d.ventas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
             h('div', { class: 'princ' },
@@ -73,8 +78,9 @@ async function lista(cont) {
                 v.por_hacer ? h('span', { class: 'badge neutro' }, 'Por hacer') : null,
                 v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null),
               h('div', { class: 't2' }, `${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
-            h('span', { class: 'monto' }, pesos(v.total))))))))
-        : h('p', { class: 'vacio' }, 'No hay ventas con estos filtros.'));
+            h('span', { class: 'monto' }, pesos(v.total)))))))])
+        : h('div', { class: 'vacio' }, h('p', { style: 'margin:0' }, 'No hay ventas con estos filtros.'),
+          h('a', { class: 'btn', href: '#/venta' }, textoPanel('panel.vacio_ventas', 'Cargar una venta'))));
   }
 
   const buscar = debounce(cargar, 300);

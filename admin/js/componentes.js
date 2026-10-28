@@ -1,5 +1,6 @@
-import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, hoyISO, conBoton } from './util.js';
+import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, fechaCorta, hoyISO, proximoSabado, conBoton } from './util.js';
 import { PRODUCCION } from './app.js';
+import { textoPanel } from './textos.js';
 
 
 // Selector de cliente con autocompletar y alta de cliente nuevo.
@@ -233,4 +234,37 @@ export function subnavProduccion(actual) {
     PRODUCCION.map(([ruta, texto]) => h('a', {
       href: `#/${ruta}`, class: ruta === actual ? 'activo' : null, 'aria-current': ruta === actual ? 'page' : null,
     }, texto)));
+}
+
+// "Semana del sábado 31/10": la semana de pedidos (domingo a sábado) se nombra por su sábado de entrega.
+export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del sábado {fecha}', { fecha: fechaCorta(sabado).slice(4) });
+
+// Libro de caja (Compras, Gastos): los movimientos agrupados por semana de pedidos, con lo que salió y entró
+// en cada una y los montos alineados en su columna. Las filas tienen que venir ordenadas por fecha, más nuevas primero.
+// `filas`: [{ fecha, titulo, detalle, monto, entra, accion }]. `cortada`: la lista llegó al límite de la consulta, así
+// que la semana más vieja puede estar incompleta y no se le muestra el total.
+export function libroCaja(filas, vacio, { cortada = false } = {}) {
+  if (!filas.length) return h('p', { class: 'vacio' }, vacio);
+  const semanas = new Map();
+  for (const f of filas) {
+    const s = proximoSabado(f.fecha);
+    if (!semanas.has(s)) semanas.set(s, []);
+    semanas.get(s).push(f);
+  }
+  return h('div', { class: 'libro' }, [...semanas].map(([sabado, deSemana], i) => {
+    const sinTotal = cortada && i === semanas.size - 1;
+    const suma = (entra) => deSemana.filter((f) => !!f.entra === entra).reduce((a, f) => a + Number(f.monto), 0);
+    const salio = suma(false);
+    const entro = suma(true);
+    return h('section', { class: 'libro-semana' },
+      h('h3', { class: 'libro-cab' }, tituloSemana(sabado),
+        sinTotal ? null : h('span', { class: 'libro-totales' },
+          salio ? h('span', {}, textoPanel('panel.libro_salio', 'Salió {monto}', { monto: pesos(salio) })) : null,
+          entro ? h('span', { class: 'entra' }, textoPanel('panel.libro_entro', 'Entró {monto}', { monto: `+ ${pesos(entro)}` })) : null)),
+      h('ul', { class: 'libro-filas' }, deSemana.map((f) => h('li', { class: 'libro-fila' },
+        h('span', { class: 'libro-dia' }, fechaCorta(f.fecha)),
+        h('div', { class: 'libro-princ' }, h('div', { class: 't1' }, f.titulo), f.detalle ? h('div', { class: 't2' }, f.detalle) : null),
+        h('span', { class: 'libro-monto' + (f.entra ? ' entra' : '') }, f.entra ? `+ ${pesos(f.monto)}` : pesos(f.monto)),
+        f.accion || null))));
+  }));
 }

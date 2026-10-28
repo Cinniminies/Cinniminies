@@ -6,6 +6,7 @@ import {
 import { subnavProduccion } from '../componentes.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
+import { textoPanel } from '../textos.js';
 import {
   filas as filasDesvio, resumen as resumenDesvios, ordenar, escala, porConteo, REVISAR,
   estadoAjuste, propuesta, cambios, MINIMO_AJUSTE,
@@ -79,12 +80,16 @@ async function resumen(cont, enfocar) {
 
   vaciar(cont, h('div', { class: 'con-guardar' },
     subnavProduccion('stock'),
-    h('p', { class: 'ayuda' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo más lo que compraste y menos lo que se perdió después; ',
-      '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después.'),
-    alertas ? h('p', {}, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
+    alertas ? h('p', { style: 'margin-top:0' }, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
       h('a', { class: 'btn', href: '#/stock/perdida' }, 'Registrar pérdida'),
-      ultimo ? botonDeshacer(ultimo) : null),
+      // Deshacer es de vez en cuando y borra un conteo: queda más callado que las otras dos
+      ultimo ? botonDeshacer(ultimo, undefined, 'btn chico peligro') : null),
+    // La explicación de las columnas, plegada: la tabla es lo que se viene a ver
+    h('details', { class: 'plegable', style: 'margin-top:.75rem' },
+      h('summary', {}, textoPanel('panel.stock_columnas', '¿Qué es cada columna?')),
+      h('p', { class: 'ayuda', style: 'margin-top:0' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo más lo que compraste y menos lo que se perdió después; ',
+        '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después.')),
     tabla('ingrediente', 'Ingredientes'),
     tabla('packaging', 'Packaging')),
   h('div', { class: 'guardar' }, guardar));
@@ -92,8 +97,8 @@ async function resumen(cont, enfocar) {
 }
 
 // Deshace el último conteo guardado (todos los insumos de esa vez) y vuelve al stock.
-function botonDeshacer(ultimo, texto = `Deshacer el conteo del ${fechaCorta(ultimo.fecha)}`) {
-  const b = h('button', { class: 'btn', type: 'button' }, texto);
+function botonDeshacer(ultimo, texto = `Deshacer el conteo del ${fechaCorta(ultimo.fecha)}`, clase = 'btn') {
+  const b = h('button', { class: clase, type: 'button' }, texto);
   b.onclick = () => conBoton(b, async () => {
     if (!confirm(`¿Deshacer el conteo del ${fechaCorta(ultimo.fecha)}? Se borran todas las cantidades que cargaste esa vez `
       + 'y el stock vuelve a calcularse desde el conteo anterior.')) return;

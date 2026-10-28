@@ -146,7 +146,9 @@ export function linkWhatsapp(contacto) {
 
 // Chips de una sola opción. `desmarcable`: tocar la elegida la deselecciona.
 export function chips(lista, valor, alCambiar, { desmarcable = false } = {}) {
-  const cont = h('div', { class: 'chips', role: 'group' });
+  // Pocas opciones fijas (Retiro / Envío, Este mes / Mes pasado…): selector segmentado, en una sola pieza.
+  const segmentado = !desmarcable && lista.length <= 3;
+  const cont = h('div', { class: segmentado ? 'chips segmentado' : 'chips', role: 'group' });
   const dibujar = () => {
     for (const b of cont.children) b.setAttribute('aria-pressed', String(b.dataset.valor === String(valor)));
   };
