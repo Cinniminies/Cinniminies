@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#fbf6f0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#17110d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fff8e7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c130d" media="(prefers-color-scheme: dark)">
 <title>Cinniminies · Gestión</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icono.svg" type="image/svg+xml">
@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Cinniminies">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..600,100&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 <script type="module" src="js/app.js"></script>
 </head>
@@ -23,9 +23,9 @@
   <a class="saltar" href="#vista">Ir al contenido</a>
   <header class="barra">
     <button type="button" class="atras" id="atras" hidden aria-label="Volver"></button>
-    <a href="#/panel" class="marca" id="marca">Cinniminies</a>
+    <a href="#/panel" class="marca" id="marca" aria-label="Cinniminies: Inicio"><img src="icons/marca.svg" alt="" width="26" height="29"><span class="marca-texto">Cinniminies</span></a>
     <h1 class="barra-titulo" id="titulo"></h1>
-    <span class="modo-prueba" id="modo-prueba" hidden title="Usuario de prueba: lo que cargues queda en la base real">Modo prueba</span>
+    <p class="modo-prueba" id="modo-prueba" hidden>Modo prueba: lo que cargues queda en la base real</p>
   </header>
   <nav class="tabs" id="tabs" aria-label="Secciones" hidden></nav>
   <main id="vista" class="vista" tabindex="-1">
