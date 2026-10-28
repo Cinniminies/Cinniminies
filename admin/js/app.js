@@ -1,6 +1,7 @@
 import { sb, q } from './db.js';
 import { h, vaciar, campo, toast, conBoton } from './util.js';
 import { icono } from './iconos.js';
+import { cargarTextosPanel, textoPanel } from './textos.js';
 
 // Rutas: '#/ventas/:id' → { id }. Cada vista exporta `mostrar(contenedor, params)`.
 // [título, módulo, pestaña que se marca, a dónde vuelve "←" (null = es una pantalla principal)]
@@ -274,7 +275,10 @@ async function alCambiarSesion(session) {
     sesion.nombre = admin.nombre;
     sesion.prueba = admin.es_prueba;
     // El usuario de prueba (migracion/usuario_prueba.py) carga en la base real: que se note.
-    document.getElementById('modo-prueba').hidden = !admin.es_prueba;
+    await cargarTextosPanel();
+    const cinta = document.getElementById('modo-prueba');
+    cinta.textContent = textoPanel('panel.modo_prueba', cinta.textContent);
+    cinta.hidden = !admin.es_prueba;
     mensajeLogin = null;
   } catch (e) {
     sesion.usuario = null;

@@ -1,6 +1,7 @@
 import { sb, q } from '../db.js';
 import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, toast, conBoton, ETIQUETAS, opciones } from '../util.js';
 import { irA, refrescarSi } from '../app.js';
+import { libroCaja } from '../componentes.js';
 
 const AYUDA = {
   merma: 'Rolls quemados, muestras regaladas… Si se perdió un ingrediente (bolsa rota), cargalo en Producción → Stock → Registrar pérdida.',
@@ -85,23 +86,23 @@ export async function mostrar(cont, { id } = {}) {
 
     h('div', {},
     h('h2', {}, 'Últimos movimientos'),
-    historial.length
-      ? h('ul', { class: 'lista en-grilla' }, historial.map((g) => {
-        const esIngreso = g.tabla === 'ingresos';
-        const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
-        borrar.onclick = () => conBoton(borrar, async () => {
-          if (!confirm(`¿Borrar "${g.descripcion}" del ${fechaCorta(g.fecha)}?`)) return;
-          await q(sb.from(g.tabla).delete().eq('id', g.id));
-          toast('Borrado');
-          irA(entra ? '#/gastos/ingreso' : '#/gastos');
-        });
-        const tipo = esIngreso ? ETIQUETAS.ingreso[g.tipo] : ETIQUETAS.gasto[g.tipo];
-        return h('li', {}, h('div', { class: 'fila' },
-          h('div', { class: 'princ' },
-            h('div', { class: 't1' }, g.descripcion),
-            h('div', { class: 't2' }, `${fechaCorta(g.fecha)} · ${tipo}${g.notas ? ' · ' + g.notas : ''}`)),
-          h('span', { class: 'monto' + (esIngreso ? ' entra' : '') }, esIngreso ? `+ ${pesos(g.monto)}` : pesos(g.monto)),
-          borrar));
-      }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay gastos ni ingresos.'))));
+    libroCaja(historial.map((g) => {
+      const esIngreso = g.tabla === 'ingresos';
+      const borrar = h('button', { class: 'btn chico peligro', 'aria-label': `Borrar ${g.descripcion}` }, 'Borrar');
+      borrar.onclick = () => conBoton(borrar, async () => {
+        if (!confirm(`¿Borrar "${g.descripcion}" del ${fechaCorta(g.fecha)}?`)) return;
+        await q(sb.from(g.tabla).delete().eq('id', g.id));
+        toast('Borrado');
+        irA(entra ? '#/gastos/ingreso' : '#/gastos');
+      });
+      const tipo = esIngreso ? ETIQUETAS.ingreso[g.tipo] : ETIQUETAS.gasto[g.tipo];
+      return {
+        fecha: g.fecha,
+        titulo: g.descripcion,
+        detalle: `${tipo}${g.notas ? ' · ' + g.notas : ''}`,
+        monto: g.monto,
+        entra: esIngreso,
+        accion: borrar,
+      };
+    }), 'Todavía no hay gastos ni ingresos.', { cortada: historial.length >= 30 }))));
 }

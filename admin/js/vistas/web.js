@@ -6,7 +6,7 @@ import { irA } from '../app.js';
 // Textos e imágenes de la web pública (Etapa 7). Cada fila de contenido_web es un lugar de
 // index.html; la web los toma de /api/catalogo (tarda hasta 5 minutos en verse).
 const SECCIONES = ['Barra de arriba', 'Inicio', 'Menú', 'Dónde encontrarnos', 'Contacto', 'Carrito y formulario',
-  'Pago por transferencia', 'Descuento por recomendación', 'Pedido recibido', 'Preguntas frecuentes'];
+  'Pago por transferencia', 'Descuento por recomendación', 'Pedido recibido', 'Preguntas frecuentes', 'Panel de gestión'];
 // Tipos: texto (no puede quedar vacío), texto_largo, dato (un renglón que puede quedar vacío: la web no
 // lo muestra), imagen, whatsapp, instagram, direccion.
 

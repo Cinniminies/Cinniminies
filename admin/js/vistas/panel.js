@@ -1,8 +1,10 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, conBoton, toast, plural, ETIQUETAS } from '../util.js';
+import { h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, proximoSabado, conBoton, toast, plural, ETIQUETAS } from '../util.js';
 import { icono } from '../iconos.js';
 import { columnas, barras, variacion } from '../graficos.js';
 import { irA, sesion } from '../app.js';
+import { tituloSemana } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', texto: 'Mes pasado' }, { valor: 'todo', texto: 'Todo' }];
 // 'mes', 'anterior', 'todo' o un mes elegido en el gráfico ('AAAA-MM-01').
@@ -16,6 +18,35 @@ function mesesAntes(mes, n) {
 }
 const nombreCorto = (mes) => MESES_CORTOS[Number(mes.slice(5, 7)) - 1];
 const soloMes = (mes) => nombreMes(mes).split(' ')[0];
+// Fecha ISO `n` días después (o antes, con n negativo).
+const masDias = (iso, n) => new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + n))
+  .toISOString().slice(0, 10);
+
+// La semana de pedidos: de domingo a sábado entran los pedidos (cuántos se cargaron cada día) y el sábado,
+// en canela, se hornea y se entrega (los rolls de las ventas "por hacer", lo mismo que usa el plan de horneado).
+function tiraSemana(sabado, ventasSemana, rollsPorHacer) {
+  const hoy = hoyISO();
+  const dias = Array.from({ length: 6 }, (_, i) => masDias(sabado, i - 6));
+  const cuantos = (dia) => ventasSemana.filter((v) => v.fecha === dia).length;
+  const clases = (dia) => ['semana-dia', dia > hoy ? 'futuro' : '', dia === hoy ? 'hoy' : ''].join(' ').trim();
+  return h('section', { class: 'semana', 'aria-labelledby': 'semana-titulo' },
+    h('div', { class: 'semana-cab' },
+      h('h2', { id: 'semana-titulo' }, tituloSemana(sabado)),
+      h('p', { class: 'ayuda' }, textoPanel('panel.semana_ayuda', 'Pedidos cargados cada día. Todo se hornea y se entrega el sábado.'))),
+    h('ol', { class: 'semana-dias' },
+      dias.map((dia) => {
+        const n = cuantos(dia);
+        return h('li', { class: clases(dia) + (dia <= hoy && !n ? ' cero' : ''),
+          'aria-label': `${fechaCorta(dia)}: ${dia > hoy ? 'todavía no llegó' : plural(n, 'pedido')}` },
+        h('span', { class: 'dia', 'aria-hidden': 'true' }, fechaCorta(dia).slice(0, 3)),
+        h('span', { class: 'cuantos', 'aria-hidden': 'true' }, dia > hoy ? '·' : n));
+      }),
+      h('li', { class: 'semana-sabado-cont' },
+        h('a', { class: 'semana-dia semana-sabado' + (sabado === hoy ? ' hoy' : ''), href: '#/plan' },
+          h('span', { class: 'dia' }, `sábado ${Number(sabado.slice(8, 10))}`),
+          h('span', { class: 'cuantos' }, numero(rollsPorHacer, 0)),
+          h('span', { class: 'que' }, textoPanel('panel.sabado', '{rolls} para hornear', { rolls: rollsPorHacer === 1 ? 'roll' : 'rolls' }))))));
+}
 
 export async function mostrar(cont) {
   const actual = mesISO();
@@ -25,7 +56,7 @@ export async function mostrar(cont) {
   const inicioAnterior = mesesAntes(actual, 1);
   const finAnterior = new Date(Date.UTC(Number(inicioAnterior.slice(0, 4)), Number(inicioAnterior.slice(5, 7)) - 1,
     Math.min(dia, new Date(Date.UTC(Number(actual.slice(0, 4)), Number(actual.slice(5, 7)) - 1, 0)).getUTCDate()))).toISOString().slice(0, 10);
-  const [resumen, total, pendientes, alertas, ultimas, tramoAnterior, pedidosNuevos, porHacer] = await Promise.all([
+  const [resumen, total, pendientes, alertas, ultimas, tramoAnterior, pedidosNuevos, porHacer, ventasSemana] = await Promise.all([
     q(sb.from('v_resumen_mensual').select('*').order('mes')),
     q(sb.from('v_panel').select('*').single()),
     q(sb.from('v_ventas').select('id,fecha,cliente,formatos,total,medio_pago').eq('estado_pago', 'pendiente').order('fecha')),
@@ -35,6 +66,7 @@ export async function mostrar(cont) {
     q(sb.from('v_ventas').select('total,ganancia,rolls,tipo').gte('fecha', inicioAnterior).lte('fecha', finAnterior)),
     q(sb.from('pedidos').select('nombre,total').eq('estado', 'nuevo').order('creado_en')),
     q(sb.from('v_ventas').select('rolls').eq('por_hacer', true)),
+    q(sb.from('v_ventas').select('fecha').gte('fecha', masDias(proximoSabado(), -6)).lte('fecha', proximoSabado())),
   ]);
   const cuentan = tramoAnterior.filter((v) => v.tipo !== 'regalo');
   const mismoTramo = {
@@ -196,14 +228,16 @@ export async function mostrar(cont) {
     h('div', { class: 'saludo' },
       h('p', { class: 'saludo-hola' }, `Hola, ${sesion.nombre}`),
       h('p', { class: 'ayuda' }, hoy.charAt(0).toUpperCase() + hoy.slice(1))),
+    tiraSemana(proximoSabado(), ventasSemana, porHacer.reduce((a, v) => a + Number(v.rolls), 0)),
+
+    tareas.length ? [h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas] : null,
+
     h('nav', { class: 'accesos', 'aria-label': 'Cargar' },
       acceso('#/tandas', 'roll', 'Tanda'),
       acceso('#/compras', 'carrito', 'Compra'),
       acceso('#/gastos', 'gasto', 'Gasto'),
       acceso('#/gastos/ingreso', 'ingreso', 'Ingreso'),
       acceso('#/stock/conteo', 'conteo', 'Conteo')),
-
-    tareas.length ? [h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas] : null,
 
     h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Resumen'),
       contChips),

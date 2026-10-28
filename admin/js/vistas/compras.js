@@ -2,7 +2,7 @@ import { sb, q, rpc } from '../db.js';
 import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, numero, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
-import { subnavProduccion } from '../componentes.js';
+import { subnavProduccion, libroCaja } from '../componentes.js';
 
 // Unidades que se pueden elegir según la unidad base del insumo (la primera es la de siempre).
 const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'], cm: ['m', 'cm'] };
@@ -129,22 +129,20 @@ export async function mostrar(cont) {
 
     h('div', {},
     h('h2', {}, 'Últimas compras'),
-    historial.length
-      ? h('ul', { class: 'lista en-grilla' }, historial.map((c) => {
-        const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
-        borrar.onclick = () => conBoton(borrar, async () => {
-          if (!confirm(`¿Borrar la compra "${c.descripcion || c.insumos?.nombre}" del ${fechaCorta(c.fecha)}?`)) return;
-          await q(sb.from('compras').delete().eq('id', c.id));
-          toast('Compra borrada');
-          irA('#/compras');
-        });
-        return h('li', {}, h('div', { class: 'fila' },
-          h('div', { class: 'princ' },
-            h('div', { class: 't1' }, c.descripcion || c.insumos?.nombre || c.categoria),
-            h('div', { class: 't2' }, [fechaCorta(c.fecha), c.proveedor,
-              c.cantidad ? `${numero(c.cantidad)} ${c.unidad || ''}` : null].filter(Boolean).join(' · '))),
-          h('span', { class: 'monto' }, pesos(c.total)),
-          borrar));
-      }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay compras.'))));
+    libroCaja(historial.map((c) => {
+      const borrar = h('button', { class: 'btn chico peligro', 'aria-label': `Borrar la compra ${c.descripcion || c.insumos?.nombre || c.categoria}` }, 'Borrar');
+      borrar.onclick = () => conBoton(borrar, async () => {
+        if (!confirm(`¿Borrar la compra "${c.descripcion || c.insumos?.nombre}" del ${fechaCorta(c.fecha)}?`)) return;
+        await q(sb.from('compras').delete().eq('id', c.id));
+        toast('Compra borrada');
+        irA('#/compras');
+      });
+      return {
+        fecha: c.fecha,
+        titulo: c.descripcion || c.insumos?.nombre || c.categoria,
+        detalle: [c.proveedor, c.cantidad ? `${numero(c.cantidad)} ${c.unidad || ''}` : null].filter(Boolean).join(' · '),
+        monto: c.total,
+        accion: borrar,
+      };
+    }), 'Todavía no hay compras.', { cortada: historial.length >= 30 }))));
 }
