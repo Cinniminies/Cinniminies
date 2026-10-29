@@ -103,7 +103,7 @@ export async function mostrar(cont) {
       ' en unos 5 minutos, sin tocar código. Los sabores, fotos de sabores y precios se editan en Catálogo.'),
     SECCIONES.map((sec) => {
       const deSeccion = filas.filter((f) => f.seccion === sec);
-      return deSeccion.length ? h('div', { class: 'card' }, h('h3', { style: 'margin-top:0' }, sec), deSeccion.map(control)) : null;
+      return deSeccion.length ? h('div', { class: 'card' }, h('h3', {}, sec), deSeccion.map(control)) : null;
     })),
   h('div', { class: 'guardar' }, guardar));
 }

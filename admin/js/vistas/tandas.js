@@ -1,8 +1,8 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton, sumar } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
-import { subnavProduccion } from '../componentes.js';
+import { subnavProduccion, pastilla } from '../componentes.js';
 
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
 // con la receta del día (snapshot en tanda_consumos).
@@ -101,7 +101,7 @@ function seccionSobrantes(filas, cat) {
     if (!porHorneado.has(f.inicio)) porHorneado.set(f.inicio, []);
     porHorneado.get(f.inicio).push(f);
   }
-  const suma = (fs, k) => fs.reduce((a, f) => a + Number(f[k]), 0);
+  const suma = (fs, clave) => sumar(fs, (f) => f[clave]);
   const orden = (f) => cat.sabor(f.sabor_id)?.orden ?? 0;
   const titulo = (f) => (f.inicio === f.fin ? fechaCorta(f.inicio) : `${fechaCorta(f.inicio)} y ${fechaCorta(f.fin)}`);
   const total = suma(filas, 'costo');
@@ -131,8 +131,8 @@ function seccionSobrantes(filas, cat) {
     return h('article', { class: 'horneado' },
       h('div', { class: 'horneado-cab' },
         h('h3', {}, titulo(fs[0])),
-        costo ? h('span', { class: 'badge alerta' }, `Perdido ${pesos(costo)}`)
-          : h('span', { class: 'badge ok' }, suma(fs, 'sobrantes') ? 'Sin pérdida' : 'No sobró nada')),
+        costo ? pastilla('alerta', `Perdido ${pesos(costo)}`)
+          : pastilla('ok', suma(fs, 'sobrantes') ? 'Sin pérdida' : 'No sobró nada')),
       fs.sort((a, b) => orden(a) - orden(b)).map((f) => filaSabor(f, escala)));
   };
 

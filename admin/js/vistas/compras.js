@@ -1,8 +1,8 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, numero, toast, conBoton } from '../util.js';
+import { h, vaciar, chips, campo, campoFecha, hoyISO, fechaCorta, pesos, numero, toast, conBoton, campoPesos } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
-import { subnavProduccion, libroCaja } from '../componentes.js';
+import { subnavProduccion, libroCaja, chipsUnidad } from '../componentes.js';
 
 // Unidades que se pueden elegir según la unidad base del insumo (la primera es la de siempre).
 const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'], cm: ['m', 'cm'] };
@@ -35,9 +35,7 @@ export async function mostrar(cont) {
     if (!i) { vaciar(unidadesCont); f.unidad = null; return; }
     const lista = UNIDADES[i.unidad_base];
     if (!lista.includes(f.unidad)) f.unidad = lista[0];
-    vaciar(unidadesCont, lista.length > 1
-      ? grupo('Unidad', chips(lista.map((u) => ({ valor: u, texto: u })), f.unidad, (u) => { f.unidad = u; previa(); }))
-      : null);
+    vaciar(unidadesCont, chipsUnidad(lista, f.unidad, (u) => { f.unidad = u; previa(); }));
   }
 
   // Los nombres con los que ya se cargó ese insumo, los más usados primero (a igual uso, el más reciente).
@@ -121,7 +119,7 @@ export async function mostrar(cont) {
         [...new Set(proveedores.map((p) => p.proveedor))].sort().map((p) => h('option', { value: p }))),
       h('div', { class: 'fila-campos' },
         campo('Cantidad', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', oninput: (e) => { f.cantidad = e.target.value; previa(); } })),
-        campo('Total pagado', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: '0.01', oninput: (e) => { f.total = e.target.value; previa(); } }))),
+        campo('Total pagado', campoPesos({ oninput: (e) => { f.total = e.target.value; previa(); } }))),
       unidadesCont,
       vistaPrevia,
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),

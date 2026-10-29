@@ -1,18 +1,9 @@
 // Catálogo público para la web (Etapa 5): sale de la función catalogo_web() de la base.
-const { encabezados } = require('./supabase.js');
+const { rpc } = require('./supabase.js');
 
 // prueba: el servidor local en modo prueba ve las promos del usuario de prueba (nunca Vercel).
-async function leerCatalogo({ url, clave, fetch: pedir = fetch, prueba = false }) {
-  const r = await pedir(`${url}/rest/v1/rpc/catalogo_web`, {
-    method: 'POST',
-    headers: { ...encabezados(clave), 'Content-Type': 'application/json' },
-    body: prueba ? '{"p_prueba":true}' : '{}',
-  });
-  if (!r.ok) {
-    const detalle = await r.text().catch(() => '');
-    throw new Error(`Supabase respondió ${r.status} a catalogo_web: ${detalle.slice(0, 300)}`);
-  }
-  return limpiar(await r.json());
+async function leerCatalogo({ prueba = false, ...conf }) {
+  return limpiar(await rpc('catalogo_web', prueba ? { p_prueba: true } : {}, conf));
 }
 
 const num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));

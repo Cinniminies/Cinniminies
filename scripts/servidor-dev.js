@@ -22,13 +22,7 @@ const path = require('path');
 
 const raiz = path.resolve(__dirname, '..');
 const puerto = Number(process.argv[2] || 8777);
-const env = path.join(raiz, '.env.local');
-if (fs.existsSync(env)) {
-  for (const l of fs.readFileSync(env, 'utf8').split('\n')) {
-    const m = l.match(/^([A-Z_]+)=(.*)$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
-  }
-}
+require('./_env.js').cargarEnvLocal();
 if (process.env.MODO_PRUEBA === undefined) process.env.MODO_PRUEBA = '1';
 const tipos = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',

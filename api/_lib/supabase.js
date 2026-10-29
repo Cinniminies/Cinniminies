@@ -29,4 +29,54 @@ function responderJson(res, estado, cuerpo) {
   res.end(JSON.stringify(cuerpo));
 }
 
-module.exports = { URL_SUPABASE, configuracion, encabezados, modoPrueba, responderJson };
+// Responde 405 si el método no está en `permitidos` (['GET', 'HEAD'], ['POST'], …). Devuelve si se puede seguir.
+function metodoPermitido(req, res, permitidos) {
+  if (permitidos.includes(req.method)) return true;
+  res.setHeader('Allow', permitidos.join(', '));
+  res.setHeader('Cache-Control', 'no-store');
+  responderJson(res, 405, { error: `Solo ${permitidos.filter((m) => m !== 'HEAD').join(' o ')}` });
+  return false;
+}
+
+// La configuración con la clave de servicio, o null después de responder 500 si falta en Vercel.
+function configuracionLista(res) {
+  const conf = configuracion();
+  if (conf.clave) return conf;
+  res.setHeader('Cache-Control', 'no-store');
+  responderJson(res, 500, { error: 'Falta SUPABASE_SERVICE_ROLE_KEY en Vercel' });
+  return null;
+}
+
+// Cuerpo JSON del pedido. Vercel ya lo parsea en req.body; en otros entornos se lee a mano.
+// Si pasa de `maximo` caracteres tira lo que devuelva `muyGrande()`; si no es JSON, un SyntaxError.
+async function leerCuerpoJson(req, { maximo, muyGrande }) {
+  if (req.body !== undefined) {
+    const texto = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    if (texto.length > maximo) throw muyGrande();
+    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  }
+  let texto = '';
+  for await (const parte of req) {
+    texto += parte;
+    if (texto.length > maximo) throw muyGrande();
+  }
+  return JSON.parse(texto || 'null');
+}
+
+// Llama a una función de la base (POST /rest/v1/rpc/nombre) y devuelve su resultado. Los `raise exception` de la
+// base (P0001) son mensajes para el cliente: si se pasa `ErrorCliente`, llegan como ese error; el resto, Error.
+async function rpc(nombre, args, { url, clave, fetch: pedir = fetch }, { ErrorCliente } = {}) {
+  const r = await pedir(`${url}/rest/v1/rpc/${nombre}`, {
+    method: 'POST',
+    headers: { ...encabezados(clave), 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  if (r.ok) return r.json();
+  const cuerpo = await r.json().catch(() => null);
+  if (ErrorCliente && cuerpo?.code === 'P0001' && cuerpo.message) throw new ErrorCliente(cuerpo.message);
+  throw new Error(`Supabase respondió ${r.status} a ${nombre}: ${JSON.stringify(cuerpo).slice(0, 300)}`);
+}
+
+module.exports = {
+  URL_SUPABASE, configuracion, configuracionLista, encabezados, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, rpc,
+};

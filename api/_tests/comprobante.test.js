@@ -34,7 +34,7 @@ test('guardarComprobante: sube, anota y, si la base lo rechaza, borra el archivo
     return { ok: true, text: async () => '' };
   };
   const c = armarComprobante(valido);
-  const ok = await guardarComprobante(c, { url: 'https://x', clave: 'eyJ', fetch: fetchFalso({ ok: true }) });
+  const ok = await guardarComprobante(c, { url: 'https://x', clave: 'eyJ', fetch: fetchFalso({ ok: true, json: async () => 'CM-2026-AB12/x.png' }) });
   assert.equal(ok.codigo, 'CM-2026-AB12');
   assert.match(pedidos[0][1], /^\/storage\/v1\/object\/comprobantes\/CM-2026-AB12\/[0-9a-f]{12}\.png$/);
 

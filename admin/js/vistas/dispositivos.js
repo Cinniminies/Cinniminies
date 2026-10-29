@@ -1,5 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, fechaCorta, plural, toast, conBoton } from '../util.js';
+import { pastilla } from '../componentes.js';
 import { icono } from '../iconos.js';
 import { irA } from '../app.js';
 
@@ -10,7 +11,6 @@ export async function mostrar(cont) {
   const lista = await q(sb.from('v_dispositivos').select('*').order('creado_en', { ascending: false }));
   const pendientes = lista.filter((d) => !d.autorizado);
   const autorizados = lista.filter((d) => d.autorizado).sort((a, b) => (b.este ? 1 : 0) - (a.este ? 1 : 0));
-  const dia = (iso) => fechaCorta(iso.slice(0, 10));
   const esCompu = (nombre) => /mac|windows|linux|compu|notebook|pc/i.test(nombre);
 
   function botonQuitar(d, texto) {
@@ -36,7 +36,7 @@ export async function mostrar(cont) {
     return h('div', { class: 'disp-pendiente' },
       h('div', { class: 'etq' }, 'Pide autorización'),
       h('h3', {}, d.nombre),
-      h('div', { class: 'ayuda' }, `${d.usuario || 'Sin usuario'} · pedido el ${dia(d.creado_en)}`),
+      h('div', { class: 'ayuda' }, `${d.usuario || 'Sin usuario'} · pedido el ${fechaCorta(d.creado_en)}`),
       h('div', { class: 'disp-codigo', 'aria-label': `Código ${d.codigo}` }, [...d.codigo].map((c) => h('span', {}, c))),
       h('p', { class: 'ayuda', style: 'margin:0 0 .75rem' }, 'Autorizalo solo si es el mismo código que ves en ese dispositivo.'),
       h('div', { class: 'acciones', style: 'margin:0' }, autorizar, botonQuitar(d, 'Rechazar')));
@@ -45,10 +45,10 @@ export async function mostrar(cont) {
   const tarjeta = (d) => h('div', { class: 'disp' + (d.este ? ' este' : '') },
     h('span', { class: 'disp-ico' }, icono(esCompu(d.nombre) ? 'compu' : 'celular')),
     h('div', { class: 'princ' },
-      h('div', { class: 't1' }, d.nombre, ' ', d.este ? h('span', { class: 'badge ok' }, 'Este') : null),
+      h('div', { class: 't1' }, d.nombre, ' ', d.este ? pastilla('ok', 'Este') : null),
       h('div', { class: 't2' }, d.usuario || 'Sin usuario'),
-      h('div', { class: 't2' }, [d.autorizado_en ? `Autorizado el ${dia(d.autorizado_en)}` : null,
-        d.ultimo_uso ? `último uso ${dia(d.ultimo_uso)}` : null].filter(Boolean).join(' · ')),
+      h('div', { class: 't2' }, [d.autorizado_en ? `Autorizado el ${fechaCorta(d.autorizado_en)}` : null,
+        d.ultimo_uso ? `último uso ${fechaCorta(d.ultimo_uso)}` : null].filter(Boolean).join(' · ')),
       botonQuitar(d, 'Quitar')));
 
   vaciar(cont,

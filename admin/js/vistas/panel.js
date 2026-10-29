@@ -1,10 +1,13 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, proximoSabado, conBoton, toast, plural, ETIQUETAS } from '../util.js';
+import {
+  h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, proximoSabado, sumarDias, sumarMeses, sumar, conBoton, toast, plural,
+  ETIQUETAS,
+} from '../util.js';
 import { icono } from '../iconos.js';
 import { areas, partes, variacion } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { irA, sesion } from '../app.js';
-import { tituloSemana } from '../componentes.js';
+import { tituloSemana, stat, filaLista, pastilla, monto } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 
 const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', texto: 'Mes pasado' }, { valor: 'todo', texto: 'Todo' }];
@@ -12,22 +15,14 @@ const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', text
 let periodo = 'mes';
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-// Primer día del mes que está `n` meses antes de `mes` (ISO 'AAAA-MM-01').
-function mesesAntes(mes, n) {
-  const [a, m] = mes.split('-').map(Number);
-  return new Date(Date.UTC(a, m - 1 - n, 1)).toISOString().slice(0, 10);
-}
 const nombreCorto = (mes) => MESES_CORTOS[Number(mes.slice(5, 7)) - 1];
 const soloMes = (mes) => nombreMes(mes).split(' ')[0];
-// Fecha ISO `n` días después (o antes, con n negativo).
-const masDias = (iso, n) => new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)) + n))
-  .toISOString().slice(0, 10);
 
 // La semana de pedidos: de domingo a sábado entran los pedidos (cuántos se cargaron cada día) y el sábado,
 // en canela, se hornea y se entrega (los rolls de las ventas "por hacer", lo mismo que usa el plan de horneado).
 function tiraSemana(sabado, ventasSemana, rollsPorHacer) {
   const hoy = hoyISO();
-  const dias = Array.from({ length: 6 }, (_, i) => masDias(sabado, i - 6));
+  const dias = Array.from({ length: 6 }, (_, i) => sumarDias(sabado, i - 6));
   const cuantos = (dia) => ventasSemana.filter((v) => v.fecha === dia).length;
   const clases = (dia) => ['semana-dia', dia > hoy ? 'futuro' : '', dia === hoy ? 'hoy' : ''].join(' ').trim();
   return h('section', { class: 'semana', 'aria-labelledby': 'semana-titulo' },
@@ -54,9 +49,9 @@ export async function mostrar(cont) {
   // El mes en curso se compara contra el mismo tramo del mes anterior (del 1 al día de hoy),
   // no contra el mes anterior completo, que siempre parecería más grande.
   const dia = Number(hoyISO().slice(8, 10));
-  const inicioAnterior = mesesAntes(actual, 1);
-  const finAnterior = new Date(Date.UTC(Number(inicioAnterior.slice(0, 4)), Number(inicioAnterior.slice(5, 7)) - 1,
-    Math.min(dia, new Date(Date.UTC(Number(actual.slice(0, 4)), Number(actual.slice(5, 7)) - 1, 0)).getUTCDate()))).toISOString().slice(0, 10);
+  const inicioAnterior = sumarMeses(actual, -1);
+  // El mismo día del mes anterior o, si ese mes es más corto, su último día (las fechas ISO se comparan como texto).
+  const finAnterior = [sumarDias(inicioAnterior, dia - 1), sumarDias(actual, -1)].sort()[0];
   const [resumen, total, pendientes, alertas, ultimas, tramoAnterior, pedidosNuevos, porHacer, ventasSemana] = await Promise.all([
     q(sb.from('v_resumen_mensual').select('*').order('mes')),
     q(sb.from('v_panel').select('*').single()),
@@ -67,15 +62,15 @@ export async function mostrar(cont) {
     q(sb.from('v_ventas').select('total,ganancia,rolls,tipo').gte('fecha', inicioAnterior).lte('fecha', finAnterior)),
     q(sb.from('pedidos').select('nombre,total').eq('estado', 'nuevo').order('creado_en')),
     q(sb.from('v_ventas').select('rolls').eq('por_hacer', true)),
-    q(sb.from('v_ventas').select('fecha').gte('fecha', masDias(proximoSabado(), -6)).lte('fecha', proximoSabado())),
+    q(sb.from('v_ventas').select('fecha').gte('fecha', sumarDias(proximoSabado(), -6)).lte('fecha', proximoSabado())),
   ]);
   const cuentan = tramoAnterior.filter((v) => v.tipo !== 'regalo');
   const mismoTramo = {
     mes: inicioAnterior,
-    vendido: cuentan.reduce((a, v) => a + Number(v.total), 0),
+    vendido: sumar(cuentan, (v) => v.total),
     ventas: cuentan.length,
-    rolls_vendidos: tramoAnterior.reduce((a, v) => a + Number(v.rolls), 0),
-    ganancia_bruta: tramoAnterior.reduce((a, v) => a + Number(v.ganancia), 0),
+    rolls_vendidos: sumar(tramoAnterior, (v) => v.rolls),
+    ganancia_bruta: sumar(tramoAnterior, (v) => v.ganancia),
   };
   const deMes = (mes) => resumen.find((r) => r.mes === mes)
     || { mes, vendido: 0, ventas: 0, rolls_vendidos: 0, ganancia_bruta: 0, total_gastado: 0, aportes: 0, otros_ingresos: 0 };
@@ -96,14 +91,14 @@ export async function mostrar(cont) {
     tareas.push(h('a', { class: 'card tarea tarea-link', href: '#/plan' },
       h('div', { class: 'tarea-cab' }, icono('roll'),
         h('div', {}, h('strong', {}, `${plural(porHacer.length, 'pedido', 'pedidos')} por hacer`),
-          h('div', { class: 'ayuda' }, `${plural(porHacer.reduce((a, v) => a + v.rolls, 0), 'roll')} · ver el plan de horneado`))),
+          h('div', { class: 'ayuda' }, `${plural(sumar(porHacer, (v) => v.rolls), 'roll')} · ver el plan de horneado`))),
       icono('derecha', 'icono chev')));
   }
   if (pendientes.length) {
     tareas.push(h('div', { class: 'card tarea' },
       h('div', { class: 'tarea-cab' }, icono('reloj'),
         h('div', {}, h('strong', {}, `${plural(pendientes.length, 'venta pendiente', 'ventas pendientes')} de cobro`),
-          h('div', { class: 'ayuda' }, pesos(pendientes.reduce((a, v) => a + Number(v.total), 0))))),
+          h('div', { class: 'ayuda' }, pesos(sumar(pendientes, (v) => v.total))))),
       h('ul', { class: 'lista plana' }, pendientes.map((v) => {
         const boton = h('button', { class: 'btn chico ok', type: 'button', 'aria-label': `Marcar cobrada la venta de ${v.cliente || 'sin cliente'}` }, 'Cobrada');
         boton.onclick = () => conBoton(boton, async () => {
@@ -132,12 +127,12 @@ export async function mostrar(cont) {
   const contChips = h('div');
   // Tocar un mes del gráfico lo elige; si es este mes o el pasado, se marca su chip.
   const elegirMes = (mes) => {
-    periodo = mes === actual ? 'mes' : mes === mesesAntes(actual, 1) ? 'anterior' : mes;
+    periodo = mes === actual ? 'mes' : mes === sumarMeses(actual, -1) ? 'anterior' : mes;
     dibujarPeriodo();
     contPeriodo.querySelector('.graf-franja[aria-pressed="true"]')?.focus({ preventScroll: true });
   };
   function dibujarPeriodo() {
-    const mesSel = periodo === 'mes' ? actual : periodo === 'anterior' ? mesesAntes(actual, 1)
+    const mesSel = periodo === 'mes' ? actual : periodo === 'anterior' ? sumarMeses(actual, -1)
       : periodo === 'todo' ? null : periodo;
     const otroMes = !PERIODOS.some((p) => p.valor === periodo);
     vaciar(contChips, chips(otroMes ? [...PERIODOS, { valor: periodo, texto: nombreMes(periodo) }] : PERIODOS,
@@ -147,7 +142,7 @@ export async function mostrar(cont) {
       ganancia_bruta: total.ganancia_bruta, total_gastado: total.total_gastado,
       aportes: total.aportes, otros_ingresos: total.otros_ingresos,
     };
-    const previo = periodo === 'mes' ? mismoTramo : mesSel ? deMes(mesesAntes(mesSel, 1)) : null;
+    const previo = periodo === 'mes' ? mismoTramo : mesSel ? deMes(sumarMeses(mesSel, -1)) : null;
     const contra = periodo === 'mes'
       ? `1–${Number(finAnterior.slice(8, 10))} de ${soloMes(inicioAnterior)}`
       : previo ? soloMes(previo.mes) : null;
@@ -156,12 +151,8 @@ export async function mostrar(cont) {
     const margen = vendido > 0 ? Math.round((100 * ganancia) / vendido) : null;
     const ticket = Number(datos.ventas) > 0 ? vendido / Number(datos.ventas) : null;
 
-    const kpi = (etiqueta, valor, sub, delta) => h('div', { class: 'stat' },
-      h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor),
-      sub ? h('div', { class: 'sub' }, sub) : null, delta);
-
     // Últimos 6 meses (con ceros si en alguno no hubo ventas)
-    const seis = Array.from({ length: 6 }, (_, i) => deMes(mesesAntes(actual, 5 - i)));
+    const seis = Array.from({ length: 6 }, (_, i) => deMes(sumarMeses(actual, i - 5)));
     // Vendido y, adentro, la ganancia bruta: la franja entre las dos es lo que se fue en costos.
     const grafico = areas(seis.map((r) => ({
       mes: r.mes,
@@ -216,12 +207,12 @@ export async function mostrar(cont) {
         h('div', { class: 'hero-num' }, pesos(vendido)),
         previo ? variacion(vendido, Number(previo.vendido), contra) : null),
       h('div', { class: 'stats' },
-        kpi('Ganancia bruta', pesos(ganancia), margen != null ? `${margen} % de lo vendido` : null,
+        stat('Ganancia bruta', pesos(ganancia), margen != null ? `${margen} % de lo vendido` : null,
           previo ? variacion(ganancia, Number(previo.ganancia_bruta), contra) : null),
-        kpi('Ventas', numero(datos.ventas, 0), `${numero(datos.rolls_vendidos, 0)} rolls`,
+        stat('Ventas', numero(datos.ventas, 0), `${numero(datos.rolls_vendidos, 0)} rolls`,
           previo ? variacion(Number(datos.ventas), Number(previo.ventas), contra) : null),
-        kpi('Ticket promedio', ticket != null ? pesos(Math.round(ticket)) : '—', 'por venta'),
-        kpi('Gastado', pesos(datos.total_gastado), 'compras y gastos')),
+        stat('Ticket promedio', ticket != null ? pesos(Math.round(ticket)) : '—', 'por venta'),
+        stat('Gastado', pesos(datos.total_gastado), 'compras y gastos')),
       entroAparte(datos),
       h('div', { class: 'graficos' }, h('div', { class: 'card' }, grafico), h('div', { class: 'card' }, porSabor)));
   }
@@ -231,9 +222,9 @@ export async function mostrar(cont) {
     const aportes = Number(d.aportes || 0);
     const otros = Number(d.otros_ingresos || 0);
     if (!aportes && !otros) return null;
-    const partes = [aportes ? `aportes de socios ${pesos(aportes)}` : null, otros ? `otros ingresos ${pesos(otros)}` : null];
+    const origenes = [aportes ? `aportes de socios ${pesos(aportes)}` : null, otros ? `otros ingresos ${pesos(otros)}` : null];
     return h('p', { class: 'ayuda' }, `Además entraron ${pesos(aportes + otros)} que no son ventas: `,
-      partes.filter(Boolean).join(' · '), '.');
+      origenes.filter(Boolean).join(' · '), '.');
   }
 
   const plata = (etiqueta, valor, ayuda) => h('div', { class: 'dato' },
@@ -244,7 +235,7 @@ export async function mostrar(cont) {
     h('div', { class: 'saludo' },
       h('p', { class: 'saludo-hola' }, `Hola, ${sesion.nombre}`),
       h('p', { class: 'ayuda' }, hoy.charAt(0).toUpperCase() + hoy.slice(1))),
-    tiraSemana(proximoSabado(), ventasSemana, porHacer.reduce((a, v) => a + Number(v.rolls), 0)),
+    tiraSemana(proximoSabado(), ventasSemana, sumar(porHacer, (v) => v.rolls)),
 
     tareas.length ? [h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas] : null,
 
@@ -275,12 +266,12 @@ export async function mostrar(cont) {
     h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Últimas ventas'),
       h('a', { href: '#/ventas', class: 'ver-todo' }, 'Ver todas')),
     ultimas.length
-      ? h('ul', { class: 'lista' }, ultimas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
-        h('div', { class: 'princ' },
-          h('div', { class: 't1' }, v.cliente || 'Sin cliente', ' ',
-            v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null),
-          h('div', { class: 't2' }, `${fechaCorta(v.fecha)} · ${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
-        h('span', { class: 'monto' }, pesos(v.total))))))
+      ? h('ul', { class: 'lista' }, ultimas.map((v) => filaLista({
+        href: `#/ventas/${v.id}`,
+        titulo: [v.cliente || 'Sin cliente', v.estado_pago === 'pendiente' ? pastilla('pendiente', 'Pendiente') : null],
+        detalle: [fechaCorta(v.fecha), v.formatos, v.sabores],
+        derecha: monto(pesos(v.total)),
+      })))
       : h('p', { class: 'vacio' }, 'Todavía no hay ventas.'))));
   dibujarPeriodo();
 }

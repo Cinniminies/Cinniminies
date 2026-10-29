@@ -9,12 +9,14 @@ Antes de crear una función, un componente o una clase CSS, buscar con `grep` si
 
 | Archivo | Qué tiene |
 |---|---|
-| `admin/js/util.js` | `h`, `vaciar`, formatos (`pesos`, `numero`, `cantidad`, `plural`, `fechaCorta`, `fechaLarga`, `nombreMes`), fechas (`hoyISO`, `mesISO`, `proximoSabado`), controles (`chips`, `stepper`, `campo`, `interruptor`, `campoFecha`), `toast`, `conBoton`, `debounce` |
+| `admin/js/util.js` | `h`, `vaciar`, formatos (`pesos`, `numero`, `cantidad`, `plural`, `fechaCorta`, `fechaLarga`, `nombreMes`), fechas (`hoyISO`, `mesISO`, `proximoSabado`, `sumarDias`, `sumarMeses`), `sumar(lista, valorDe)`, controles (`chips`, `stepper`, `campo`, `interruptor`, `campoFecha`), `toast`, `conBoton`, `debounce` |
 | `admin/js/db.js` | `sb`, `q` (consulta que tira el error), `rpc`, `contar` |
 | `admin/js/catalogo.js` | `catalogo()` en memoria: sabores, formatos, insumos, parámetros |
-| `admin/js/componentes.js` | `elegirCliente`, `editorLineas`, `seccionPrecios`, `tituloSemana`, `libroCaja` |
+| `admin/js/componentes.js` | `filaLista({ href, titulo, detalle, derecha })`, `pastilla(clase, texto)`, `monto`, `stat` (tarjeta de un número), `elegirCliente`, `editorLineas`, `seccionPrecios`, `tituloSemana`, `libroCaja` |
 | `admin/js/graficos.js` | `linea`, `areas`, `partes`, `pesas`, `composicion`, `puntos`, `variacion` |
 | `admin/js/textos.js` | `textoPanel(clave, defecto, vars)` para los textos del panel |
+| `api/_lib/supabase.js` | `rpc(nombre, args, conf, { ErrorCliente })`, `metodoPermitido`, `configuracionLista`, `leerCuerpoJson`, `responderJson`, `encabezados` |
+| `scripts/_env.js` | `cargarEnvLocal()` para los scripts que leen `.env.local` |
 
 - Si ya existe, se usa. Si casi sirve, se extiende con una opción en vez de copiarlo.
 - Si un bloque se repite **dos veces**, va a una función. Si se usa en una sola vista, queda en esa vista; si lo usan dos, sube a `componentes.js` o `util.js`.
@@ -23,6 +25,8 @@ Antes de crear una función, un componente o una clase CSS, buscar con `grep` si
 ## 2. Nombres
 
 - **En español rioplatense**, como el resto del código y de la base: `ventasSemana`, `rollsPorHacer`, `elegirMes`.
+  Excepción: `cinniminies.js` (la web pública) tiene nombres heredados en inglés (`cart`, `box`, `renderCart`). Lo nuevo va en
+  español; al tocar una función vieja no se mezclan idiomas adentro de ella.
 - Que digan **qué es**, no cómo está hecho: `pendientes`, no `arr2` ni `listaFiltrada`.
 - **Variables** son sustantivos (`total`, `porSabor`); **funciones**, verbos o lo que devuelven (`mostrar`, `registrarVenta`, `tituloSemana`); los **booleanos** se leen como respuesta (`activo`, `esPrueba`, `conPrecio`, `hayStock`).
 - Sin abreviaturas inventadas. Las únicas de siempre: `h`, `q`, `sb`, `rpc`, `cat`, `e` (evento o error), `i`/`j` (índices), `d` (el dato en un `map` corto).

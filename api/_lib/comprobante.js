@@ -2,7 +2,7 @@
 // se sube al bucket privado "comprobantes" y se anota en el pedido con adjuntar_comprobante(), que
 // pide el código y el celular del pedido (así nadie adjunta archivos a pedidos ajenos).
 const crypto = require('node:crypto');
-const { encabezados } = require('./supabase.js');
+const { encabezados, rpc } = require('./supabase.js');
 
 const MAX_ARCHIVO = 3 * 1024 * 1024;          // la web achica las fotos; un PDF del banco pesa mucho menos
 const MAX_CUERPO = Math.ceil(MAX_ARCHIVO * 4 / 3) + 2000; // base64 + los otros campos
@@ -43,17 +43,15 @@ async function guardarComprobante({ codigo, telefono, buf, tipo, ext }, { url, c
   const subida = await pedir(objeto, { method: 'POST', headers: { ...encabezados(clave), 'Content-Type': tipo }, body: buf });
   if (!subida.ok) throw new Error(`Storage respondió ${subida.status}: ${(await subida.text().catch(() => '')).slice(0, 300)}`);
 
-  const r = await pedir(`${url}/rest/v1/rpc/adjuntar_comprobante`, {
-    method: 'POST',
-    headers: { ...encabezados(clave), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_codigo: codigo, p_telefono: telefono, p_ruta: ruta }),
-  });
-  if (r.ok) return { codigo };
-  // No quedó anotado: el archivo no sirve. Se borra (si falla, queda huérfano en un bucket privado).
-  await pedir(objeto, { method: 'DELETE', headers: encabezados(clave) }).catch(() => {});
-  const cuerpo = await r.json().catch(() => null);
-  if (cuerpo?.code === 'P0001' && cuerpo.message) throw new ErrorComprobante(cuerpo.message);
-  throw new Error(`Supabase respondió ${r.status}: ${JSON.stringify(cuerpo).slice(0, 300)}`);
+  try {
+    await rpc('adjuntar_comprobante', { p_codigo: codigo, p_telefono: telefono, p_ruta: ruta }, { url, clave, fetch: pedir },
+      { ErrorCliente: ErrorComprobante });
+    return { codigo };
+  } catch (e) {
+    // No quedó anotado: el archivo no sirve. Se borra (si falla, queda huérfano en un bucket privado).
+    await pedir(objeto, { method: 'DELETE', headers: encabezados(clave) }).catch(() => {});
+    throw e;
+  }
 }
 
 module.exports = { MAX_ARCHIVO, MAX_CUERPO, tipoReal, armarComprobante, guardarComprobante, ErrorComprobante };

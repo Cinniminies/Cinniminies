@@ -1,4 +1,4 @@
-import { h, plural } from './util.js';
+import { h, plural, sumar } from './util.js';
 
 // Gráficos en HTML y SVG (sin librerías), cada uno para un tipo de dato. Reglas: marcas finas con punta
 // redondeada, acento para lo que importa y gris de contexto (colores de --serie-* para identidades),
@@ -103,7 +103,7 @@ function sinDatos(titulo, vacio) {
 
 // Leyenda: [{ nombre, color }]. Va siempre que haya dos series o más.
 function leyenda(series) {
-  return h('div', { class: 'leyenda' }, series.map((s) => h('span', {}, h('i', { style: `--c:${s.color}` }), s.nombre)));
+  return h('div', { class: 'leyenda' }, series.map((serie) => h('span', {}, h('i', { style: `--c:${serie.color}` }), serie.nombre)));
 }
 
 // Áreas en el tiempo: dos montos que van uno dentro del otro (p. ej. vendido y, adentro, la ganancia), mes a mes.
@@ -188,9 +188,9 @@ export function partes(datos, { formato, titulo, vacio }) {
   if (lista.length > 7) {
     const chicas = [...lista].sort((a, b) => b.valor - a.valor).slice(6);
     lista = [...lista.filter((d) => !chicas.includes(d)),
-      { etiqueta: 'Otros', valor: chicas.reduce((a, d) => a + d.valor, 0), color: 'var(--graf-gris)' }];
+      { etiqueta: 'Otros', valor: sumar(chicas, (d) => d.valor), color: 'var(--graf-gris)' }];
   }
-  const total = lista.reduce((a, d) => a + d.valor, 0);
+  const total = sumar(lista, (d) => d.valor);
   const pct = (v) => `${Math.round((100 * v) / total)} %`;
   if (!total) return sinDatos(titulo, vacio);
   const mayor = Math.max(...lista.map((d) => d.valor));
@@ -275,7 +275,7 @@ export function puntos(grupos, { formato, titulo, vacio }) {
   if (!conPuntos.length) return sinDatos(titulo, vacio);
   const max = Math.max(1, ...conPuntos.flatMap((g) => g.puntos.map((p) => p.valor)));
   const pos = (v) => `${(100 * v) / max}%`;
-  const promedio = (g) => g.puntos.reduce((a, p) => a + p.valor, 0) / g.puntos.length;
+  const promedio = (g) => sumar(g.puntos, (p) => p.valor) / g.puntos.length;
   const ordenados = [...conPuntos].sort((a, b) => promedio(b) - promedio(a));
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
   const todos = [];

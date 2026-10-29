@@ -1,6 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, campo, pesos, numero, plural, fechaCorta, nombreMes, hoyISO, toast, conBoton } from '../util.js';
 import { irA, sesion } from '../app.js';
+import { stat, filaLista, pastilla, monto } from '../componentes.js';
 import { ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
 
 // Descuento por recomendación (docs/descuento-plan/logica.md): campañas, cómo va la vigente y la lista de
@@ -16,8 +17,6 @@ export async function mostrar(cont) {
   const elegida = vigente || campanas[0] || null;
   const resumen = elegida ? await rpc('resumen_campana', { p_campana: elegida.id }) : null;
 
-  const kpi = (etiqueta, valor, sub) => h('div', { class: 'stat' },
-    h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), sub ? h('div', { class: 'sub' }, sub) : null);
   const rango = (k) => `${fechaCorta(k.desde)} al ${fechaCorta(k.hasta)}`;
 
   // Formulario de campaña: nueva o editar la elegida.
@@ -59,16 +58,16 @@ export async function mostrar(cont) {
     irA('#/recomendaciones');
   });
 
-  const reco = (r) => h('li', {}, h(r.venta_id ? 'a' : 'div', { class: 'fila', href: r.venta_id ? `#/ventas/${r.venta_id}` : null },
-    h('div', { class: 'princ' },
-      h('div', { class: 't1' }, `${r.recomendado || r.nombre_pedido} ← ${r.recomendador}`),
-      h('div', { class: 't2' }, [fechaCorta(r.creado_en.slice(0, 10)), `pedido ${r.pedido}`,
-        r.mes ? `suma en ${nombreMes(r.mes)}` : null, r.motivo].filter(Boolean).join(' · '))),
-    h('span', { class: `badge ${CLASE_RECOMENDACION[r.estado]}` }, ESTADO_RECOMENDACION[r.estado])));
+  const reco = (r) => filaLista({
+    href: r.venta_id ? `#/ventas/${r.venta_id}` : null,
+    titulo: `${r.recomendado || r.nombre_pedido} ← ${r.recomendador}`,
+    detalle: [fechaCorta(r.creado_en), `pedido ${r.pedido}`, r.mes ? `suma en ${nombreMes(r.mes)}` : null, r.motivo],
+    derecha: pastilla(CLASE_RECOMENDACION[r.estado], ESTADO_RECOMENDACION[r.estado]),
+  });
 
   vaciar(cont,
     sesion.prueba ? h('div', { class: 'card' },
-      h('p', { style: 'margin-top:0' }, h('strong', {}, 'Modo prueba. '),
+      h('p', {}, h('strong', {}, 'Modo prueba. '),
         'Las campañas, pedidos y ventas que ves acá son de prueba: los dueños no los ven y no tocan los números reales. '
         + 'Para probar: abrí la web en el servidor local (con el aviso rojo de modo prueba) y hacé pedidos con celulares inventados.'),
       h('div', { class: 'acciones' }, borrarPrueba)) : null,
@@ -81,20 +80,20 @@ export async function mostrar(cont) {
         + 'Se usa en una Box de 6 o de 12 de la web; lo de cada mes vence a fin de mes. '
         + `La primera Box de 12 de la web de cada cliente le da ${numero(elegida.porcentaje, 0)} % por 30 días.`),
       h('div', { class: 'stats' },
-        kpi('Clientes nuevos con código', numero(resumen.validas, 0),
+        stat('Clientes nuevos con código', numero(resumen.validas, 0),
           `de ${plural(resumen.clientes_nuevos_total, 'cliente nuevo', 'clientes nuevos')} en esas fechas`),
-        kpi('Pendientes', numero(resumen.pendientes, 0), 'esperan que se pague la venta'),
-        kpi('Vendido a recomendados', pesos(resumen.vendido_recomendados),
+        stat('Pendientes', numero(resumen.pendientes, 0), 'esperan que se pague la venta'),
+        stat('Vendido a recomendados', pesos(resumen.vendido_recomendados),
           resumen.volvieron ? `${plural(resumen.volvieron, 'volvió', 'volvieron')} a comprar` : null),
-        kpi('Bonos por Box de 12', numero(resumen.bonos, 0),
+        stat('Bonos por Box de 12', numero(resumen.bonos, 0),
           resumen.bonos_vigentes ? `${plural(resumen.bonos_vigentes, 'vigente', 'vigentes')} hoy` : null),
-        kpi('Descuento entregado', pesos(resumen.descuento_entregado), plural(resumen.canjes, 'canje')),
-        kpi('Costo por cliente nuevo', resumen.costo_por_cliente == null ? '—' : pesos(resumen.costo_por_cliente),
+        stat('Descuento entregado', pesos(resumen.descuento_entregado), plural(resumen.canjes, 'canje')),
+        stat('Costo por cliente nuevo', resumen.costo_por_cliente == null ? '—' : pesos(resumen.costo_por_cliente),
           'descuento entregado ÷ clientes nuevos')),
       resumen.ranking.length ? [h('h3', {}, 'Quiénes más recomendaron'),
-        h('ul', { class: 'lista' }, resumen.ranking.slice(0, 10).map((x) => h('li', {}, h('a', { class: 'fila', href: `#/clientes/${x.id}` },
-          h('div', { class: 'princ' }, h('div', { class: 't1' }, x.nombre)),
-          h('span', { class: 'monto' }, plural(x.validas, 'recomendación', 'recomendaciones'))))))] : null,
+        h('ul', { class: 'lista' }, resumen.ranking.slice(0, 10).map((x) => filaLista({
+          href: `#/clientes/${x.id}`, titulo: x.nombre, derecha: monto(plural(x.validas, 'recomendación', 'recomendaciones')),
+        })))] : null,
       h('details', { class: 'plegable' }, h('summary', {}, 'Editar la campaña'), formulario(elegida)),
       h('div', { class: 'acciones' }, generar),
       h('p', { class: 'ayuda' }, 'Cada cliente recibe su código cuando paga una compra durante la campaña. '
@@ -104,9 +103,9 @@ export async function mostrar(cont) {
     h('details', { class: 'plegable' }, h('summary', {}, 'Nueva campaña'), formulario(null)),
 
     campanas.length > 1 ? [h('h2', {}, 'Todas las campañas'),
-      h('ul', { class: 'lista' }, campanas.map((k) => h('li', {}, h('div', { class: 'fila' },
-        h('div', { class: 'princ' }, h('div', { class: 't1' }, k.nombre), h('div', { class: 't2' }, rango(k))),
-        h('span', { class: 'monto' }, `${numero(k.porcentaje, 0)} % / ${numero(k.tope, 0)} %`)))))] : null,
+      h('ul', { class: 'lista' }, campanas.map((k) => filaLista({
+        titulo: k.nombre, detalle: rango(k), derecha: monto(`${numero(k.porcentaje, 0)} % / ${numero(k.tope, 0)} %`),
+      })))] : null,
 
     h('h2', {}, 'Recomendaciones'),
     recos.length ? h('ul', { class: 'lista' }, recos.map(reco))

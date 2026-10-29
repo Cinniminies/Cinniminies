@@ -1,7 +1,7 @@
 import { sb, q, rpc, contar } from '../db.js';
 import { h, vaciar, campo, interruptor, pesos, plural, toast, conBoton } from '../util.js';
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
-import { seccionPrecios } from '../componentes.js';
+import { seccionPrecios, filaLista, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
 import { srcFoto, subirFoto, borrarFotoDelBucket } from '../fotos.js';
 
@@ -17,22 +17,18 @@ async function lista(cont) {
   const costoDe = Object.fromEntries(costos.map((c) => [c.sabor_id, c]));
   const eliminados = sabores.filter((s) => s.eliminado);
   vaciar(cont,
-    h('ul', { class: 'lista' }, sabores.filter((s) => !s.eliminado).map((s) => h('li', {}, h('a', { class: 'fila', href: `#/sabores/${s.id}` },
-      h('div', { class: 'princ' },
-        h('div', { class: 't1' }, s.nombre, ' ',
-          s.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo'), ' ',
-          s.visible_web ? h('span', { class: 'badge ok' }, 'En la web') : null),
-        h('div', { class: 't2' }, costoDe[s.id]?.costo_roll != null
-          ? `Costo ${pesos(costoDe[s.id].costo_roll)} por roll · unidad ${pesos(costoDe[s.id].precio_unidad)}`
-          : 'Sin receta')),
-      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
+    h('ul', { class: 'lista' }, sabores.filter((s) => !s.eliminado).map((s) => filaLista({
+      href: `#/sabores/${s.id}`,
+      titulo: [s.nombre, s.activo ? null : pastilla('neutro', 'Inactivo'), s.visible_web ? pastilla('ok', 'En la web') : null],
+      detalle: costoDe[s.id]?.costo_roll != null
+        ? `Costo ${pesos(costoDe[s.id].costo_roll)} por roll · unidad ${pesos(costoDe[s.id].precio_unidad)}`
+        : 'Sin receta',
+    }))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/sabores/nuevo' }, '+ Nuevo sabor')),
     eliminados.length ? h('details', { class: 'plegable', style: 'margin-top:1.25rem' },
       h('summary', {}, `Eliminados (${eliminados.length})`),
       h('p', { class: 'ayuda' }, 'Tienen ventas o tandas, así que se guardan para el historial. Entrá para restaurarlos.'),
-      h('ul', { class: 'lista' }, eliminados.map((s) => h('li', {}, h('a', { class: 'fila', href: `#/sabores/${s.id}` },
-        h('div', { class: 'princ' }, h('div', { class: 't1' }, s.nombre)),
-        h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')))))) : null);
+      h('ul', { class: 'lista' }, eliminados.map((s) => filaLista({ href: `#/sabores/${s.id}`, titulo: s.nombre })))) : null);
 }
 
 async function ficha(cont, id) {
@@ -165,7 +161,7 @@ async function ficha(cont, id) {
       irA(`#/sabores/${id}`);
     });
     avisoEliminado = h('div', { class: 'card' },
-      h('p', { style: 'margin-top:0' }, h('strong', {}, 'Sabor eliminado. '),
+      h('p', {}, h('strong', {}, 'Sabor eliminado. '),
         'No aparece en la carga ni en la web; sus ventas y tandas siguen en el historial.'),
       restaurar);
   }
@@ -210,7 +206,7 @@ async function ficha(cont, id) {
   vaciar(cont,
     avisoEliminado,
     h('div', { class: 'card' },
-      h('h1', { style: 'margin-top:0' }, sabor?.nombre || 'Nuevo sabor'),
+      h('h1', {}, sabor?.nombre || 'Nuevo sabor'),
       campo('Nombre', texto('nombre', { placeholder: 'Pistacho' })),
       h('div', { class: 'fila-campos' },
         campo('Nombre corto', texto('nombre_corto', { placeholder: 'Para listas: DDL' })),
@@ -229,7 +225,7 @@ async function ficha(cont, id) {
         h('p', { class: 'ayuda' }, 'En la caja personalizada de la web el sabor se ofrece solo si tiene precio por unidad.'))),
 
     h('div', { class: 'card' },
-      h('h3', { style: 'margin-top:0' }, 'Foto para la web'),
+      h('h3', {}, 'Foto para la web'),
       h('div', { class: 'foto-fila' }, vistaFoto,
         h('div', {},
           h('div', { class: 'acciones', style: 'margin-top:0' }, subir, quitar, archivo),

@@ -1,21 +1,8 @@
 // Descuento por recomendación (docs/descuento-plan/logica.md). La web pregunta si hay campaña y qué significa
 // un código para quien pide; la base decide todo (campana_web y consultar_codigo).
-const { encabezados } = require('./supabase.js');
+const { rpc } = require('./supabase.js');
 
 class ErrorRecomendacion extends Error {}
-
-async function rpc(nombre, args, { url, clave, fetch: pedir = fetch }) {
-  const r = await pedir(`${url}/rest/v1/rpc/${nombre}`, {
-    method: 'POST',
-    headers: { ...encabezados(clave), 'Content-Type': 'application/json' },
-    body: JSON.stringify(args),
-  });
-  if (!r.ok) {
-    const detalle = await r.text().catch(() => '');
-    throw new Error(`Supabase respondió ${r.status} a ${nombre}: ${detalle.slice(0, 300)}`);
-  }
-  return r.json();
-}
 
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : null);
 

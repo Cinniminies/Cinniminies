@@ -3,27 +3,15 @@
 //      Cacheado en la CDN como el catálogo (en modo prueba, no).
 // POST /api/recomendacion { codigo, telefono? } → { estado, nombre?, porcentaje?, tope? } (ver consultar_codigo).
 // Si falla, la web sigue sin el campo: el pedido nunca depende de esto.
-const { configuracion, modoPrueba, responderJson } = require('./_lib/supabase.js');
+const { configuracionLista, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson } = require('./_lib/supabase.js');
 const { ErrorRecomendacion, leerCampana, consultarCodigo } = require('./_lib/recomendacion.js');
 
-async function leerCuerpo(req) {
-  if (req.body !== undefined) return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  let texto = '';
-  for await (const parte of req) {
-    texto += parte;
-    if (texto.length > 1000) throw new ErrorRecomendacion('Consulta inválida');
-  }
-  return JSON.parse(texto || 'null');
-}
+const MAX_CUERPO = 1000; // un código y un celular
 
 module.exports = async (req, res) => {
-  const conf = configuracion();
+  const conf = configuracionLista(res);
+  if (!conf) return;
   const prueba = modoPrueba();
-  if (!conf.clave) {
-    res.setHeader('Cache-Control', 'no-store');
-    responderJson(res, 500, { error: 'Falta SUPABASE_SERVICE_ROLE_KEY en Vercel' });
-    return;
-  }
   try {
     if (req.method === 'GET' || req.method === 'HEAD') {
       const campana = await leerCampana(prueba, conf);
@@ -32,14 +20,10 @@ module.exports = async (req, res) => {
       return;
     }
     res.setHeader('Cache-Control', 'no-store');
-    if (req.method !== 'POST') {
-      res.setHeader('Allow', 'GET, HEAD, POST');
-      responderJson(res, 405, { error: 'Solo GET o POST' });
-      return;
-    }
+    if (!metodoPermitido(req, res, ['GET', 'HEAD', 'POST'])) return;
     let cuerpo;
     try {
-      cuerpo = await leerCuerpo(req);
+      cuerpo = await leerCuerpoJson(req, { maximo: MAX_CUERPO, muyGrande: () => new ErrorRecomendacion('Consulta inválida') });
     } catch {
       throw new ErrorRecomendacion('Consulta inválida');
     }

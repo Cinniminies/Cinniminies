@@ -1,6 +1,6 @@
 // GET /api/instagram → lee Instagram y guarda los números del día (ver _lib/instagram.js).
 // La llama el cron de Vercel una vez por día (vercel.json) con "Authorization: Bearer <CRON_SECRET>".
-const { configuracion, responderJson } = require('./_lib/supabase.js');
+const { configuracionLista, responderJson } = require('./_lib/supabase.js');
 const { actualizar } = require('./_lib/instagram.js');
 
 module.exports = async (req, res) => {
@@ -14,11 +14,8 @@ module.exports = async (req, res) => {
     responderJson(res, 401, { error: 'No autorizado' });
     return;
   }
-  const conf = configuracion();
-  if (!conf.clave) {
-    responderJson(res, 500, { error: 'Falta SUPABASE_SERVICE_ROLE_KEY en Vercel' });
-    return;
-  }
+  const conf = configuracionLista(res);
+  if (!conf) return;
   try {
     responderJson(res, 200, await actualizar(conf));
   } catch (e) {

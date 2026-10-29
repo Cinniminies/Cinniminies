@@ -1,7 +1,9 @@
 // Pruebas de los formatos de /admin. Correr con: node --test admin/tests/*.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pesos, numero, cantidad, plural, fechaCorta, fechaLarga, nombreMes, mesISO, linkWhatsapp, proximoSabado } from '../js/util.js';
+import {
+  pesos, numero, cantidad, plural, fechaCorta, fechaLarga, nombreMes, mesISO, linkWhatsapp, proximoSabado, sumarDias, sumarMeses, sumar,
+} from '../js/util.js';
 
 test('pesos: miles con punto, decimales con coma, sin ,00', () => {
   assert.equal(pesos(250), '$250');
@@ -51,4 +53,18 @@ test('proximoSabado: el sábado que viene, o hoy si es sábado', () => {
   assert.equal(proximoSabado('2026-10-03'), '2026-10-03'); // sábado
   assert.equal(proximoSabado('2026-10-04'), '2026-10-10'); // domingo
   assert.equal(proximoSabado('2026-12-28'), '2027-01-02'); // cambia el año
+});
+
+test('sumarDias y sumarMeses: cruzan meses y años', () => {
+  assert.equal(sumarDias('2026-10-31', 1), '2026-11-01');
+  assert.equal(sumarDias('2026-03-01', -1), '2026-02-28');
+  assert.equal(sumarDias('2026-10-28T15:00:00Z', 0), '2026-10-28');
+  assert.equal(sumarMeses('2026-01-01', -1), '2025-12-01');
+  assert.equal(sumarMeses('2026-11-01', 2), '2027-01-01');
+});
+
+test('sumar: suma el valor de cada elemento y lo que no es número cuenta 0', () => {
+  assert.equal(sumar([{ total: '250' }, { total: 450 }, { total: null }], (v) => v.total), 700);
+  assert.equal(sumar([1, 2, 3]), 6);
+  assert.equal(sumar([]), 0);
 });

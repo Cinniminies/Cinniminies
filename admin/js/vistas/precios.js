@@ -1,5 +1,6 @@
 import { sb, q } from '../db.js';
 import { h, vaciar, pesos, fechaLarga, hoyISO } from '../util.js';
+import { filaLista, pastilla, monto } from '../componentes.js';
 
 // Resumen de todos los precios: el vigente de cada combinación y los programados. Se editan en la
 // ficha de cada formato (precio de caja y especiales) o sabor (precio por unidad).
@@ -35,12 +36,13 @@ export async function mostrar(cont) {
     return [
       h('h2', {}, titulo),
       ayuda ? h('p', { class: 'ayuda' }, ayuda) : null,
-      h('ul', { class: 'lista' }, filas.map((c) => h('li', {}, h('a', { class: 'fila', href: c.href },
-        h('div', { class: 'princ' },
-          h('div', { class: 't1' }, c.nombre, ' ', c.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo')),
-          h('div', { class: 't2' }, c.actual ? `desde el ${fechaLarga(c.actual.vigente_desde)}` : 'todavía no rige',
-            c.futuro ? [' · ', h('span', { class: 'badge neutro' }, `${pesos(c.futuro.precio)} desde el ${fechaLarga(c.futuro.vigente_desde)}`)] : null)),
-        h('span', { class: 'monto' }, c.actual ? pesos(c.actual.precio) : '—'))))),
+      h('ul', { class: 'lista' }, filas.map((c) => filaLista({
+        href: c.href,
+        titulo: [c.nombre, c.activo ? null : pastilla('neutro', 'Inactivo')],
+        detalle: [c.actual ? `desde el ${fechaLarga(c.actual.vigente_desde)}` : 'todavía no rige',
+          c.futuro ? pastilla('neutro', `${pesos(c.futuro.precio)} desde el ${fechaLarga(c.futuro.vigente_desde)}`) : null],
+        derecha: monto(c.actual ? pesos(c.actual.precio) : '—'),
+      }))),
     ];
   };
 
