@@ -1,5 +1,7 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, ETIQUETAS } from '../util.js';
+import {
+  h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, linkWhatsapp, ETIQUETAS,
+} from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
@@ -130,7 +132,8 @@ export async function mostrar(cont) {
     const cajas = [...p.pedido_cajas].sort((a, b) => a.orden - b.orden).map((c) =>
       h('li', {}, h('strong', {}, cat.formato(c.formato_id)?.nombre || 'Caja'), ` · ${pesos(c.precio)}`,
         h('div', { class: 'ayuda' }, c.sabores.map((s) => `${cat.sabor(s.sabor_id)?.nombre || 'Sabor'} ${s.unidades}`).join(' · '))));
-    const mensaje = encodeURIComponent(`¡Hola ${p.nombre.split(' ')[0]}! Te escribimos de Cinniminies por tu pedido ${p.codigo}.`);
+    const whatsapp = linkWhatsapp(p.telefono,
+      { texto: `¡Hola ${p.nombre.split(' ')[0]}! Te escribimos de Cinniminies por tu pedido ${p.codigo}.` });
 
     const acciones = [];
     if (p.estado === 'nuevo') {
@@ -151,7 +154,7 @@ export async function mostrar(cont) {
         irA('#/pedidos');
       });
       acciones.push(h('div', { class: 'acciones' },
-        h('a', { class: 'btn', href: `https://wa.me/598${p.telefono.slice(1)}?text=${mensaje}`, target: '_blank', rel: 'noopener' }, 'WhatsApp'),
+        whatsapp ? h('a', { class: 'btn', href: whatsapp, target: '_blank', rel: 'noopener' }, 'WhatsApp') : null,
         confirmar),
       h('details', { class: 'plegable' }, h('summary', {}, 'Rechazar el pedido'), campo('Motivo', motivo), rechazar));
     } else if (p.venta_id) {

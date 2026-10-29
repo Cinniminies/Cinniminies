@@ -1,4 +1,7 @@
-import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, fechaCorta, hoyISO, proximoSabado, conBoton, sumar, campoPesos, grupo } from './util.js';
+import {
+  h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, fechaCorta, diaMes, hoyISO, proximoSabado, conBoton, sumar, campoPesos,
+  grupo,
+} from './util.js';
 import { PRODUCCION } from './app.js';
 import { textoPanel } from './textos.js';
 
@@ -267,7 +270,7 @@ export function chipsUnidad(lista, valor, alCambiar) {
 export const stat = (etiqueta, valor, sub, delta) => h('div', { class: 'stat' },
   h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), sub ? h('div', { class: 'sub' }, sub) : null, delta);
 
-export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del sábado {fecha}', { fecha: fechaCorta(sabado).slice(4) });
+export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del sábado {fecha}', { fecha: diaMes(sabado) });
 
 // Libro de caja (Compras, Gastos): los movimientos agrupados por semana de pedidos, con lo que salió y entró
 // en cada una y los montos alineados en su columna. Las filas tienen que venir ordenadas por fecha, más nuevas primero.

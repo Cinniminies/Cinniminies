@@ -75,8 +75,10 @@ export async function mostrar(cont) {
     const hayMezcla = plan.tandas.some((t) => t.tipo === 'mezcla');
     const verComprar = h('button', { class: 'btn', type: 'button' }, 'Ver qué comprar');
     verComprar.onclick = () => {
-      cargarPlan(Object.fromEntries(plan.sabores.map((s) => [s.sabor_id, Number(s.tandas)])),
-        Object.fromEntries(cajas.map((c) => [c.insumo_id, Number(c.necesario)])));
+      cargarPlan(Object.fromEntries(plan.sabores.map((s) => [s.sabor_id, Number(s.tandas)])), {
+        cajas: Object.fromEntries(cajas.map((c) => [c.insumo_id, Number(c.necesario)])),
+        fecha: estado.fecha,
+      });
       irA('#/comprar');
     };
     const registrar = h('button', { class: 'btn primario', type: 'button' }, 'Registrar horneado');
