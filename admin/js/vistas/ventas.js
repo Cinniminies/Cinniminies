@@ -1,10 +1,10 @@
 import { sb, q, rpc } from '../db.js';
 import {
   h, vaciar, chips, campo, grupo, pesos, numero, plural, fechaCorta, fechaLarga, nombreMes, hoyISO, proximoSabado, toast, conBoton, debounce,
-  ETIQUETAS, opciones, linkWhatsapp,
+  ETIQUETAS, opciones, linkWhatsapp, sumar, sumarMeses, campoPesos
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
-import { elegirCliente, editorLineas, tituloSemana } from '../componentes.js';
+import { elegirCliente, editorLineas, tituloSemana, filaLista, pastilla, monto } from '../componentes.js';
 import { irA } from '../app.js';
 import { textoPanel } from '../textos.js';
 import { campanaVigente, codigoDe, bonoDe, linkCodigo } from '../recomendacion.js';
@@ -32,9 +32,7 @@ async function lista(cont) {
       .select('id,fecha,cliente,formatos,sabores,total,estado_pago,tipo,por_hacer')
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false });
     if (filtro.mes) {
-      const [a, m] = filtro.mes.split('-').map(Number);
-      const siguiente = new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10);
-      consulta = consulta.gte('fecha', filtro.mes).lt('fecha', siguiente);
+      consulta = consulta.gte('fecha', filtro.mes).lt('fecha', sumarMeses(filtro.mes, 1));
     }
     if (filtro.estado === 'pendientes') consulta = consulta.eq('estado_pago', 'pendiente');
     if (filtro.estado === 'por_hacer') consulta = consulta.eq('por_hacer', true);
@@ -50,8 +48,8 @@ async function lista(cont) {
   }
 
   function dibujar(ventas, limitada) {
-    const suma = (vs) => vs.reduce((a, v) => a + Number(v.total), 0);
-    const pendiente = suma(ventas.filter((v) => v.estado_pago === 'pendiente'));
+    const totalDe = (vs) => sumar(vs, (v) => v.total);
+    const pendiente = totalDe(ventas.filter((v) => v.estado_pago === 'pendiente'));
     // Agrupadas por día, con el total de cada día
     const dias = [];
     for (const v of ventas) {
@@ -61,7 +59,7 @@ async function lista(cont) {
     vaciar(resultados,
       !ventas.length ? null : h('div', { class: 'resumen-lista' },
         h('div', {}, h('span', { class: 'etq' }, limitada ? 'Últimas' : 'Ventas'), h('strong', {}, numero(ventas.length, 0))),
-        h('div', {}, h('span', { class: 'etq' }, 'Total'), h('strong', {}, pesos(suma(ventas)))),
+        h('div', {}, h('span', { class: 'etq' }, 'Total'), h('strong', {}, pesos(totalDe(ventas)))),
         h('div', {}, h('span', { class: 'etq' }, 'Pendiente'), h('strong', { class: pendiente ? 'texto-alerta' : null }, pesos(pendiente)))),
       dias.length
         ? dias.map((d, i) => [
@@ -70,15 +68,14 @@ async function lista(cont) {
             ? h('h2', { class: 'semana-lista' }, tituloSemana(proximoSabado(d.fecha))) : null,
           h('section', { class: 'dia' },
           h('h3', { class: 'dia-cab' }, h('span', {}, fechaCorta(d.fecha)),
-            h('span', { class: 'ayuda' }, `${plural(d.ventas.length, 'venta')} · ${pesos(suma(d.ventas))}`)),
-          h('ul', { class: 'lista' }, d.ventas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
-            h('div', { class: 'princ' },
-              h('div', { class: 't1' }, v.cliente || 'Sin cliente', ' ',
-                v.estado_pago === 'pendiente' ? h('span', { class: 'badge pendiente' }, 'Pendiente') : null,
-                v.por_hacer ? h('span', { class: 'badge neutro' }, 'Por hacer') : null,
-                v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null),
-              h('div', { class: 't2' }, `${v.formatos || ''}${v.sabores ? ' · ' + v.sabores : ''}`)),
-            h('span', { class: 'monto' }, pesos(v.total)))))))])
+            h('span', { class: 'ayuda' }, `${plural(d.ventas.length, 'venta')} · ${pesos(totalDe(d.ventas))}`)),
+          h('ul', { class: 'lista' }, d.ventas.map((v) => filaLista({
+            href: `#/ventas/${v.id}`,
+            titulo: [v.cliente || 'Sin cliente', v.estado_pago === 'pendiente' ? pastilla('pendiente', 'Pendiente') : null,
+              v.por_hacer ? pastilla('neutro', 'Por hacer') : null, v.tipo !== 'venta' ? pastilla('neutro', ETIQUETAS.tipo[v.tipo]) : null],
+            detalle: [v.formatos, v.sabores],
+            derecha: monto(pesos(v.total)),
+          }))))])
         : h('div', { class: 'vacio' }, h('p', { style: 'margin:0' }, 'No hay ventas con estos filtros.'),
           h('a', { class: 'btn', href: '#/venta' }, textoPanel('panel.vacio_ventas', 'Cargar una venta'))));
   }
@@ -150,13 +147,13 @@ async function detalle(cont, id) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      h('h1', { style: 'margin-top:0' }, v.cliente || 'Sin cliente'),
+      h('h1', {}, v.cliente || 'Sin cliente'),
       h('p', { class: 'ayuda' }, `${fechaLarga(v.fecha)} · ${v.origen || 'sin origen'}`,
         contacto ? [' · ', wa ? h('a', { href: wa, target: '_blank', rel: 'noopener' }, contacto) : contacto] : null),
       h('p', {},
-        h('span', { class: 'badge ' + (pagada ? 'ok' : 'pendiente') }, ETIQUETAS.estado_pago[v.estado_pago]), ' ',
-        v.tipo !== 'venta' ? h('span', { class: 'badge neutro' }, ETIQUETAS.tipo[v.tipo]) : null, ' ',
-        v.por_hacer ? [h('span', { class: 'badge neutro' }, 'Por hacer'), ' '] : null,
+        pastilla(pagada ? 'ok' : 'pendiente', ETIQUETAS.estado_pago[v.estado_pago]), ' ',
+        v.tipo !== 'venta' ? pastilla('neutro', ETIQUETAS.tipo[v.tipo]) : null, ' ',
+        v.por_hacer ? [pastilla('neutro', 'Por hacer'), ' '] : null,
         `${ETIQUETAS.entrega[v.entrega]} · ${ETIQUETAS.medio_pago[v.medio_pago] || 'sin medio de pago'}`),
       lineas.map((l) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' },
@@ -164,7 +161,7 @@ async function detalle(cont, id) {
           h('div', { class: 'ayuda' }, l.venta_linea_sabores.map((s) => `${s.sabores.nombre} ${s.unidades}${
             s.sin_glaseado ? ` (${s.sin_glaseado === s.unidades ? '' : s.sin_glaseado + ' '}sin glaseado)` : ''}`).join(' · '),
             ` · ${l.insumos?.nombre || 'sin caja'}`)),
-        h('span', { class: 'monto' }, pesos(l.precio_lista)))),
+        monto(pesos(l.precio_lista)))),
       h('table', { class: 'tabla', style: 'margin-top:.75rem' },
         fila('Precio de lista', pesos(v.precio_lista)),
         Number(v.descuento) ? fila(Number(v.descuento) > 0 ? 'Descuento' : 'Recargo', pesos(-v.descuento)) : null,
@@ -201,16 +198,16 @@ async function editar(cont, id) {
   let productosTocados = false;
   const editor = editorLineas(cat, lineasEdit, () => { productosTocados = true; });
 
-  const precio = h('input', {
-    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: v.precio_cobrado,
+  const precio = campoPesos({
+    value: v.precio_cobrado,
     oninput: (e) => { cambios.precio_especial = e.target.value === '' ? null : Number(e.target.value); },
   });
-  const envio = h('input', {
-    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: v.cobro_envio,
+  const envio = campoPesos({
+    value: v.cobro_envio,
     oninput: (e) => { cambios.cobro_envio = e.target.value; },
   });
-  const propina = h('input', {
-    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: Number(v.propina) || '', placeholder: '0',
+  const propina = campoPesos({
+    value: Number(v.propina) || '', placeholder: '0',
     oninput: (e) => { cambios.propina = e.target.value === '' ? 0 : Number(e.target.value); },
   });
   const campoEnvio = campo('Cobro de envío', envio);

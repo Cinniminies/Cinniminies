@@ -81,16 +81,30 @@ export function precioVigenteDe(filas) {
   return vigentes.length ? vigentes[0].precio : null;
 }
 
+// Fecha ISO `n` días después (antes, con n negativo): sumarDias('2026-10-31', 1) → '2026-11-01'.
+export function sumarDias(iso, n) {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 // El sábado que viene (hoy, si es sábado): los días de horneado.
 export function proximoSabado(desde = hoyISO()) {
-  const d = new Date(`${desde}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + ((6 - d.getUTCDay() + 7) % 7));
-  return d.toISOString().slice(0, 10);
+  return sumarDias(desde, (6 - new Date(`${desde}T12:00:00Z`).getUTCDay() + 7) % 7);
 }
 
 export function mesISO(fecha = hoyISO()) {
   return fecha.slice(0, 7) + '-01';
 }
+
+// Primer día del mes `n` meses después de `mes` (antes, con n negativo): sumarMeses('2026-01-01', -1) → '2025-12-01'.
+export function sumarMeses(mes, n) {
+  const [a, m] = mes.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1 + n, 1)).toISOString().slice(0, 10);
+}
+
+// Suma de un valor de cada elemento: sumar(ventas, (v) => v.total). Lo que no es número cuenta 0.
+export const sumar = (lista, valorDe = (x) => x) => lista.reduce((total, x) => total + (Number(valorDe(x)) || 0), 0);
 
 const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
@@ -184,6 +198,9 @@ export function stepper(valor, alCambiar, { min = 0, max = Infinity, paso = 1, f
   mas.disabled = valor >= max;
   return h('div', { class: 'stepper' }, menos, salida, mas);
 }
+
+// Campo para un monto en pesos (acepta coma decimal en el celular).
+export const campoPesos = (attrs) => h('input', { type: 'number', inputmode: 'decimal', min: 0, step: '0.01', ...attrs });
 
 export function campo(etiqueta, control, ayuda) {
   return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), control,

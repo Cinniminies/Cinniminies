@@ -1,5 +1,6 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, campo, pesos, numero, fechaCorta, toast, conBoton, linkWhatsapp, normalizar } from '../util.js';
+import { h, vaciar, campo, pesos, numero, fechaCorta, toast, conBoton, linkWhatsapp, normalizar, plural } from '../util.js';
+import { filaLista, pastilla, monto } from '../componentes.js';
 import { clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { irA } from '../app.js';
 import { campanaVigente, codigoDe, bonoDe, diaMes, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
@@ -16,12 +17,12 @@ async function lista(cont) {
   const dibujar = () => {
     const t = normalizar(busqueda.trim());
     const visibles = t ? todos.filter((c) => normalizar(c.nombre).includes(t) || normalizar(c.contacto).includes(t)) : todos;
-    vaciar(resultados, visibles.map((c) => h('li', {}, h('a', { class: 'fila', href: `#/clientes/${c.id}` },
-      h('div', { class: 'princ' },
-        h('div', { class: 't1' }, c.nombre),
-        h('div', { class: 't2' }, [c.origen, `${c.compras} ${c.compras === 1 ? 'compra' : 'compras'}`,
-          c.ultima_compra ? `última ${fechaCorta(c.ultima_compra)}` : null].filter(Boolean).join(' · '))),
-      h('span', { class: 'monto' }, pesos(c.total_comprado))))));
+    vaciar(resultados, visibles.map((c) => filaLista({
+      href: `#/clientes/${c.id}`,
+      titulo: c.nombre,
+      detalle: [c.origen, plural(c.compras, 'compra'), c.ultima_compra ? `última ${fechaCorta(c.ultima_compra)}` : null],
+      derecha: monto(pesos(c.total_comprado)),
+    })));
   };
   vaciar(cont,
     campo('Buscar', h('input', { type: 'search', value: busqueda, placeholder: 'Nombre o contacto', oninput: (e) => { busqueda = e.target.value; dibujar(); } })),
@@ -84,8 +85,8 @@ async function ficha(cont, id) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      h('h1', { style: 'margin-top:0' }, c.nombre),
-      h('p', { class: 'ayuda' }, `${c.compras} ${c.compras === 1 ? 'compra' : 'compras'} · ${pesos(c.total_comprado)}`,
+      h('h1', {}, c.nombre),
+      h('p', { class: 'ayuda' }, `${plural(c.compras, 'compra')} · ${pesos(c.total_comprado)}`,
         c.ultima_compra ? ` · última ${fechaCorta(c.ultima_compra)}` : '',
         wa ? [' · ', h('a', { href: wa, target: '_blank', rel: 'noopener' }, 'WhatsApp')] : null),
       campo('Nombre', entrada('nombre')),
@@ -103,19 +104,21 @@ async function ficha(cont, id) {
         : 'No hay una campaña en curso.'),
       bono ? h('p', { class: 'ayuda' },
         `Incluye ${numero(bono.porcentaje, 0)} % por su primera Box de 12 de la web (desde el ${diaMes(bono.desde)}, vale hasta el ${diaMes(bono.hasta)}).`) : null,
-      recomendo.length ? h('ul', { class: 'lista' }, recomendo.map((r) => h('li', {}, h('div', { class: 'fila' },
-        h('div', { class: 'princ' }, h('div', { class: 't1' }, r.recomendado || r.nombre_pedido),
-          h('div', { class: 't2' }, [fechaCorta(r.creado_en.slice(0, 10)), r.motivo].filter(Boolean).join(' · '))),
-        h('span', { class: `badge ${CLASE_RECOMENDACION[r.estado]}` }, ESTADO_RECOMENDACION[r.estado])))))
+      recomendo.length ? h('ul', { class: 'lista' }, recomendo.map((r) => filaLista({
+        titulo: r.recomendado || r.nombre_pedido,
+        detalle: [fechaCorta(r.creado_en), r.motivo],
+        derecha: pastilla(CLASE_RECOMENDACION[r.estado], ESTADO_RECOMENDACION[r.estado]),
+      })))
         : h('p', { class: 'ayuda' }, 'Todavía no recomendó a nadie.')) : null,
 
     h('h2', {}, 'Compras'),
     ventas.length
-      ? h('ul', { class: 'lista' }, ventas.map((v) => h('li', {}, h('a', { class: 'fila', href: `#/ventas/${v.id}` },
-        h('div', { class: 'princ' }, h('div', { class: 't1' }, v.formatos || 'Venta',
-          v.estado_pago === 'pendiente' ? [' ', h('span', { class: 'badge pendiente' }, 'Pendiente')] : null),
-        h('div', { class: 't2' }, fechaCorta(v.fecha))),
-        h('span', { class: 'monto' }, pesos(v.total))))))
+      ? h('ul', { class: 'lista' }, ventas.map((v) => filaLista({
+        href: `#/ventas/${v.id}`,
+        titulo: [v.formatos || 'Venta', v.estado_pago === 'pendiente' ? pastilla('pendiente', 'Pendiente') : null],
+        detalle: fechaCorta(v.fecha),
+        derecha: monto(pesos(v.total)),
+      })))
       : h('p', { class: 'vacio' }, 'Sin compras.'),
 
     h('details', { class: 'plegable' },

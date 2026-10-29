@@ -1,10 +1,10 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, stepper, campo, numero, cantidad, plural, fechaCorta, hoyISO, proximoSabado, toast, conBoton, debounce,
+  h, vaciar, chips, stepper, campo, numero, cantidad, plural, fechaCorta, hoyISO, proximoSabado, toast, conBoton, debounce, sumar,
 } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
-import { subnavProduccion } from '../componentes.js';
+import { subnavProduccion, pastilla } from '../componentes.js';
 import { cargarPlan } from './comprar.js';
 import { cronograma, duracion, horaMas, tiemposDe, TIEMPOS_DEFECTO } from '../tiempos.js';
 
@@ -100,7 +100,7 @@ export async function mostrar(cont) {
         h('div', { class: 'princ' },
           t.sabores.length === 1
             ? h('div', { class: 't1' }, `${t.cantidad} × ${t.sabores[0].nombre}`)
-            : h('div', { class: 't1' }, 'Tanda mezclada ', h('span', { class: 'badge neutro' }, 'una masa')),
+            : h('div', { class: 't1' }, 'Tanda mezclada ', pastilla('neutro', 'una masa')),
           h('div', { class: 't2' }, t.sabores.length === 1
             ? `${t.rolls} rolls`
             : t.sabores.map((s) => `${s.nombre} ${s.rolls}`).join(' · ')))),
@@ -130,7 +130,7 @@ export async function mostrar(cont) {
             h('td', { class: 'num-der' }, cantidad(c.necesario, c.unidad)),
             h('td', { class: 'num-der' }, cantidad(c.stock, c.unidad)),
             h('td', { class: 'num-der' }, Number(c.faltante) > 0
-              ? h('span', { class: 'badge alerta' }, cantidad(c.faltante, c.unidad)) : '—')))),
+              ? pastilla('alerta', cantidad(c.faltante, c.unidad)) : '—')))),
         h('p', { class: 'ayuda' }, 'Las cajas que eligieron en cada pedido. "Tenés" es el stock teórico, contando como disponibles '
           + 'las cajas de los pedidos que todavía no se hicieron.'),
       ] : null,
@@ -164,7 +164,7 @@ export async function mostrar(cont) {
       h('div', { class: 'leyenda' }, partes.map((p) => h('span', { style: `--c:${p.color}` }, h('i'), `${p.nombre} · ${p.rolls} rolls`))),
       h('ul', { class: 'pesar' }, lista.map((f) => {
         const u = f.insumo.unidad_base;
-        const total = Object.values(f.por).reduce((a, b) => a + b, 0);
+        const total = sumar(Object.values(f.por));
         const aportes = partes.filter((p) => f.por[p.sabor_id]);
         return h('li', {},
           h('div', { class: 'pesar-cab' }, h('span', {}, f.insumo.nombre), h('strong', {}, redondo(total, u))),
@@ -250,9 +250,9 @@ export async function mostrar(cont) {
         onchange: (e) => { if (e.target.checked) estado.excluidas.delete(v.id); else estado.excluidas.add(v.id); calcular(); },
       }),
       h('span', {}, h('strong', {}, v.cliente || 'Sin cliente'), ` · ${fechaCorta(v.fecha)} `,
-        h('span', { class: 'badge ' + (v.estado_pago === 'pagado' ? 'ok' : 'pendiente') },
+        pastilla(v.estado_pago === 'pagado' ? 'ok' : 'pendiente',
           v.estado_pago === 'pagado' ? 'Cobrado' : 'Sin cobrar'),
-        sinGlaseadoPorVenta[v.id] ? [' ', h('span', { class: 'badge alerta' }, `${sinGlaseadoPorVenta[v.id]} sin glaseado`)] : null,
+        sinGlaseadoPorVenta[v.id] ? [' ', pastilla('alerta', `${sinGlaseadoPorVenta[v.id]} sin glaseado`)] : null,
         h('small', {}, `${v.sabores || ''} · `, h('a', { href: `#/ventas/${v.id}` }, 'ver venta'))))))
     : h('p', { class: 'vacio', style: 'padding:0' }, 'No hay ventas por hacer. Al cargar una venta, elegí "Por hacer"; '
       + 'los pedidos web confirmados entran solos.');

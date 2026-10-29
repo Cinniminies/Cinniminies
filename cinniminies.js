@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }, { threshold: 0.25 });
-  revealEls.forEach(el => revealObserver.observe(el));
+  revealEls.forEach(nodo => revealObserver.observe(nodo));
 
   /* ---------- Listener de scroll unificado (rAF throttle) ---------- */
   let ticking = false;
@@ -182,25 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!activeBtn) return 6;
     const qty = activeBtn.dataset.qty;
     return qty === 'custom' ? 'custom' : Number(qty);
-  }
-
-  function addToCart(flavorId, flavorName) {
-    let box = currentBox();
-    const selectedSize = getSelectedBoxSize();
-
-    // si no hay caja abierta, o la caja abierta es de otro tamaño que el
-    // que está seleccionado ahora, arrancamos una caja nueva
-    if (!box || box.size !== selectedSize) {
-      box = { size: selectedSize, flavors: {} };
-      cart.push(box);
-    }
-
-    box.flavors[flavorId] = (box.flavors[flavorId] || 0) + 1;
-    box._flavorNames = box._flavorNames || {};
-    box._flavorNames[flavorId] = flavorName;
-
-    renderCart();
-    return box;
   }
 
   function removeFlavorFromBox(boxIndex, flavorId) {
@@ -478,14 +459,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateFlavorPrices() {
     const isCustom = getSelectedBoxSize() === 'custom';
-    document.querySelectorAll('[data-flavor-price]').forEach(el => {
-      const flavorId = el.dataset.flavorPrice;
+    document.querySelectorAll('[data-flavor-price]').forEach(nodo => {
+      const flavorId = nodo.dataset.flavorPrice;
       const price = CUSTOM_FLAVOR_PRICES[flavorId];
       const sinPrecio = isCustom && price == null;
-      if (!isCustom) el.textContent = 'Precio: Incluido en la caja';
-      else el.textContent = sinPrecio ? 'No disponible en caja personalizada' : `Precio: $${price} c/u`;
+      if (!isCustom) nodo.textContent = 'Precio: Incluido en la caja';
+      else nodo.textContent = sinPrecio ? 'No disponible en caja personalizada' : `Precio: $${price} c/u`;
       // un sabor sin precio por unidad no se puede sumar a una caja personalizada
-      const add = el.closest('.roll-card')?.querySelector('.roll-add');
+      const add = nodo.closest('.roll-card')?.querySelector('.roll-add');
       if (add) add.disabled = sinPrecio;
     });
   }
@@ -647,13 +628,13 @@ document.addEventListener('DOMContentLoaded', () => {
     textosWeb = c;
     document.dispatchEvent(new Event('textos-web')); // lo que se arma con textoWeb() se vuelve a pintar
     const valor = (clave) => (typeof c[clave] === 'string' ? c[clave] : null);
-    document.querySelectorAll('[data-contenido]').forEach(el => {
-      const v = valor(el.dataset.contenido);
-      if (v !== null) el.innerHTML = marcado(v);
+    document.querySelectorAll('[data-contenido]').forEach(nodo => {
+      const v = valor(nodo.dataset.contenido);
+      if (v !== null) nodo.innerHTML = marcado(v);
     });
-    document.querySelectorAll('[data-contenido-placeholder]').forEach(el => {
-      const v = valor(el.dataset.contenidoPlaceholder);
-      if (v !== null) el.placeholder = v;
+    document.querySelectorAll('[data-contenido-placeholder]').forEach(nodo => {
+      const v = valor(nodo.dataset.contenidoPlaceholder);
+      if (v !== null) nodo.placeholder = v;
     });
     document.querySelectorAll('[data-contenido-img]').forEach(img => {
       const v = valor(img.dataset.contenidoImg);
@@ -673,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ig = valor('contacto.instagram');
     if (ig && /^[\w.]{1,30}$/.test(ig)) {
       document.querySelectorAll('[data-contenido-instagram]').forEach(a => { a.href = `https://instagram.com/${ig}`; });
-      document.querySelectorAll('[data-contenido-instagram-texto]').forEach(el => { el.textContent = `@${ig}`; });
+      document.querySelectorAll('[data-contenido-instagram-texto]').forEach(nodo => { nodo.textContent = `@${ig}`; });
     }
   }
 

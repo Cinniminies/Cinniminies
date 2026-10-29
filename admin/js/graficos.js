@@ -1,8 +1,8 @@
-import { h } from './util.js';
+import { h, plural, sumar } from './util.js';
 
-// Gráficos simples en HTML (sin librerías). Reglas: marcas finas con punta redondeada, un solo
-// color de acento (el resto en gris de contexto), etiquetas selectivas en color de texto, detalle
-// al tocar o con el teclado, y siempre una tabla con los mismos datos.
+// Gráficos en HTML y SVG (sin librerías), cada uno para un tipo de dato. Reglas: marcas finas con punta
+// redondeada, acento para lo que importa y gris de contexto (colores de --serie-* para identidades),
+// etiquetas selectivas en color de texto, detalle al tocar o con el teclado, y una tabla con los mismos datos.
 
 // Variación contra el período anterior: "▲ 12 % vs agosto" (verde si sube algo bueno).
 export function variacion(actual, anterior, contra, { masEsMejor = true } = {}) {
@@ -82,12 +82,8 @@ export function linea(datos, { formato, titulo, columnasTabla }) {
     }),
     ...rotulos);
 
-  const tabla = h('details', { class: 'graf-tabla' }, h('summary', {}, 'Ver los números'),
-    h('table', { class: 'tabla' },
-      h('tr', {}, columnasTabla.map((c, i) => h('th', { class: i ? 'num-der' : null }, c[0]))),
-      [...datos].reverse().map((d) => h('tr', {}, columnasTabla.map((c, i) => h('td', { class: i ? 'num-der' : null }, c[1](d)))))));
-
-  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), svg, detalle, tabla);
+  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), svg, detalle,
+    tablaNumeros([...datos].reverse(), columnasTabla));
   queueMicrotask(() => mostrar(datos.length - 1));
   return fig;
 }
@@ -100,9 +96,14 @@ function tablaNumeros(datos, columnasTabla) {
       datos.map((d) => h('tr', {}, columnasTabla.map((c, i) => h('td', { class: i ? 'num-der' : null }, c[1](d)))))));
 }
 
+// Gráfico sin datos: el título y un aviso en lugar de la marca.
+function sinDatos(titulo, vacio) {
+  return h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'ayuda' }, vacio));
+}
+
 // Leyenda: [{ nombre, color }]. Va siempre que haya dos series o más.
 function leyenda(series) {
-  return h('div', { class: 'leyenda' }, series.map((s) => h('span', {}, h('i', { style: `--c:${s.color}` }), s.nombre)));
+  return h('div', { class: 'leyenda' }, series.map((serie) => h('span', {}, h('i', { style: `--c:${serie.color}` }), serie.nombre)));
 }
 
 // Áreas en el tiempo: dos montos que van uno dentro del otro (p. ej. vendido y, adentro, la ganancia), mes a mes.
@@ -111,7 +112,9 @@ function leyenda(series) {
 export function areas(datos, { series, formato, titulo, columnasTabla, alElegir, ayudaElegir }) {
   const W = 340, H = 180, IZQ = 12, DER = 12, ARR = 26, ABA = 26;
   const n = datos.length;
-  const max = Math.max(1, ...datos.flatMap((d) => series.map((s) => Number(d.valores[s.clave]) || 0)));
+  const valor = (d, serie) => Number(d.valores[serie.clave]) || 0;
+  const nombreDe = (d) => d.etiquetaLarga || d.etiqueta;
+  const max = Math.max(1, ...datos.flatMap((d) => series.map((serie) => valor(d, serie))));
   const paso = (W - IZQ - DER) / Math.max(1, n - 1);
   const px = (i) => IZQ + i * paso;
   const py = (v) => ARR + (1 - Math.max(0, v) / max) * (H - ARR - ABA);
@@ -119,32 +122,32 @@ export function areas(datos, { series, formato, titulo, columnasTabla, alElegir,
 
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
   const guia = s('line', { class: 'graf-guia', y1: ARR - 6, y2: base, x1: -10, x2: -10 });
-  const puntos = series.map((se) => datos.map((d, i) => s('circle', {
-    class: 'graf-marca', cx: px(i), cy: py(Number(d.valores[se.clave]) || 0), r: 4, style: `fill:${se.color}`, opacity: 0,
+  const marcasMes = series.map((serie) => datos.map((d, i) => s('circle', {
+    class: 'graf-marca', cx: px(i), cy: py(valor(d, serie)), r: 4, style: `fill:${serie.color}`, opacity: 0,
   })));
   const etiquetas = [];
   const franjas = [];
   const mostrar = (i) => {
     const d = datos[i];
-    detalle.replaceChildren(h('span', {}, d.etiquetaLarga || d.etiqueta),
-      ...series.map((se) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${se.color}` }),
-        `${se.nombre}: `, h('strong', {}, formato(Number(d.valores[se.clave]) || 0)))));
+    detalle.replaceChildren(h('span', {}, nombreDe(d)),
+      ...series.map((serie) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${serie.color}` }),
+        `${serie.nombre}: `, h('strong', {}, formato(valor(d, serie))))));
     guia.setAttribute('x1', px(i)); guia.setAttribute('x2', px(i));
-    puntos.forEach((fila) => fila.forEach((p, j) => p.setAttribute('opacity', i === j ? 1 : 0)));
+    marcasMes.forEach((fila) => fila.forEach((p, j) => p.setAttribute('opacity', i === j ? 1 : 0)));
     etiquetas.forEach((t, j) => t.classList.toggle('activa', i === j));
     franjas.forEach((f, j) => f.classList.toggle('activa', i === j));
   };
 
-  const capas = series.map((se) => {
-    const pts = datos.map((d, i) => `${px(i)},${py(Number(d.valores[se.clave]) || 0)}`);
+  const capas = series.map((serie) => {
+    const trazo = datos.map((d, i) => `${px(i)},${py(valor(d, serie))}`).join(' ');
     return [
-      s('polygon', { class: 'graf-relleno', points: `${px(0)},${base} ${pts.join(' ')} ${px(n - 1)},${base}`, style: `fill:${se.color}` }),
-      s('polyline', { class: 'graf-trazo', points: pts.join(' '), style: `stroke:${se.color}` }),
+      s('polygon', { class: 'graf-relleno', points: `${px(0)},${base} ${trazo} ${px(n - 1)},${base}`, style: `fill:${serie.color}` }),
+      s('polyline', { class: 'graf-trazo', points: trazo, style: `stroke:${serie.color}` }),
     ];
   });
   const svg = s('svg', { class: 'graf-linea graf-areas', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
     s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: base, y2: base }),
-    ...capas.flat(), guia, ...puntos.flat(),
+    ...capas.flat(), guia, ...marcasMes.flat(),
     ...datos.map((d, i) => {
       const t = s('text', { class: 'graf-eje' + (d.destacado ? ' destacado' : ''), x: px(i), y: H - 6,
         'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' }, d.etiqueta);
@@ -153,23 +156,27 @@ export function areas(datos, { series, formato, titulo, columnasTabla, alElegir,
     }),
     // Franjas invisibles a lo alto: el blanco del toque es todo el mes, no el punto.
     ...datos.map((d, i) => {
+      const montos = series.map((serie) => `${serie.nombre} ${formato(valor(d, serie))}`).join(', ');
       const f = s('rect', { class: 'graf-franja', x: px(i) - paso / 2, y: 0, width: paso, height: H, tabindex: '0', role: 'button',
-        'aria-label': `${d.etiquetaLarga || d.etiqueta}: ${series.map((se) => `${se.nombre} ${formato(Number(d.valores[se.clave]) || 0)}`).join(', ')}`,
-        'aria-pressed': alElegir ? String(Boolean(d.destacado)) : null });
+        'aria-label': `${nombreDe(d)}: ${montos}`, 'aria-pressed': alElegir ? String(Boolean(d.destacado)) : null });
       f.addEventListener('pointerenter', () => mostrar(i));
       f.addEventListener('focus', () => mostrar(i));
       f.addEventListener('click', alElegir ? () => alElegir(d) : () => mostrar(i));
-      f.addEventListener('keydown', (e) => { if (alElegir && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); alElegir(d); } });
+      f.addEventListener('keydown', (e) => {
+        if (!alElegir || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        alElegir(d);
+      });
       franjas.push(f);
       return f;
     }));
 
-  const iDest = Math.max(0, datos.findIndex((d) => d.destacado));
+  const elegido = Math.max(0, datos.findIndex((d) => d.destacado));
   const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo),
     leyenda(series), svg, detalle,
     alElegir && ayudaElegir ? h('p', { class: 'graf-ayuda' }, ayudaElegir) : null,
     tablaNumeros(datos, columnasTabla));
-  queueMicrotask(() => mostrar(iDest));
+  queueMicrotask(() => mostrar(elegido));
   return fig;
 }
 
@@ -181,16 +188,18 @@ export function partes(datos, { formato, titulo, vacio }) {
   if (lista.length > 7) {
     const chicas = [...lista].sort((a, b) => b.valor - a.valor).slice(6);
     lista = [...lista.filter((d) => !chicas.includes(d)),
-      { etiqueta: 'Otros', valor: chicas.reduce((a, d) => a + d.valor, 0), color: 'var(--graf-gris)' }];
+      { etiqueta: 'Otros', valor: sumar(chicas, (d) => d.valor), color: 'var(--graf-gris)' }];
   }
-  const total = lista.reduce((a, d) => a + d.valor, 0);
+  const total = sumar(lista, (d) => d.valor);
   const pct = (v) => `${Math.round((100 * v) / total)} %`;
-  if (!total) return h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'ayuda' }, vacio));
+  if (!total) return sinDatos(titulo, vacio);
   const mayor = Math.max(...lista.map((d) => d.valor));
   return h('figure', { class: 'grafico' },
     h('figcaption', { class: 'graf-titulo' }, titulo, h('span', { class: 'graf-total' }, ` · ${formato(total)} en total`)),
     h('div', { class: 'graf-partes', role: 'img', 'aria-label': lista.map((d) => `${d.etiqueta} ${pct(d.valor)}`).join(', ') },
-      lista.map((d) => h('span', { style: `flex:${d.valor};--c:${d.color}`, title: `${d.etiqueta}: ${formato(d.valor)} (${pct(d.valor)})` }))),
+      lista.map((d) => h('span', {
+        style: `flex:${d.valor};--c:${d.color}`, title: `${d.etiqueta}: ${formato(d.valor)} (${pct(d.valor)})`,
+      }))),
     h('ul', { class: 'graf-partes-lista' }, lista.map((d) => h('li', { class: d.valor === mayor ? 'mayor' : null },
       h('i', { style: `--c:${d.color}` }), h('span', { class: 'graf-etq' }, d.etiqueta),
       h('span', { class: 'graf-valor' }, formato(d.valor)), h('span', { class: 'graf-pct' }, pct(d.valor))))));
@@ -204,31 +213,33 @@ export function pesas(datos, { formato, titulo, nombres, nota, columnasTabla }) 
   const max = Math.max(1, ...datos.map((d) => d.hasta)) * 1.08;
   const pos = (v) => `${(100 * Math.max(0, v)) / max}%`;
   const ordenadas = [...datos].sort((a, b) => (b.hasta - b.desde) - (a.hasta - a.desde));
+  const notaDe = ({ valor, sub }) => h('span', { class: 'graf-nota' }, h('strong', {}, valor), h('small', {}, sub));
   return h('figure', { class: 'grafico' },
     h('figcaption', { class: 'graf-titulo' }, titulo),
     leyenda([{ nombre: nombres[0], color: 'var(--graf-gris)' }, { nombre: nombres[1], color: 'var(--graf-acento)' }]),
     h('ul', { class: 'graf-pesas' }, ordenadas.map((d) => h('li', {},
       d.href ? h('a', { class: 'graf-etq', href: d.href }, d.etiqueta) : h('span', { class: 'graf-etq' }, d.etiqueta),
-      h('span', { class: 'graf-pesa', role: 'img', 'aria-label': `${d.etiqueta}: ${nombres[0]} ${formato(d.desde)}, ${nombres[1]} ${formato(d.hasta)}` },
+      h('span', { class: 'graf-pesa', role: 'img',
+        'aria-label': `${d.etiqueta}: ${nombres[0]} ${formato(d.desde)}, ${nombres[1]} ${formato(d.hasta)}` },
         h('span', { class: 'graf-tramo', style: `left:${pos(d.desde)};width:calc(${pos(d.hasta)} - ${pos(d.desde)})` }),
         h('span', { class: 'graf-bola desde', style: `left:${pos(d.desde)}` }),
         h('span', { class: 'graf-bola hasta', style: `left:${pos(d.hasta)}` }),
         h('span', { class: 'graf-cifra desde', style: `left:${pos(d.desde)}` }, formato(d.desde)),
         h('span', { class: 'graf-cifra hasta', style: `left:${pos(d.hasta)}` }, formato(d.hasta))),
-      h('span', { class: 'graf-nota' }, h('strong', {}, nota(d).valor), h('small', {}, nota(d).sub))))),
+      notaDe(nota(d))))),
     columnasTabla ? tablaNumeros(ordenadas, columnasTabla) : null);
 }
 
 // Composición al 100 %: en qué se va el precio de cada cosa (p. ej. cada caja: rolls, empaque y lo que queda).
 // grupos: [{ titulo, filas: [{ etiqueta, total, valores: { clave: n } }] }]; partes: [{ clave, nombre, color }],
 // la última es la que se rotula a la derecha con su porcentaje. Tocar una fila muestra sus montos.
-export function composicion(grupos, { partes: ps, formato, titulo, columnasTabla }) {
-  const ultima = ps[ps.length - 1];
+export function composicion(grupos, { partes: piezas, formato, titulo, columnasTabla }) {
+  const ultima = piezas[piezas.length - 1];
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
   const filas = [];
   const mostrar = (f, el) => {
     detalle.replaceChildren(h('span', {}, `${f.etiqueta} · ${formato(f.total)}`),
-      ...ps.map((p) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${p.color}` }),
+      ...piezas.map((p) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${p.color}` }),
         `${p.nombre}: `, h('strong', {}, formato(f.valores[p.clave])))));
     filas.forEach((x) => x.classList.toggle('activa', x === el));
   };
@@ -238,9 +249,9 @@ export function composicion(grupos, { partes: ps, formato, titulo, columnasTabla
     grupos.length > 1 ? h('div', { class: 'graf-subtitulo' }, g.titulo) : null,
     g.filas.map((f) => {
       const el = h('button', { type: 'button', class: 'graf-comp',
-        'aria-label': `${f.etiqueta}: ${ps.map((p) => `${p.nombre} ${formato(f.valores[p.clave])}`).join(', ')}` },
+        'aria-label': `${f.etiqueta}: ${piezas.map((p) => `${p.nombre} ${formato(f.valores[p.clave])}`).join(', ')}` },
       h('span', { class: 'graf-etq' }, f.etiqueta),
-      h('span', { class: 'graf-pila' }, ps.map((p) => h('span', { style: `flex:${pct(f, p.clave)};--c:${p.color}` }))),
+      h('span', { class: 'graf-pila' }, piezas.map((p) => h('span', { style: `flex:${pct(f, p.clave)};--c:${p.color}` }))),
       h('span', { class: 'graf-valor' }, `${Math.round(pct(f, ultima.clave))} %`));
       el.addEventListener('pointerenter', () => mostrar(f, el));
       el.addEventListener('focus', () => mostrar(f, el));
@@ -250,7 +261,7 @@ export function composicion(grupos, { partes: ps, formato, titulo, columnasTabla
       return el;
     })));
   const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo),
-    leyenda(ps), h('div', { class: 'graf-comps' }, cuerpo), detalle,
+    leyenda(piezas), h('div', { class: 'graf-comps' }, cuerpo), detalle,
     columnasTabla ? tablaNumeros(grupos.flatMap((g) => g.filas), columnasTabla) : null);
   if (primera) queueMicrotask(() => mostrar(...primera));
   return fig;
@@ -260,12 +271,12 @@ export function composicion(grupos, { partes: ps, formato, titulo, columnasTabla
 // además de "cuál rinde más en promedio" si es parejo o depende de una sola. grupos: [{ etiqueta, puntos:
 // [{ valor, etiqueta }] }]. Escala desde cero, compartida.
 export function puntos(grupos, { formato, titulo, vacio }) {
-  const con = grupos.filter((g) => g.puntos.length);
-  if (!con.length) return h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'ayuda' }, vacio));
-  const max = Math.max(1, ...con.flatMap((g) => g.puntos.map((p) => p.valor)));
+  const conPuntos = grupos.filter((g) => g.puntos.length);
+  if (!conPuntos.length) return sinDatos(titulo, vacio);
+  const max = Math.max(1, ...conPuntos.flatMap((g) => g.puntos.map((p) => p.valor)));
   const pos = (v) => `${(100 * v) / max}%`;
-  const prom = (g) => g.puntos.reduce((a, p) => a + p.valor, 0) / g.puntos.length;
-  const ordenados = [...con].sort((a, b) => prom(b) - prom(a));
+  const promedio = (g) => sumar(g.puntos, (p) => p.valor) / g.puntos.length;
+  const ordenados = [...conPuntos].sort((a, b) => promedio(b) - promedio(a));
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
   const todos = [];
   const mostrar = (p, g, el) => {
@@ -275,18 +286,19 @@ export function puntos(grupos, { formato, titulo, vacio }) {
   return h('figure', { class: 'grafico' },
     h('figcaption', { class: 'graf-titulo' }, titulo),
     h('ul', { class: 'graf-puntos' }, ordenados.map((g) => h('li', {},
-      h('span', { class: 'graf-etq' }, g.etiqueta, h('small', {}, `${g.puntos.length} ${g.puntos.length === 1 ? 'publicación' : 'publicaciones'}`)),
+      h('span', { class: 'graf-etq' }, g.etiqueta, h('small', {}, plural(g.puntos.length, 'publicación', 'publicaciones'))),
       h('span', { class: 'graf-riel' },
         g.puntos.map((p) => {
-          const el = h('button', { type: 'button', class: 'graf-pto', style: `left:${pos(p.valor)}`, 'aria-label': `${g.etiqueta}, ${p.etiqueta}: ${formato(p.valor)}` });
+          const el = h('button', { type: 'button', class: 'graf-pto', style: `left:${pos(p.valor)}`,
+            'aria-label': `${g.etiqueta}, ${p.etiqueta}: ${formato(p.valor)}` });
           el.addEventListener('pointerenter', () => mostrar(p, g, el));
           el.addEventListener('focus', () => mostrar(p, g, el));
           el.addEventListener('click', () => mostrar(p, g, el));
           todos.push(el);
           return el;
         }),
-        h('span', { class: 'graf-media', style: `left:${pos(prom(g))}`, 'aria-hidden': 'true' })),
-      h('span', { class: 'graf-valor' }, formato(Math.round(prom(g))), h('small', {}, 'promedio'))))),
+        h('span', { class: 'graf-media', style: `left:${pos(promedio(g))}`, 'aria-hidden': 'true' })),
+      h('span', { class: 'graf-valor' }, formato(Math.round(promedio(g))), h('small', {}, 'promedio'))))),
     h('div', { class: 'leyenda' }, h('span', {}, h('i', { class: 'redondo', style: '--c:var(--graf-acento)' }), 'una publicación'),
       h('span', {}, h('i', { class: 'raya', style: '--c:var(--texto)' }), 'promedio')),
     detalle);

@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, stepper, pesos, numero, cantidad, debounce } from '../util.js';
+import { h, vaciar, stepper, pesos, numero, cantidad, debounce, sumar } from '../util.js';
 import { catalogo } from '../catalogo.js';
-import { subnavProduccion } from '../componentes.js';
+import { subnavProduccion, filaLista, monto, pastilla } from '../componentes.js';
 
 // 5.8 "¿Qué compro?": tandas planeadas por sabor → qué falta comprar contra el stock teórico,
 // redondeado a la presentación de la última compra de cada insumo.
@@ -33,16 +33,16 @@ export async function mostrar(cont) {
       const filas = await rpc('que_comprar', { p, p_cajas: cajas });
       if (este !== pedido) return;
       const comprar = filas.filter((f) => Number(f.faltante) > 0);
-      const total = comprar.reduce((a, f) => a + Number(f.costo_estimado), 0);
+      const total = sumar(comprar, (f) => f.costo_estimado);
       vaciar(resultado,
         h('h2', {}, comprar.length ? `Comprar · ${pesos(total)}` : 'Tenés todo'),
-        comprar.length ? h('ul', { class: 'lista' }, comprar.map((f) => h('li', {}, h('div', { class: 'fila' },
-          h('div', { class: 'princ' },
-            h('div', { class: 't1' }, f.insumo),
-            h('div', { class: 't2' }, f.paquetes
-              ? `${f.paquetes} × ${cantidad(f.presentacion, f.unidad)} · faltan ${cantidad(f.faltante, f.unidad)}`
-              : `faltan ${cantidad(f.faltante, f.unidad)} (sin compras anteriores: costo estimado)`)),
-          h('span', { class: 'monto' }, pesos(f.costo_estimado)))))) : null,
+        comprar.length ? h('ul', { class: 'lista' }, comprar.map((f) => filaLista({
+          titulo: f.insumo,
+          detalle: f.paquetes
+            ? [`${f.paquetes} × ${cantidad(f.presentacion, f.unidad)}`, `faltan ${cantidad(f.faltante, f.unidad)}`]
+            : `faltan ${cantidad(f.faltante, f.unidad)} (sin compras anteriores: costo estimado)`,
+          derecha: monto(pesos(f.costo_estimado)),
+        }))) : null,
         h('h2', {}, 'Detalle'),
         h('table', { class: 'tabla card' },
           h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Necesitás'), h('th', { class: 'num-der' }, 'Tenés'),
@@ -51,7 +51,7 @@ export async function mostrar(cont) {
             h('td', { class: 'num-der' }, cantidad(f.necesario, f.unidad)),
             h('td', { class: 'num-der' }, cantidad(f.stock, f.unidad)),
             h('td', { class: 'num-der' }, Number(f.faltante) > 0
-              ? h('span', { class: 'badge alerta' }, cantidad(f.faltante, f.unidad)) : '—')))),
+              ? pastilla('alerta', cantidad(f.faltante, f.unidad)) : '—')))),
         h('p', { class: 'ayuda' }, '"Tenés" es el stock teórico (las cajas de los pedidos por hacer cuentan como disponibles). '
           + 'Si hace mucho que no cuentan, cargá un conteo en Stock.'));
     } catch (e) {

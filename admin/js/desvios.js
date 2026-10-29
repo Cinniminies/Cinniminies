@@ -2,6 +2,8 @@
 // Por insumo compara lo que dicen las recetas y las cajas ("según recetas") con lo que se usó de verdad
 // ("real" = según recetas + lo que faltó en los conteos). Viene de v_desvio_insumo.
 
+import { sumar } from './util.js';
+
 export const REVISAR = 0.1; // a partir de ±10 % vale la pena mirar el insumo
 export const CONFIABLE = 2; // conteos comparados para que el % no sea casualidad
 
@@ -28,8 +30,8 @@ export function filas(porInsumo) {
 // Plata que se fue de más (faltó) y que sobró, e insumos para revisar.
 export function resumen(lista) {
   return {
-    deMas: lista.filter((f) => f.valor > 0).reduce((a, f) => a + f.valor, 0),
-    sobro: lista.filter((f) => f.valor < 0).reduce((a, f) => a - f.valor, 0),
+    deMas: sumar(lista.filter((f) => f.valor > 0), (f) => f.valor),
+    sobro: -sumar(lista.filter((f) => f.valor < 0), (f) => f.valor),
     revisar: lista.filter((f) => f.confiable && f.rel != null && Math.abs(f.rel) >= REVISAR).length,
   };
 }
@@ -108,7 +110,7 @@ export function propuesta(recetas, porInsumo, elegidos, costos = {}) {
     });
   }
   return [...sabores.values()].map((s) => {
-    const costo = (campo) => s.items.reduce((a, i) => a + i[campo] * (Number(costos[i.insumo_id]) || 0), 0);
+    const costo = (campo) => sumar(s.items, (i) => i[campo] * (Number(costos[i.insumo_id]) || 0));
     s.items.sort((a, b) => Number(b.propuesta !== b.receta) - Number(a.propuesta !== a.receta) || a.nombre.localeCompare(b.nombre));
     return { ...s, costoAntes: costo('receta'), costoDespues: costo('propuesta') };
   }).sort((a, b) => a.sabor.localeCompare(b.sabor));

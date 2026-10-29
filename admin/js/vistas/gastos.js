@@ -1,5 +1,5 @@
 import { sb, q } from '../db.js';
-import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, toast, conBoton, ETIQUETAS, opciones } from '../util.js';
+import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, toast, conBoton, ETIQUETAS, opciones, campoPesos } from '../util.js';
 import { irA, refrescarSi } from '../app.js';
 import { libroCaja } from '../componentes.js';
 
@@ -79,7 +79,7 @@ export async function mostrar(cont, { id } = {}) {
       contTipo,
       ayuda,
       campo('Descripción', h('input', { oninput: (e) => { f.descripcion = e.target.value; } })),
-      campo('Monto', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: '0.01', oninput: (e) => { f.monto = e.target.value; } })),
+      campo('Monto', campoPesos({ oninput: (e) => { f.monto = e.target.value; } })),
       campoRolls,
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),
       guardar),

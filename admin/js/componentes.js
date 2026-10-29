@@ -1,4 +1,4 @@
-import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, fechaCorta, hoyISO, proximoSabado, conBoton } from './util.js';
+import { h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, fechaCorta, hoyISO, proximoSabado, conBoton, sumar, campoPesos, grupo } from './util.js';
 import { PRODUCCION } from './app.js';
 import { textoPanel } from './textos.js';
 
@@ -71,7 +71,7 @@ export function editorLineas(cat, lineas, alCambiar) {
 
   function dibujarLinea(l, i) {
     const f = cat.formato(l.formato_id);
-    const total = Object.values(l.sabores).reduce((a, b) => a + b, 0);
+    const total = sumar(Object.values(l.sabores));
     const objetivo = f?.tipo === 'caja_fija' ? f.rolls * l.cantidad : null;
     const tope = f?.tipo === 'caja_fija' ? objetivo : f?.tipo === 'personalizado' ? (f.max_rolls ?? Infinity) : Infinity;
 
@@ -197,7 +197,7 @@ export function seccionPrecios(filas, alGuardar, alBorrar, { sinPrecio = 'Sin pr
   const pasadas = ordenadas.filter((f) => f.vigente_desde <= hoy);
   const [actual, ...anteriores] = pasadas;
 
-  const precio = h('input', { type: 'number', inputmode: 'decimal', min: 0, step: '0.01', placeholder: '$' });
+  const precio = campoPesos({ placeholder: '$' });
   const desde = h('input', { type: 'date', value: hoy });
   const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar precio');
   guardar.onclick = () => conBoton(guardar, async () => {
@@ -215,7 +215,7 @@ export function seccionPrecios(filas, alGuardar, alBorrar, { sinPrecio = 'Sin pr
         if (confirm(`¿Borrar el precio de ${pesos(f.precio)} programado para el ${fechaLarga(f.vigente_desde)}?`)) await alBorrar(f.id);
       });
       return h('div', { class: 'stepper-fila' },
-        h('div', { class: 'nombre' }, h('span', { class: 'badge neutro' }, 'Programado'), ` ${pesos(f.precio)} desde el ${fechaLarga(f.vigente_desde)}`),
+        h('div', { class: 'nombre' }, pastilla('neutro', 'Programado'), ` ${pesos(f.precio)} desde el ${fechaLarga(f.vigente_desde)}`),
         borrar);
     }),
     anteriores.length
@@ -237,6 +237,36 @@ export function subnavProduccion(actual) {
 }
 
 // "Semana del sábado 31/10": la semana de pedidos (domingo a sábado) se nombra por su sábado de entrega.
+// Las partes que no están vacías, con `separador` entre una y otra (sirve para textos y elementos).
+const intercalar = (partes, separador) => [partes].flat()
+  .filter((p) => p != null && p !== false && p !== '')
+  .flatMap((p, i) => (i ? [separador, p] : [p]));
+
+// Fila de una lista: el título (con sus etiquetas), el detalle y, a la derecha, un monto, una etiqueta o
+// botones. Título y detalle pueden ser listas: se saltean las partes vacías y el detalle se une con " · ".
+// Con `href` la fila es un link y, si no hay nada a la derecha, lleva la flecha.
+export function filaLista({ href, titulo, detalle, derecha }) {
+  const sub = intercalar(detalle, ' · ');
+  return h('li', {}, h(href ? 'a' : 'div', { class: 'fila', href },
+    h('div', { class: 'princ' }, h('div', { class: 't1' }, intercalar(titulo, ' ')), sub.length ? h('div', { class: 't2' }, sub) : null),
+    derecha ?? (href ? h('span', { class: 'chev', 'aria-hidden': 'true' }, '›') : null)));
+}
+
+// Etiqueta de estado ("Pendiente", "Inactivo"…). clase: ok, neutro, pendiente, alerta.
+export const pastilla = (clase, texto) => h('span', { class: `badge ${clase}` }, texto);
+
+// Un monto a la derecha de una fila.
+export const monto = (texto) => h('span', { class: 'monto' }, texto);
+
+// Chips para elegir la unidad de un insumo (g o kg, ml o L…). Si hay una sola opción no muestra nada.
+export function chipsUnidad(lista, valor, alCambiar) {
+  return lista.length > 1 ? grupo('Unidad', chips(lista.map((u) => ({ valor: u, texto: u })), valor, alCambiar)) : null;
+}
+
+// Tarjeta de un número: etiqueta, valor grande, aclaración y, si hay, la variación contra el período anterior.
+export const stat = (etiqueta, valor, sub, delta) => h('div', { class: 'stat' },
+  h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), sub ? h('div', { class: 'sub' }, sub) : null, delta);
+
 export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del sábado {fecha}', { fecha: fechaCorta(sabado).slice(4) });
 
 // Libro de caja (Compras, Gastos): los movimientos agrupados por semana de pedidos, con lo que salió y entró
@@ -253,7 +283,7 @@ export function libroCaja(filas, vacio, { cortada = false } = {}) {
   }
   return h('div', { class: 'libro' }, [...semanas].map(([sabado, deSemana], i) => {
     const sinTotal = cortada && i === semanas.size - 1;
-    const suma = (entra) => deSemana.filter((f) => !!f.entra === entra).reduce((a, f) => a + Number(f.monto), 0);
+    const suma = (entra) => sumar(deSemana.filter((f) => !!f.entra === entra), (f) => f.monto);
     const salio = suma(false);
     const entro = suma(true);
     return h('section', { class: 'libro-semana' },

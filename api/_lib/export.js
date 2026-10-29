@@ -6,7 +6,7 @@
 // para dar formato (fechas, $), así agregar una columna no obliga a tocar el script.
 
 const crypto = require('node:crypto');
-const { configuracion, encabezados, responderJson } = require('./supabase.js');
+const { configuracion, encabezados, responderJson, metodoPermitido } = require('./supabase.js');
 
 // Tipos: texto, fecha (AAAA-MM-DD), mes (primer día del mes), fechahora (ISO),
 // dinero, numero, bool.
@@ -198,11 +198,7 @@ function aCsv(tabla) {
 // Controles comunes a los dos endpoints. Devuelve la configuración o responde el error.
 function autorizar(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
-    responderJson(res, 405, { error: 'Solo GET' });
-    return null;
-  }
+  if (!metodoPermitido(req, res, ['GET'])) return null;
   const esperada = process.env.EXPORT_KEY;
   const { url, clave } = configuracion();
   if (!esperada || !url || !clave) {

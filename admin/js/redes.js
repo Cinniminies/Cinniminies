@@ -1,6 +1,6 @@
 // Análisis de Instagram para /admin → Redes (funciones puras, con pruebas en tests/redes.test.mjs).
 // Las publicaciones vienen de ig_publicaciones; la cuenta por día, de ig_cuenta_dia.
-import { normalizar } from './util.js';
+import { normalizar, sumarDias } from './util.js';
 
 const ZONA = 'America/Montevideo';
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -61,10 +61,8 @@ export function tendencia(dias) {
   const ultimo = orden[orden.length - 1];
   if (!ultimo) return null;
   const hace = (n) => {
-    const limite = new Date(`${ultimo.fecha}T12:00:00Z`);
-    limite.setUTCDate(limite.getUTCDate() - n);
-    const l = limite.toISOString().slice(0, 10);
-    const previo = orden.filter((d) => d.fecha <= l).pop();
+    const limite = sumarDias(ultimo.fecha, -n);
+    const previo = orden.filter((d) => d.fecha <= limite).pop();
     return previo ? ultimo.seguidores - previo.seguidores : null;
   };
   return { seguidores: ultimo.seguidores, fecha: ultimo.fecha, semana: hace(7), mes: hace(30) };

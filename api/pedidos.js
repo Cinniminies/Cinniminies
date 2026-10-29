@@ -1,6 +1,6 @@
 // POST /api/pedidos → guarda un pedido de la web (estado "nuevo") y devuelve { codigo, total, cajas }.
 // Lo llama cinniminies.js antes de mandar el mail y el WhatsApp. Si falla, la web sigue como antes.
-const { configuracion, modoPrueba, responderJson } = require('./_lib/supabase.js');
+const { configuracionLista, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson } = require('./_lib/supabase.js');
 const { MAX_CUERPO, hashIp, armarPedido, guardarPedido, ErrorPedido } = require('./_lib/pedidos.js');
 const { configuracionPush, avisarPedidoNuevo } = require('./_lib/push.js');
 
@@ -19,37 +19,15 @@ function avisar(pedido, guardado, conf) {
   try { require('@vercel/functions').waitUntil(tarea); } catch { /* fuera de Vercel la tarea sigue sola */ }
 }
 
-// Vercel ya parsea el JSON en req.body; en otros entornos se lee a mano.
-async function leerCuerpo(req) {
-  if (req.body !== undefined) {
-    const texto = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    if (texto.length > MAX_CUERPO) throw new ErrorPedido('Pedido demasiado grande');
-    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  }
-  let texto = '';
-  for await (const parte of req) {
-    texto += parte;
-    if (texto.length > MAX_CUERPO) throw new ErrorPedido('Pedido demasiado grande');
-  }
-  return JSON.parse(texto || 'null');
-}
-
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    responderJson(res, 405, { error: 'Solo POST' });
-    return;
-  }
-  const conf = configuracion();
-  if (!conf.clave) {
-    responderJson(res, 500, { error: 'Falta SUPABASE_SERVICE_ROLE_KEY en Vercel' });
-    return;
-  }
+  if (!metodoPermitido(req, res, ['POST'])) return;
+  const conf = configuracionLista(res);
+  if (!conf) return;
   try {
     let cuerpo;
     try {
-      cuerpo = await leerCuerpo(req);
+      cuerpo = await leerCuerpoJson(req, { maximo: MAX_CUERPO, muyGrande: () => new ErrorPedido('Pedido demasiado grande') });
     } catch (e) {
       throw e instanceof ErrorPedido ? e : new ErrorPedido('Pedido inválido');
     }

@@ -25,7 +25,7 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/componentes.js` | Selector de cliente con autocompletar y editor de productos (formatos + sabores + caja). |
 | `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), chips, steppers y avisos. |
 | `js/iconos.js` | Íconos de línea (un solo estilo para pestañas, menú y accesos). |
-| `js/graficos.js` | Columnas y barras en HTML, sin librerías: acento para lo que importa y gris de contexto (colores validados para daltonismo en los dos temas), detalle al tocar o con teclado y tabla con los números. |
+| `js/graficos.js` | Gráficos sin librerías, uno por tipo de dato: `linea` (en el tiempo), `areas` (dos montos anidados por mes), `partes` (parte de un total), `pesas` (dos valores por fila), `composicion` (100 % por fila) y `puntos` (cada caso por grupo). Colores validados para daltonismo en los dos temas, detalle al tocar o con teclado y tabla con los números. |
 | `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Catálogo (etapa 3): catalogo, sabores, insumos, formatos, precios. Stock: stock (con conteos) y comprar ("¿Qué compro?"). |
 | `tests/` | Pruebas de los formatos: `node --test admin/tests/*.test.mjs`. |
 

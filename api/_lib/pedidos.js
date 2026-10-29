@@ -1,7 +1,7 @@
 // Pedidos de la web (Etapa 6): se validan y se guardan en la base con crear_pedido_web(), que
 // recalcula el precio con la misma regla que las ventas. El total del navegador no se usa.
 const crypto = require('node:crypto');
-const { encabezados } = require('./supabase.js');
+const { rpc } = require('./supabase.js');
 
 const MAX_CUERPO = 20000; // bytes: un pedido real ocupa menos de 2 KB
 
@@ -38,17 +38,9 @@ function armarPedido(b) {
 
 class ErrorPedido extends Error {}
 
-async function guardarPedido(pedido, ipHash, { url, clave, fetch: pedir = fetch }) {
-  const r = await pedir(`${url}/rest/v1/rpc/crear_pedido_web`, {
-    method: 'POST',
-    headers: { ...encabezados(clave), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p: pedido, p_ip_hash: ipHash }),
-  });
-  const cuerpo = await r.json().catch(() => null);
-  if (r.ok) return cuerpo;
-  // Los `raise exception` de la base (P0001) son mensajes para el cliente; el resto, error interno.
-  if (cuerpo?.code === 'P0001' && cuerpo.message) throw new ErrorPedido(cuerpo.message);
-  throw new Error(`Supabase respondió ${r.status}: ${JSON.stringify(cuerpo).slice(0, 300)}`);
+// Los mensajes de la base (faltan datos, demasiados pedidos seguidos) llegan como ErrorPedido.
+function guardarPedido(pedido, ipHash, conf) {
+  return rpc('crear_pedido_web', { p: pedido, p_ip_hash: ipHash }, conf, { ErrorCliente: ErrorPedido });
 }
 
 module.exports = { MAX_CUERPO, hashIp, armarPedido, guardarPedido, ErrorPedido };

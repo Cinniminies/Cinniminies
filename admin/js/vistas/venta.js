@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, campoFecha, grupo, pesos, hoyISO, toast, conBoton, debounce, mostrarError, ETIQUETAS, opciones,
+  h, vaciar, chips, campo, campoFecha, grupo, pesos, hoyISO, toast, conBoton, debounce, mostrarError, ETIQUETAS, opciones, campoPesos
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
@@ -105,12 +105,12 @@ function formulario(cont, cat, clientes, origenes) {
     ontoggle: (e) => { estado.abierto = e.target.open; editor.mostrarCajas(e.target.open); },
   },
   h('summary', {}, 'Precio especial, propina, caja y notas'),
-  campo('Precio especial (lo que se cobró en total, sin envío)', h('input', {
-    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: estado.precio_especial, placeholder: 'Precio de lista',
+  campo('Precio especial (lo que se cobró en total, sin envío)', campoPesos({
+    value: estado.precio_especial, placeholder: 'Precio de lista',
     oninput: (e) => { estado.precio_especial = e.target.value; recalcular(); },
   })),
-  campo('Propina', h('input', {
-    type: 'number', inputmode: 'decimal', min: 0, step: '0.01', value: estado.propina, placeholder: '0',
+  campo('Propina', campoPesos({
+    value: estado.propina, placeholder: '0',
     oninput: (e) => { estado.propina = e.target.value; recalcular(); },
   }), 'Aparte del precio: suma a lo cobrado y a la ganancia.'),
   grupo('Tipo', chips(opciones(ETIQUETAS.tipo), estado.tipo, (v) => { estado.tipo = v; })),

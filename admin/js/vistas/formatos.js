@@ -1,7 +1,7 @@
 import { sb, q, rpc, contar } from '../db.js';
 import { h, vaciar, campo, chips, grupo, interruptor, pesos, precioVigenteDe, toast, conBoton } from '../util.js';
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
-import { seccionPrecios } from '../componentes.js';
+import { seccionPrecios, filaLista, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
 
 const TIPOS = [
@@ -27,13 +27,11 @@ async function lista(cont) {
   const detalle = (f) => (f.tipo === 'caja_fija' ? `${f.rolls} rolls · ${pesos(precioVigenteDe(precios.filter((p) => p.formato_id === f.id)))}`
     : f.tipo === 'personalizado' ? `${f.min_rolls ?? 1} a ${f.max_rolls ?? '∞'} rolls · precio por unidad` : 'Precio por unidad');
   vaciar(cont,
-    h('ul', { class: 'lista' }, formatos.map((f) => h('li', {}, h('a', { class: 'fila', href: `#/formatos/${f.id}` },
-      h('div', { class: 'princ' },
-        h('div', { class: 't1' }, f.nombre, ' ',
-          f.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo'), ' ',
-          f.visible_web ? h('span', { class: 'badge ok' }, 'En la web') : null),
-        h('div', { class: 't2' }, detalle(f))),
-      h('span', { class: 'chev', 'aria-hidden': 'true' }, '›'))))),
+    h('ul', { class: 'lista' }, formatos.map((f) => filaLista({
+      href: `#/formatos/${f.id}`,
+      titulo: [f.nombre, f.activo ? null : pastilla('neutro', 'Inactivo'), f.visible_web ? pastilla('ok', 'En la web') : null],
+      detalle: detalle(f),
+    }))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/formatos/nuevo' }, '+ Nuevo formato')));
 }
 
@@ -130,7 +128,7 @@ async function ficha(cont, id) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      h('h1', { style: 'margin-top:0' }, formato?.nombre || 'Nuevo formato'),
+      h('h1', {}, formato?.nombre || 'Nuevo formato'),
       campo('Nombre', h('input', { value: datos.nombre, placeholder: 'Box de 9', oninput: (e) => { datos.nombre = e.target.value; } })),
       ventas
         ? h('p', { class: 'ayuda' }, `Tipo: ${TIPOS.find((t) => t.valor === datos.tipo).texto} (ya se usó en ventas, no se puede cambiar).`)

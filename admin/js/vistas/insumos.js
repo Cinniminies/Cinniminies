@@ -1,5 +1,6 @@
 import { sb, q, rpc, contar } from '../db.js';
 import { h, vaciar, campo, chips, grupo, interruptor, pesos, plural, numero, cantidad, fechaLarga, toast, conBoton } from '../util.js';
+import { filaLista, pastilla } from '../componentes.js';
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { irA } from '../app.js';
 import { linea } from '../graficos.js';
@@ -26,15 +27,15 @@ async function lista(cont) {
     h('h2', {}, titulo),
     h('ul', { class: 'lista' }, insumos.filter((i) => i.tipo === tipo).map((i) => {
       const c = costoDe[i.id];
-      return h('li', {}, h('a', { class: 'fila', href: `#/insumos/${i.id}` },
-        h('div', { class: 'princ' },
-          h('div', { class: 't1' }, i.nombre, ' ', i.activo ? null : h('span', { class: 'badge neutro' }, 'Inactivo')),
-          h('div', { class: 't2' }, [
-            c?.costo_unitario != null ? porPresentacion(Number(c.costo_unitario), i.unidad_base) : 'sin costo',
-            c?.fuente === 'referencia' ? 'costo de referencia' : null,
-            Number(i.stock_minimo) ? `mínimo ${cantidad(i.stock_minimo, i.unidad_base)}` : null,
-          ].filter(Boolean).join(' · '))),
-        h('span', { class: 'chev', 'aria-hidden': 'true' }, '›')));
+      return filaLista({
+        href: `#/insumos/${i.id}`,
+        titulo: [i.nombre, i.activo ? null : pastilla('neutro', 'Inactivo')],
+        detalle: [
+          c?.costo_unitario != null ? porPresentacion(Number(c.costo_unitario), i.unidad_base) : 'sin costo',
+          c?.fuente === 'referencia' ? 'costo de referencia' : null,
+          Number(i.stock_minimo) ? `mínimo ${cantidad(i.stock_minimo, i.unidad_base)}` : null,
+        ],
+      });
     })),
   ];
   vaciar(cont,
@@ -151,7 +152,7 @@ async function ficha(cont, id) {
 
   vaciar(cont,
     h('div', { class: 'card' },
-      h('h1', { style: 'margin-top:0' }, insumo?.nombre || 'Nuevo insumo'),
+      h('h1', {}, insumo?.nombre || 'Nuevo insumo'),
       costo?.costo_unitario != null
         ? h('p', { class: 'ayuda' }, `Costo actual ${porPresentacion(Number(costo.costo_unitario), datos.unidad_base)}`,
           costo.fuente === 'compra'

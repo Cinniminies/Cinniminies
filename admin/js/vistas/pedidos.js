@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, ETIQUETAS } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
-import { elegirCliente } from '../componentes.js';
+import { elegirCliente, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
 
 // Pedidos que llegan desde la web (Etapa 6). Se confirman como venta (con los precios que vio el
@@ -92,19 +92,19 @@ function bloqueCliente(p, lista, origenes) {
 // Promo del pedido (/admin → Promociones): ya restada del total
 function promoDelPedido(p) {
   if (!(Number(p.descuento_promo) > 0)) return null;
-  return h('p', {}, h('span', { class: 'badge ok' }, p.promo || 'Promo'), ` ${pesos(-p.descuento_promo)} (ya restado del total)`);
+  return h('p', {}, pastilla('ok', p.promo || 'Promo'), ` ${pesos(-p.descuento_promo)} (ya restado del total)`);
 }
 
 // Código de recomendación del pedido: descuento propio ya restado del total, o de quién vino recomendado
 // (la recomendación se valida sola cuando la venta queda pagada).
 function recomendacion(p) {
   if (Number(p.descuento) > 0) {
-    return h('p', {}, h('span', { class: 'badge ok' }, 'Descuento por recomendaciones'),
+    return h('p', {}, pastilla('ok', 'Descuento por recomendaciones'),
       ` ${numero(p.descuento_porcentaje, 0)} % en una box: ${pesos(-p.descuento)} (ya restado del total)`);
   }
   if (p.recomendador) {
-    const estado = { pendiente: 'cuenta cuando se pague la venta', valida: 'ya sumó', anulada: `no cuenta: ${p.recomendacion_motivo || 'anulada'}` };
-    return h('p', { class: 'ayuda' }, `Vino con el código de ${p.recomendador}: ${estado[p.recomendacion_estado]}.`);
+    const significa = { pendiente: 'cuenta cuando se pague la venta', valida: 'ya sumó', anulada: `no cuenta: ${p.recomendacion_motivo || 'anulada'}` };
+    return h('p', { class: 'ayuda' }, `Vino con el código de ${p.recomendador}: ${significa[p.recomendacion_estado]}.`);
   }
   if (p.codigo_recomendacion) return h('p', { class: 'ayuda' }, `Puso el código ${p.codigo_recomendacion}, pero no aplicó.`);
   return null;
@@ -162,7 +162,7 @@ export async function mostrar(cont) {
 
     return h('article', { class: 'card pedido' },
       h('div', { class: 'seccion-cab' },
-        h('div', {}, h('strong', {}, p.nombre), ' ', h('span', { class: 'badge neutro' }, p.codigo)),
+        h('div', {}, h('strong', {}, p.nombre), ' ', pastilla('neutro', p.codigo)),
         h('strong', { class: 'monto' }, pesos(p.total))),
       h('p', { class: 'ayuda', style: 'margin:.25rem 0 .5rem' },
         [hora(p.creado_en), telLindo(p.telefono),

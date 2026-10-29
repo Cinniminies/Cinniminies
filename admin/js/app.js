@@ -136,8 +136,10 @@ const TRADUCCIONES = [
 const traducir = (msg) => TRADUCCIONES.find(([re]) => re.test(msg))?.[1] || msg;
 
 function rutaActual() {
-  let [nombre = 'panel', ...resto] = location.hash.replace(/^#\/?/, '').split('/');
-  if (nombre === 'produccion') { history.replaceState(null, '', `#/${ultimaProduccion()}`); nombre = ultimaProduccion(); }
+  const [pedida = 'panel', ...resto] = location.hash.replace(/^#\/?/, '').split('/');
+  // "Producción" no es una pantalla: abre la última de sus subpantallas que se usó.
+  const nombre = pedida === 'produccion' ? ultimaProduccion() : pedida;
+  if (nombre !== pedida) history.replaceState(null, '', `#/${nombre}`);
   return [RUTAS[nombre] ? nombre : 'panel', resto];
 }
 
@@ -329,7 +331,7 @@ function pantallaDispositivo(disp) {
   vaciar(vista, h('div', { class: 'login' },
     h('h1', {}, h('img', { class: 'logo-login', src: 'icons/logo.svg', alt: 'Cinniminies' })),
     h('div', { class: 'card' },
-      h('h2', { style: 'margin-top:0' }, 'Este dispositivo no está autorizado'),
+      h('h2', {}, 'Este dispositivo no está autorizado'),
       disp.estado === 'pendiente'
         ? [h('p', {}, 'Ya está pedido. Desde un celular o compu donde ya uses la app, entrá a Más → Dispositivos y autorizá ',
           h('strong', {}, disp.nombre), ' (código ', h('strong', {}, disp.codigo), ').'), ya]

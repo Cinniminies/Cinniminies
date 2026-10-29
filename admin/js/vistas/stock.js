@@ -1,9 +1,9 @@
 import { sb, q, rpc } from '../db.js';
 import {
   h, vaciar, chips, interruptor, plural, pesos, cantidad, numero, fechaLarga, fechaCorta, hoyISO, toast, conBoton,
-  campo, campoFecha, grupo,
+  campo, campoFecha, sumar,
 } from '../util.js';
-import { subnavProduccion } from '../componentes.js';
+import { subnavProduccion, stat, filaLista, monto, pastilla, chipsUnidad } from '../componentes.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
 import { textoPanel } from '../textos.js';
@@ -23,13 +23,20 @@ export async function mostrar(cont, { id }) {
 
 const pct = (x) => `${Number(x) > 0 ? '+' : Number(x) < 0 ? '−' : ''}${numero(Math.abs(Number(x)) * 100, 0)} %`;
 const claseDesvio = (d) => (d > 0 ? 'desvio-pos' : d < 0 ? 'desvio-neg' : '');
+// Las tres columnas de un conteo comparado: lo que debería haber, lo que había y la diferencia (con su %).
+const celdasDesvio = (x) => [
+  h('td', { class: 'num-der' }, cantidad(x.teorico, x.unidad_base)),
+  h('td', { class: 'num-der' }, cantidad(x.contado, x.unidad_base)),
+  h('td', { class: 'num-der ' + claseDesvio(Number(x.desvio)) }, Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, x.unidad_base),
+    x.desvio_relativo != null && Number(x.desvio) !== 0 ? h('span', { class: 'sub' }, pct(x.desvio_relativo)) : null),
+];
 
 async function resumen(cont, enfocar) {
   const [stock, [ultimo]] = await Promise.all([
     q(sb.from('v_stock').select('*').order('nombre')),
     q(sb.from('conteos').select('fecha,creado_en').order('creado_en', { ascending: false }).limit(1)),
   ]);
-  const total = (tipo) => stock.filter((s) => s.tipo === tipo).reduce((a, s) => a + Number(s.valor), 0);
+  const total = (tipo) => sumar(stock.filter((s) => s.tipo === tipo), (s) => s.valor);
   const contado = {};
 
   const fila = (s) => {
@@ -57,7 +64,7 @@ async function resumen(cont, enfocar) {
         h('div', { class: 'receta-fila', style: 'grid-template-columns:1fr;margin:0' },
           h('div', { class: 'unidad' }, input, h('small', {}, s.unidad_base))), desvio),
       h('td', { class: 'num-der' }, cantidad(s.hay, s.unidad_base)),
-      h('td', { class: 'num-der' }, s.reponer ? h('span', { class: 'badge alerta' }, teorico) : teorico));
+      h('td', { class: 'num-der' }, s.reponer ? pastilla('alerta', teorico) : teorico));
   };
 
   const tabla = (tipo, titulo) => [
@@ -80,7 +87,7 @@ async function resumen(cont, enfocar) {
 
   vaciar(cont, h('div', { class: 'con-guardar' },
     subnavProduccion('stock'),
-    alertas ? h('p', { style: 'margin-top:0' }, h('span', { class: 'badge alerta' }, `${alertas} para reponer`)) : null,
+    alertas ? h('p', { style: 'margin-top:0' }, pastilla('alerta', `${alertas} para reponer`)) : null,
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
       h('a', { class: 'btn', href: '#/stock/perdida' }, 'Registrar pérdida'),
       // Deshacer es de vez en cuando y borra un conteo: queda más callado que las otras dos
@@ -111,7 +118,7 @@ function botonDeshacer(ultimo, texto = `Deshacer el conteo del ${fechaCorta(ulti
 
 function resultado(cont, r, unidad) {
   vaciar(cont, h('div', { class: 'card' },
-    h('h1', { style: 'margin-top:0' }, 'Conteo guardado'),
+    h('h1', {}, 'Conteo guardado'),
     h('p', { class: 'ayuda' }, `${r.length} insumos, ${fechaLarga(hoyISO())}. Desde ahora el stock teórico arranca de estas cantidades.`),
     h('table', { class: 'tabla' },
       h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Debería haber'), h('th', { class: 'num-der' }, 'Hay'), h('th', { class: 'num-der' }, 'Desvío')),
@@ -154,9 +161,7 @@ async function perdida(cont) {
     const i = insumo();
     const lista = i ? UNIDADES_PERDIDA[i.unidad_base] || [i.unidad_base] : [];
     if (!lista.includes(f.unidad)) f.unidad = lista[0] || null;
-    vaciar(unidadesCont, lista.length > 1
-      ? grupo('Unidad', chips(lista.map((u) => ({ valor: u, texto: u })), f.unidad, (u) => { f.unidad = u; previa(); }))
-      : null);
+    vaciar(unidadesCont, chipsUnidad(lista, f.unidad, (u) => { f.unidad = u; previa(); }));
   }
 
   const activos = (tipo) => cat.insumos.filter((i) => i.tipo === tipo && i.activo).map((i) => h('option', { value: i.id }, i.nombre));
@@ -207,12 +212,11 @@ async function perdida(cont) {
           toast('Borrada');
           irA('#/stock/perdida');
         });
-        return h('li', {}, h('div', { class: 'fila' },
-          h('div', { class: 'princ' },
-            h('div', { class: 't1' }, `${p.insumos.nombre} · ${cantidad(p.cantidad, p.insumos.unidad_base)}`),
-            h('div', { class: 't2' }, `${fechaCorta(p.fecha)}${p.motivo ? ' · ' + p.motivo : ''}`)),
-          h('span', { class: 'monto' }, pesos(p.costo)),
-          borrar));
+        return filaLista({
+          titulo: `${p.insumos.nombre} · ${cantidad(p.cantidad, p.insumos.unidad_base)}`,
+          detalle: [fechaCorta(p.fecha), p.motivo],
+          derecha: [monto(pesos(p.costo)), borrar],
+        });
       }))
       : h('p', { class: 'vacio' }, 'Todavía no hay pérdidas cargadas.'),
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock' }, 'Volver al stock')));
@@ -240,8 +244,6 @@ async function desvios(cont) {
 
   const r = resumenDesvios(todas);
   const etiquetaConteo = (c) => (c.hora ? `${fechaCorta(c.fecha)} ${c.hora}` : fechaCorta(c.fecha));
-  const kpi = (etiqueta, valor, sub) => h('div', { class: 'stat' },
-    h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), h('div', { class: 'sub' }, sub));
   const contGrafico = h('div');
   const contConteo = h('div');
   const contPropuesta = h('div');
@@ -303,17 +305,14 @@ async function desvios(cont) {
     const sugerir = f.tipo === 'ingrediente' && f.rel != null && Math.abs(f.rel) >= 0.02 && deEste.length && factor > 0;
     return h('div', { class: 'div-detalle' },
       h('div', { class: 'stats' },
-        kpi('Previsto', cantidad(f.segunRecetas, f.unidad), f.tipo === 'ingrediente' ? 'según las recetas de las tandas' : 'según las cajas vendidas'),
-        kpi('Real', cantidad(f.real, f.unidad), f.desvio === 0 ? 'igual a las recetas'
+        stat('Previsto', cantidad(f.segunRecetas, f.unidad), f.tipo === 'ingrediente' ? 'según las recetas de las tandas' : 'según las cajas vendidas'),
+        stat('Real', cantidad(f.real, f.unidad), f.desvio === 0 ? 'igual a las recetas'
           : `${f.desvio > 0 ? 'se usaron' : 'sobraron'} ${cantidad(Math.abs(f.desvio), f.unidad)} (${pesos(Math.abs(f.valor))})`)),
       h('table', { class: 'tabla' },
         h('tr', {}, h('th', {}, 'Conteo'), h('th', { class: 'num-der' }, 'Debería'), h('th', { class: 'num-der' }, 'Había'), h('th', { class: 'num-der' }, 'Diferencia')),
         suyos.map((x) => h('tr', {},
           h('td', {}, etiquetaConteo(conteos.find((c) => c.filas.includes(x)) || x)),
-          h('td', { class: 'num-der' }, cantidad(x.teorico, x.unidad_base)),
-          h('td', { class: 'num-der' }, cantidad(x.contado, x.unidad_base)),
-          h('td', { class: 'num-der ' + claseDesvio(Number(x.desvio)) }, Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, x.unidad_base),
-            x.desvio_relativo != null && Number(x.desvio) !== 0 ? h('span', { class: 'sub' }, pct(x.desvio_relativo)) : null)))),
+          celdasDesvio(x)))),
       sugerir ? [
         h('h3', { style: 'margin-top:.75rem' }, 'Si ajustás las recetas'),
         h('table', { class: 'tabla' },
@@ -403,7 +402,7 @@ async function desvios(cont) {
     if (!conteos.length) { vaciar(contConteo); return; }
     if (!conteos.some((c) => c.clave === verDesvios.conteo)) verDesvios.conteo = conteos[0].clave;
     const c = conteos.find((x) => x.clave === verDesvios.conteo);
-    const total = c.filas.reduce((a, x) => a + Number(x.valor), 0);
+    const total = sumar(c.filas, (x) => x.valor);
     vaciar(contConteo,
       h('h2', {}, 'Cada conteo'),
       chips(conteos.slice(0, 8).map((x) => ({ valor: x.clave, texto: etiquetaConteo(x) })), verDesvios.conteo,
@@ -412,10 +411,7 @@ async function desvios(cont) {
         h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Debería'), h('th', { class: 'num-der' }, 'Había'), h('th', { class: 'num-der' }, 'Diferencia')),
         c.filas.map((x) => h('tr', {},
           h('td', {}, x.nombre, h('span', { class: 'sub' }, pesos(x.valor))),
-          h('td', { class: 'num-der' }, cantidad(x.teorico, x.unidad_base)),
-          h('td', { class: 'num-der' }, cantidad(x.contado, x.unidad_base)),
-          h('td', { class: 'num-der ' + claseDesvio(Number(x.desvio)) }, Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, x.unidad_base),
-            x.desvio_relativo != null && Number(x.desvio) !== 0 ? h('span', { class: 'sub' }, pct(x.desvio_relativo)) : null)))),
+          celdasDesvio(x)))),
       h('p', { class: 'ayuda' }, `Ese día, en total: ${total >= 0 ? 'faltó' : 'sobró'} mercadería por ${pesos(Math.abs(total))}.`));
   }
 
@@ -424,10 +420,10 @@ async function desvios(cont) {
     h('p', { class: 'ayuda' }, 'Compara lo que dicen las recetas y las cajas con lo que se usó de verdad según los conteos, '
       + 'desde el último ajuste de recetas de cada insumo.'),
     h('div', { class: 'stats' },
-      kpi('Se usó de más', pesos(r.deMas), 'faltó en los conteos'),
-      kpi('Sobró', pesos(r.sobro), 'había más de lo debido'),
-      kpi('Para revisar', String(r.revisar), `pasan ±${Math.round(REVISAR * 100)} % (2+ conteos)`),
-      kpi('Conteos', String(conteos.length), conteos.length ? `último: ${fechaCorta(conteos[0].fecha)}` : '—')),
+      stat('Se usó de más', pesos(r.deMas), 'faltó en los conteos'),
+      stat('Sobró', pesos(r.sobro), 'había más de lo debido'),
+      stat('Para revisar', String(r.revisar), `pasan ±${Math.round(REVISAR * 100)} % (2+ conteos)`),
+      stat('Conteos', String(conteos.length), conteos.length ? `último: ${fechaCorta(conteos[0].fecha)}` : '—')),
     contGrafico,
     contPropuesta,
     contConteo);
