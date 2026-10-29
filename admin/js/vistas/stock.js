@@ -54,15 +54,18 @@ async function resumen(cont, enfocar) {
       },
     });
     const teorico = cantidad(s.teorico, s.unidad_base);
+    // Lo que no se puede medir (el papel manteca) no se cuenta: su "Hay" baja solo con las cajas y las tandas.
+    const registro = s.se_descuenta_solo
+      ? h('span', { class: 'sub' }, textoPanel('panel.stock_solo', 'se descuenta solo'))
+      : [h('div', { class: 'receta-fila', style: 'grid-template-columns:1fr;margin:0' },
+        h('div', { class: 'unidad' }, input, h('small', {}, s.unidad_base))), desvio];
     return h('tr', {},
       h('td', {}, h('a', { href: `#/insumos/${s.insumo_id}` }, s.nombre),
         h('span', { class: 'sub' }, [
           `mín. ${cantidad(s.stock_minimo, s.unidad_base)}`,
-          s.fecha_conteo ? `contado ${fechaCorta(s.fecha_conteo)}` : 'nunca contado',
-        ].join(' · '))),
-      h('td', { class: 'registro' },
-        h('div', { class: 'receta-fila', style: 'grid-template-columns:1fr;margin:0' },
-          h('div', { class: 'unidad' }, input, h('small', {}, s.unidad_base))), desvio),
+          s.se_descuenta_solo ? null : s.fecha_conteo ? `contado ${fechaCorta(s.fecha_conteo)}` : 'nunca contado',
+        ].filter(Boolean).join(' · '))),
+      h('td', { class: 'registro' }, registro),
       h('td', { class: 'num-der' }, cantidad(s.hay, s.unidad_base)),
       h('td', { class: 'num-der' }, s.reponer ? pastilla('alerta', teorico) : teorico));
   };
@@ -96,7 +99,8 @@ async function resumen(cont, enfocar) {
     h('details', { class: 'plegable', style: 'margin-top:.75rem' },
       h('summary', {}, textoPanel('panel.stock_columnas', '¿Qué es cada columna?')),
       h('p', { class: 'ayuda', style: 'margin-top:0' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo más lo que compraste y menos lo que se perdió después; ',
-        '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después.')),
+        '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después. ',
+        'Lo que no se puede medir, como el papel manteca, no se cuenta: su "Hay" es lo que debería haber.')),
     tabla('ingrediente', 'Ingredientes'),
     tabla('packaging', 'Packaging')),
   h('div', { class: 'guardar' }, guardar));
