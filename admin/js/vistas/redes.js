@@ -1,6 +1,6 @@
 import { sb, q } from '../db.js';
 import { h, vaciar, numero, fechaCorta, plural } from '../util.js';
-import { columnas, barras } from '../graficos.js';
+import { linea, puntos } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { tipoDe, puntaje, interaccion, tendencia, sugerencias, resumenTexto } from '../redes.js';
 
@@ -33,20 +33,24 @@ export async function mostrar(cont) {
     h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), sub ? h('div', { class: 'sub' }, sub) : null);
 
   const cronologia = [...dias].reverse().slice(-30);
-  const grafSeguidores = cronologia.length >= 2 ? columnas(cronologia.map((d, i) => ({
-    etiqueta: i % 5 === 0 || i === cronologia.length - 1 ? fechaCorta(d.fecha).split(' ')[1] : '',
-    etiquetaLarga: fechaCorta(d.fecha),
+  // Los seguidores son un acumulado: línea, con el eje desde el mínimo para que se vea cuánto cambió.
+  const grafSeguidores = cronologia.length >= 2 ? linea(cronologia.map((d) => ({
+    x: d.fecha,
     valor: d.seguidores,
-    destacado: i === cronologia.length - 1,
-    filas: [['Publicaciones', numero(d.publicaciones, 0)], ...(d.alcance != null ? [['Alcance del día', numero(d.alcance, 0)]] : [])],
+    etiqueta: fechaCorta(d.fecha),
+    etiquetaEje: fechaCorta(d.fecha),
+    publicaciones: d.publicaciones,
   })), {
     titulo: 'Seguidores por día',
     formato: (v) => numero(v, 0),
-    columnasTabla: [['Día', (d) => d.etiquetaLarga], ['Seguidores', (d) => numero(d.valor, 0)]],
+    columnasTabla: [['Día', (d) => d.etiqueta], ['Seguidores', (d) => numero(d.valor, 0)], ['Publicaciones', (d) => numero(d.publicaciones, 0)]],
   }) : h('p', { class: 'ayuda' }, 'El gráfico de seguidores aparece cuando haya lecturas de al menos dos días.');
 
   const porTipo = {};
-  for (const p of ultimas30) if (puntaje(p) != null) porTipo[tipoDe(p)] = [...(porTipo[tipoDe(p)] || []), puntaje(p)];
+  for (const p of ultimas30) {
+    if (puntaje(p) == null) continue;
+    (porTipo[tipoDe(p)] ||= []).push({ valor: puntaje(p), etiqueta: `${fechaCorta(p.publicada_en.slice(0, 10))} · ${resumenTexto(p.texto, 40)}` });
+  }
 
   const mejores = [...pubs].filter((p) => puntaje(p) != null).sort((a, b) => puntaje(b) - puntaje(a)).slice(0, 5);
   const tarjeta = (p) => h('li', {}, h('a', { class: 'fila', href: p.enlace || '#', target: '_blank', rel: 'noopener' },
@@ -78,9 +82,9 @@ export async function mostrar(cont) {
         s.enlace ? h('a', { class: 't2', href: s.enlace, target: '_blank', rel: 'noopener' }, 'Ver en Instagram') : null))))),
 
     h('div', { class: 'card' }, grafSeguidores),
-    Object.keys(porTipo).length ? h('div', { class: 'card' }, barras(
-      Object.entries(porTipo).map(([etiqueta, xs]) => ({ etiqueta, valor: Math.round(xs.reduce((a, x) => a + x, 0) / xs.length) })),
-      { titulo: 'Vistas promedio por formato (últimos 30 días)', formato: (v) => numero(v, 0), vacio: '' })) : null,
+    Object.keys(porTipo).length ? h('div', { class: 'card' }, puntos(
+      Object.entries(porTipo).map(([etiqueta, pts]) => ({ etiqueta, puntos: pts })),
+      { titulo: 'Vistas de cada publicación por formato (últimos 30 días)', formato: (v) => numero(v, 0), vacio: '' })) : null,
 
     h('h2', {}, 'Mejores publicaciones'),
     mejores.length ? h('ul', { class: 'lista card' }, mejores.map(tarjeta)) : h('p', { class: 'vacio' }, 'Todavía no hay publicaciones con números.'),

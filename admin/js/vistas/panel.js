@@ -1,7 +1,8 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, proximoSabado, conBoton, toast, plural, ETIQUETAS } from '../util.js';
 import { icono } from '../iconos.js';
-import { columnas, barras, variacion } from '../graficos.js';
+import { areas, partes, variacion } from '../graficos.js';
+import { catalogo } from '../catalogo.js';
 import { irA, sesion } from '../app.js';
 import { tituloSemana } from '../componentes.js';
 import { textoPanel } from '../textos.js';
@@ -129,11 +130,11 @@ export async function mostrar(cont) {
   // ---- resumen del período elegido
   const contPeriodo = h('div');
   const contChips = h('div');
-  // Tocar una barra del gráfico elige ese mes; si es este mes o el pasado, se marca su chip.
+  // Tocar un mes del gráfico lo elige; si es este mes o el pasado, se marca su chip.
   const elegirMes = (mes) => {
     periodo = mes === actual ? 'mes' : mes === mesesAntes(actual, 1) ? 'anterior' : mes;
     dibujarPeriodo();
-    contPeriodo.querySelector('.graf-col.destacado')?.focus({ preventScroll: true });
+    contPeriodo.querySelector('.graf-franja[aria-pressed="true"]')?.focus({ preventScroll: true });
   };
   function dibujarPeriodo() {
     const mesSel = periodo === 'mes' ? actual : periodo === 'anterior' ? mesesAntes(actual, 1)
@@ -161,33 +162,48 @@ export async function mostrar(cont) {
 
     // Últimos 6 meses (con ceros si en alguno no hubo ventas)
     const seis = Array.from({ length: 6 }, (_, i) => deMes(mesesAntes(actual, 5 - i)));
-    const grafico = columnas(seis.map((r) => ({
+    // Vendido y, adentro, la ganancia bruta: la franja entre las dos es lo que se fue en costos.
+    const grafico = areas(seis.map((r) => ({
       mes: r.mes,
       etiqueta: nombreCorto(r.mes),
       etiquetaLarga: nombreMes(r.mes),
-      valor: Number(r.vendido),
+      valores: { vendido: Number(r.vendido), ganancia: Math.max(0, Number(r.ganancia_bruta)) },
+      ventas: Number(r.ventas),
       destacado: r.mes === (mesSel || actual),
-      filas: [['Ganancia bruta', pesos(r.ganancia_bruta)], ['Ventas', numero(r.ventas, 0)], ['Rolls', numero(r.rolls_vendidos, 0)]],
     })), {
-      titulo: 'Vendido por mes',
+      titulo: 'Vendido y ganancia por mes',
+      series: [
+        { clave: 'vendido', nombre: 'Vendido', color: 'var(--graf-acento)' },
+        { clave: 'ganancia', nombre: 'Ganancia bruta', color: 'var(--serie-3)' },
+      ],
       formato: (v) => (v >= 10000 ? `$${numero(v / 1000, 1)} mil` : pesos(v)),
       alElegir: (d) => elegirMes(d.mes),
       ayudaElegir: 'Tocá un mes para ver su resumen.',
       columnasTabla: [
         ['Mes', (d) => d.etiquetaLarga],
-        ['Vendido', (d) => pesos(d.valor)],
-        ['Ganancia', (d) => d.filas[0][1]],
-        ['Ventas', (d) => d.filas[1][1]],
+        ['Vendido', (d) => pesos(d.valores.vendido)],
+        ['Ganancia', (d) => pesos(d.valores.ganancia)],
+        ['Ventas', (d) => numero(d.ventas, 0)],
       ],
     });
 
     const porSabor = h('div', {}, h('p', { class: 'ayuda' }, 'Cargando rolls por sabor…'));
     let consulta = sb.from('v_ventas_sabores').select('sabor,unidades');
     if (mesSel) consulta = consulta.eq('mes', mesSel);
-    q(consulta).then((filas) => {
+    Promise.all([q(consulta), catalogo()]).then(([filas, cat]) => {
       const suma = {};
       for (const f of filas) suma[f.sabor] = (suma[f.sabor] || 0) + f.unidades;
-      vaciar(porSabor, barras(Object.entries(suma).map(([etiqueta, valor]) => ({ etiqueta, valor })), {
+      // Cada sabor con su color fijo, así no cambia cuando cambia el período: primero los de masa compartida
+      // (los mismos colores que en el desglose del plan de horneado), después los de masa propia y los inactivos.
+      const orden = [...cat.saboresActivos.filter((x) => !x.masa_propia), ...cat.saboresActivos.filter((x) => x.masa_propia),
+        ...cat.sabores.filter((x) => !x.activo)].map((x) => x.nombre);
+      const colorDe = (nombre) => {
+        const i = orden.indexOf(nombre);
+        return i >= 0 && i < 6 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
+      };
+      const lista = Object.entries(suma).map(([etiqueta, valor]) => ({ etiqueta, valor, color: colorDe(etiqueta) }))
+        .sort((a, b) => (orden.indexOf(a.etiqueta) + 1 || 999) - (orden.indexOf(b.etiqueta) + 1 || 999));
+      vaciar(porSabor, partes(lista, {
         titulo: 'Rolls vendidos por sabor',
         formato: (v) => numero(v, 0),
         vacio: 'No hubo ventas en este período.',
