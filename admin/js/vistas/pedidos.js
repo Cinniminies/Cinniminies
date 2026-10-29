@@ -1,8 +1,9 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, linkWhatsapp, ETIQUETAS,
+  h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, linkWhatsapp, ETIQUETAS, diaMes, fechaCorta,
+  hoyISO, proximoSabado, sumarDias, mostrarError, DIAS_SEMANA,
 } from '../util.js';
-import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
+import { catalogo, clientes as leerClientes, origenes as leerOrigenes, guardarParametros } from '../catalogo.js';
 import { elegirCliente, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
 
@@ -22,6 +23,44 @@ const telLindo = (t) => `${t.slice(0, 3)} ${t.slice(3, 6)} ${t.slice(6)}`;
 const compras = (n) => plural(n, 'compra', 'compras');
 // Un contacto "tiene celular" si trae al menos 8 dígitos (misma regla que cliente_por_telefono).
 const tieneCelular = (contacto) => (contacto || '').replace(/\D/g, '').length >= 8;
+
+// Cierre de los pedidos de cada sábado (parametros.cierre_dia y cierre_hora) y los próximos sábados sin horneado.
+// La regla está en la base (sabado_de_pedido): pasado el cierre, los pedidos de la web y los que se cargan a mano
+// son para el sábado siguiente. `sinHorneado`: [{ sabado }] desde hoy.
+function cierrePedidos(parametros, sinHorneado) {
+  const diaCierre = h('select', {}, DIAS_SEMANA.map((d, i) => h('option', { value: String(i) }, d)));
+  diaCierre.value = parametros.cierre_dia ?? '4';
+  const horaCierre = h('input', { type: 'time', value: parametros.cierre_hora || '23:59', required: true });
+  const guardar = h('button', { class: 'btn', type: 'button' }, 'Guardar el cierre');
+  guardar.onclick = () => conBoton(guardar, async () => {
+    if (!horaCierre.value) throw new Error('Elegí la hora del cierre');
+    await guardarParametros({ cierre_dia: diaCierre.value, cierre_hora: horaCierre.value });
+    toast('Cierre guardado. La web lo muestra en unos 5 minutos');
+  });
+
+  const sin = new Set(sinHorneado.map((s) => s.sabado));
+  const sabados = Array.from({ length: 8 }, (_, i) => sumarDias(proximoSabado(), i * 7));
+  const alternar = async (sabado, horneamos) => {
+    try {
+      if (horneamos) await q(sb.from('sabados_sin_horneado').delete().eq('sabado', sabado));
+      else await q(sb.from('sabados_sin_horneado').insert({ sabado }));
+      toast(horneamos ? `El ${diaMes(sabado)} se hornea`
+        : `El ${diaMes(sabado)} no se hornea: sus pedidos pasan al sábado siguiente`);
+    } catch (e) {
+      mostrarError(e);
+      irA('#/pedidos');
+    }
+  };
+
+  return h('details', { class: 'plegable' },
+    h('summary', {}, 'Cierre de pedidos y sábados sin horneado'),
+    h('p', { class: 'ayuda' }, 'Pasado el cierre, los pedidos de la web y los que se cargan a mano son para el sábado siguiente. '
+      + 'Si un sábado no se hornea, sus pedidos pasan al próximo.'),
+    h('div', { class: 'fila-campos' }, campo('Día del cierre', diaCierre), campo('Hora', horaCierre)),
+    h('div', { class: 'acciones' }, guardar),
+    h('h3', {}, 'Próximos sábados'),
+    sabados.map((s) => interruptor(`Horneamos el ${fechaCorta(s)}`, !sin.has(s), (horneamos) => alternar(s, horneamos))));
+}
 
 // A qué cliente va la venta al confirmar. Por defecto, el que la base encontró por el celular
 // (v_pedidos.cliente_sugerido_id) o uno nuevo con el nombre del pedido. Se puede elegir otro de la
@@ -113,12 +152,13 @@ function recomendacion(p) {
 }
 
 export async function mostrar(cont) {
-  const [cat, pedidos, lista, origenes] = await Promise.all([
+  const [cat, pedidos, lista, origenes, sinHorneado] = await Promise.all([
     catalogo(true), // fresco: un pedido puede traer un sabor creado después de abrir la app
     q(sb.from('v_pedidos').select('*, pedido_cajas(orden, formato_id, precio, sabores)')
       .eq('estado', estado).order('creado_en', { ascending: estado === 'nuevo' }).limit(100)),
     estado === 'nuevo' ? leerClientes() : [],
     estado === 'nuevo' ? leerOrigenes() : [],
+    q(sb.from('sabados_sin_horneado').select('sabado').gte('sabado', hoyISO())),
   ]);
 
   // Comprobantes de transferencia (bucket privado): links firmados por una hora.
@@ -128,6 +168,7 @@ export async function mostrar(cont) {
       .filter((l) => l.signedUrl).map((l) => [l.path, l.signedUrl]))
     : {};
 
+  const esteSabado = proximoSabado();
   const tarjeta = (p) => {
     const cajas = [...p.pedido_cajas].sort((a, b) => a.orden - b.orden).map((c) =>
       h('li', {}, h('strong', {}, cat.formato(c.formato_id)?.nombre || 'Caja'), ` · ${pesos(c.precio)}`,
@@ -165,7 +206,8 @@ export async function mostrar(cont) {
 
     return h('article', { class: 'card pedido' },
       h('div', { class: 'seccion-cab' },
-        h('div', {}, h('strong', {}, p.nombre), ' ', pastilla('neutro', p.codigo)),
+        h('div', {}, h('strong', {}, p.nombre), ' ', pastilla('neutro', p.codigo), ' ',
+          pastilla(p.sabado === esteSabado ? 'ok' : 'alerta', `Sábado ${diaMes(p.sabado)}`)),
         h('strong', { class: 'monto' }, pesos(p.total))),
       h('p', { class: 'ayuda', style: 'margin:.25rem 0 .5rem' },
         [hora(p.creado_en), telLindo(p.telefono),
@@ -190,5 +232,6 @@ export async function mostrar(cont) {
         + '(si es con entrega, la venta suma el envío al confirmarla).')
       : null,
     pedidos.length ? pedidos.map(tarjeta)
-      : h('p', { class: 'vacio' }, estado === 'nuevo' ? 'No hay pedidos nuevos de la web.' : 'No hay pedidos acá.'));
+      : h('p', { class: 'vacio' }, estado === 'nuevo' ? 'No hay pedidos nuevos de la web.' : 'No hay pedidos acá.'),
+    cierrePedidos(cat.parametros, sinHorneado));
 }

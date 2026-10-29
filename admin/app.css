@@ -530,11 +530,9 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .resumen-lista > div { background: var(--card); padding: .6rem .8rem; }
 .resumen-lista .etq { display: block; font-size: .8125rem; color: var(--suave); }
 .resumen-lista strong { font-size: 1.0625rem; }
-.dia-cab { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin: 1.25rem 0 .45rem;
-  font-family: var(--cuerpo); font-size: .9375rem; font-weight: 700; }
-.dia-cab .ayuda { font-weight: 500; }
 .semana-lista { font-size: 1.1875rem; margin: 1.75rem 0 .25rem; padding-top: .75rem; border-top: 2px solid var(--canela); }
 .semana-lista:first-of-type { margin-top: 1rem; }
+.semana-lista + .ayuda { margin: 0 0 .45rem; }
 
 /* Libro de caja (Compras, Gastos): movimientos agrupados por semana de pedidos, con el total de cada semana
    y los montos en su propia columna, alineados a la derecha. */

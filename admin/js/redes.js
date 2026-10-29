@@ -1,9 +1,8 @@
 // Análisis de Instagram para /admin → Redes (funciones puras, con pruebas en tests/redes.test.mjs).
 // Las publicaciones vienen de ig_publicaciones; la cuenta por día, de ig_cuenta_dia.
-import { normalizar, sumarDias } from './util.js';
+import { normalizar, sumarDias, DIAS_SEMANA } from './util.js';
 
 const ZONA = 'America/Montevideo';
-const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const FRANJAS = [[0, 6, 'de madrugada'], [6, 12, 'a la mañana'], [12, 18, 'a la tarde'], [18, 24, 'a la noche']];
 const PLURAL = { Reel: 'Los reels', Carrusel: 'Los carruseles', Video: 'Los videos', Foto: 'Las fotos' };
 export const MINIMO = 6; // publicaciones con números para animarse a sugerir
@@ -93,7 +92,7 @@ export function sugerencias(publicaciones, { sabores = [], ahora = new Date() } 
 
   const porDia = grupos(pubs, (p) => horaLocal(p.publicada_en).dia);
   if (porDia.length >= 2 && porDia[0].prom >= 1.2 * general) {
-    out.push({ tipo: 'dia', texto: `Lo que publican los ${DIAS[porDia[0].clave]} rinde ${pct(porDia[0].prom / general - 1)} más que el promedio.` });
+    out.push({ tipo: 'dia', texto: `Lo que publican los ${DIAS_SEMANA[porDia[0].clave]} rinde ${pct(porDia[0].prom / general - 1)} más que el promedio.` });
   }
 
   const porFranja = grupos(pubs, (p) => {

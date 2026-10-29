@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, grupo, pesos, numero, plural, fechaCorta, fechaLarga, nombreMes, hoyISO, proximoSabado, toast, conBoton, debounce,
-  ETIQUETAS, opciones, linkWhatsapp, sumar, sumarMeses, campoPesos
+  h, vaciar, chips, campo, campoSabado, grupo, pesos, numero, plural, fechaCorta, fechaLarga, nombreMes, toast, conBoton, debounce,
+  ETIQUETAS, opciones, linkWhatsapp, sumar, sumarMeses, campoPesos,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas, tituloSemana, filaLista, pastilla, monto } from '../componentes.js';
@@ -50,32 +50,28 @@ async function lista(cont) {
   function dibujar(ventas, limitada) {
     const totalDe = (vs) => sumar(vs, (v) => v.total);
     const pendiente = totalDe(ventas.filter((v) => v.estado_pago === 'pendiente'));
-    // Agrupadas por día, con el total de cada día
-    const dias = [];
+    // Agrupadas por semana (la fecha de cada venta es su sábado de entrega), con el total de cada una
+    const semanas = [];
     for (const v of ventas) {
-      if (!dias.length || dias[dias.length - 1].fecha !== v.fecha) dias.push({ fecha: v.fecha, ventas: [] });
-      dias[dias.length - 1].ventas.push(v);
+      if (!semanas.length || semanas[semanas.length - 1].sabado !== v.fecha) semanas.push({ sabado: v.fecha, ventas: [] });
+      semanas[semanas.length - 1].ventas.push(v);
     }
     vaciar(resultados,
       !ventas.length ? null : h('div', { class: 'resumen-lista' },
         h('div', {}, h('span', { class: 'etq' }, limitada ? 'Últimas' : 'Ventas'), h('strong', {}, numero(ventas.length, 0))),
         h('div', {}, h('span', { class: 'etq' }, 'Total'), h('strong', {}, pesos(totalDe(ventas)))),
         h('div', {}, h('span', { class: 'etq' }, 'Pendiente'), h('strong', { class: pendiente ? 'texto-alerta' : null }, pesos(pendiente)))),
-      dias.length
-        ? dias.map((d, i) => [
-          // Cada semana de pedidos (domingo a sábado) arranca con su sábado de entrega
-          i === 0 || proximoSabado(dias[i - 1].fecha) !== proximoSabado(d.fecha)
-            ? h('h2', { class: 'semana-lista' }, tituloSemana(proximoSabado(d.fecha))) : null,
-          h('section', { class: 'dia' },
-          h('h3', { class: 'dia-cab' }, h('span', {}, fechaCorta(d.fecha)),
-            h('span', { class: 'ayuda' }, `${plural(d.ventas.length, 'venta')} · ${pesos(totalDe(d.ventas))}`)),
-          h('ul', { class: 'lista' }, d.ventas.map((v) => filaLista({
+      semanas.length
+        ? semanas.map((sem) => [
+          h('h2', { class: 'semana-lista' }, tituloSemana(sem.sabado)),
+          h('p', { class: 'ayuda' }, `${plural(sem.ventas.length, 'venta')} · ${pesos(totalDe(sem.ventas))}`),
+          h('ul', { class: 'lista' }, sem.ventas.map((v) => filaLista({
             href: `#/ventas/${v.id}`,
             titulo: [v.cliente || 'Sin cliente', v.estado_pago === 'pendiente' ? pastilla('pendiente', 'Pendiente') : null,
               v.por_hacer ? pastilla('neutro', 'Por hacer') : null, v.tipo !== 'venta' ? pastilla('neutro', ETIQUETAS.tipo[v.tipo]) : null],
             detalle: [v.formatos, v.sabores],
             derecha: monto(pesos(v.total)),
-          }))))])
+          })))])
         : h('div', { class: 'vacio' }, h('p', { style: 'margin:0' }, 'No hay ventas con estos filtros.'),
           h('a', { class: 'btn', href: '#/venta' }, textoPanel('panel.vacio_ventas', 'Cargar una venta'))));
   }
@@ -148,7 +144,8 @@ async function detalle(cont, id) {
   vaciar(cont,
     h('div', { class: 'card' },
       h('h1', {}, v.cliente || 'Sin cliente'),
-      h('p', { class: 'ayuda' }, `${fechaLarga(v.fecha)} · ${v.origen || 'sin origen'}`,
+      h('p', { class: 'ayuda' },
+        `Sábado ${fechaLarga(v.fecha)} · pedido el ${fechaCorta(v.pedido_el)} · ${v.origen || 'sin origen'}`,
         contacto ? [' · ', wa ? h('a', { href: wa, target: '_blank', rel: 'noopener' }, contacto) : contacto] : null),
       h('p', {},
         pastilla(pagada ? 'ok' : 'pendiente', ETIQUETAS.estado_pago[v.estado_pago]), ' ',
@@ -218,8 +215,8 @@ async function editar(cont, id) {
   guardar.onclick = () => conBoton(guardar, async () => {
     const p = { ...cambios };
     if (productosTocados) {
-      if (!confirm('Cambiaste los productos: se recalculan precio de lista y costos con los valores del '
-        + `${fechaLarga(p.fecha || v.fecha)}. ¿Seguir?`)) return;
+      if (!confirm('Cambiaste los productos: se recalculan precio de lista y costos con los valores del día del pedido ('
+        + `${fechaLarga(v.pedido_el)}). ¿Seguir?`)) return;
       p.lineas = editor.valor();
     }
     if (!Object.keys(p).length) { irA(`#/ventas/${id}`); return; }
@@ -240,7 +237,7 @@ async function editar(cont, id) {
   });
 
   vaciar(cont, h('div', { class: 'con-guardar' },
-    campo('Fecha', h('input', { type: 'date', value: v.fecha, max: hoyISO(), onchange: (e) => { cambios.fecha = e.target.value; } })),
+    campoSabado(v.fecha, (s) => { cambios.fecha = s; }),
     grupo('Cliente', elegirCliente(clientes, cliente, (c) => {
       cambios.cliente = c;
       // Al cambiar de cliente, la venta toma su origen (lo resuelve actualizar_venta)
@@ -263,7 +260,8 @@ async function editar(cont, id) {
     campo('Notas', h('textarea', { value: v.notas || '', oninput: (e) => { cambios.notas = e.target.value; } })),
     h('details', { class: 'plegable', ontoggle: (e) => editor.mostrarCajas(e.target.open) },
       h('summary', {}, 'Cambiar productos'),
-      h('p', { class: 'ayuda' }, 'Si cambiás los productos se recalculan el precio de lista y los costos con los valores de la fecha de la venta '
+      h('p', { class: 'ayuda' }, 'Si cambiás los productos se recalculan el precio de lista y los costos con los valores del día '
+        + 'del pedido '
         + '(si tenía precio especial, se mantiene). Si no los tocás, la venta conserva los valores con los que se guardó.'),
       editor.el),
     h('p', { class: 'pie' }, h('a', { href: `#/ventas/${id}` }, 'Cancelar'))),

@@ -52,6 +52,12 @@ Cada pedido nuevo muestra a qué cliente va la venta (lee `v_pedidos`): el de la
 "Elegir de la libreta". Se puede elegir uno existente (si no tiene celular, se ofrece guardárselo) o crear
 uno nuevo (precargado con el celular del pedido y origen Web).
 
+**Sábado de entrega** (ideas 2.9 y 6.8): la fecha de una venta es siempre el sábado en que se entrega; el día
+en que entró el pedido queda en `ventas.pedido_el` (con él se toman precios y promos). Los pedidos de un sábado
+cierran el jueves a las 23:59; pasado el cierre van al sábado siguiente, en la web y en **+ Venta**. El cierre y los
+sábados sin horneado se cambian abajo de todo en Pedidos web (`parametros.cierre_dia`/`cierre_hora`,
+`sabados_sin_horneado`). La regla está en la base (`sabado_de_pedido`); la web muestra el sábado arriba del carrito.
+
 **Avisos push** (Más → Cuenta → "Avisarme de pedidos nuevos"): por dispositivo. Guarda la suscripción en
 `push_suscripciones` (`js/push.js`) y `sw.js` muestra el aviso; tocarlo abre Pedidos web. En iPhone solo
 funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari común la fila explica cómo.
@@ -59,7 +65,7 @@ funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari com�
 ## Plan de horneado (fase 2 · 3.1 + 3.2)
 
 **Producción → Plan** calcula cuántas tandas hacer para el sábado que viene con las ventas marcadas **Por hacer**
-(se marca al cargar la venta o desde su ficha; los pedidos web confirmados entran solos). El cobro no importa:
+de ese sábado o de antes (las de sábados siguientes esperan su semana; se marca al cargar la venta o desde su ficha; los pedidos web confirmados entran solos). El cobro no importa:
 un pedido pagado por adelantado sigue por hacer. Cada pedido se puede destildar para dejarlo afuera esta vez.
 Los sabores con **masa propia** (Oreo; se marca en la ficha del sabor) van en tandas aparte; los demás hacen
 tandas enteras y juntan lo que sobra en tandas mezcladas, sin partir un sabor entre dos tandas; los lugares

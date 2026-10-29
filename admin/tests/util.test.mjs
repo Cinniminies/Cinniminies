@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  pesos, numero, cantidad, plural, fechaCorta, fechaLarga, nombreMes, mesISO, linkWhatsapp, proximoSabado, sumarDias, sumarMeses, sumar,
+  pesos, numero, cantidad, plural, fechaCorta, fechaLarga, nombreMes, mesISO, linkWhatsapp, proximoSabado, sumarDias, sumarMeses,
+  sumar,
 } from '../js/util.js';
 
 test('pesos: miles con punto, decimales con coma, sin ,00', () => {

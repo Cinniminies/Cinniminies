@@ -29,6 +29,13 @@ export async function catalogo(forzar = false) {
   return cache;
 }
 
+// Guarda parámetros ({ clave: valor }) y los deja al día en el catálogo en memoria.
+export async function guardarParametros(valores) {
+  const filas = Object.entries(valores).map(([clave, valor]) => ({ clave, valor: String(valor) }));
+  await q(sb.from('parametros').upsert(filas));
+  if (cache) for (const f of filas) cache.parametros[f.clave] = f.valor;
+}
+
 // Después de editar sabores, formatos o insumos, para que las pantallas de carga los vean.
 export function invalidarCatalogo() {
   cache = null;

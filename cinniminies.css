@@ -842,6 +842,23 @@ a:hover{ color: var(--canela-hover); }
 }
 .cart-close:hover{ opacity: 1; }
 
+/* Para qué sábado es el pedido; con borde canela cuando no es el de esta semana (cierre o sábado sin horneado) */
+.cart-sabado{
+  margin: -8px 0 18px;
+  padding: 10px 14px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: var(--crema-suave);
+  color: var(--cafe);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.cart-sabado.is-aviso{
+  border-color: var(--canela);
+  background: var(--crema-card);
+  font-weight: 600;
+}
+
 .cart-empty{
   font-size: 14px;
   color: var(--cafe-suave);
