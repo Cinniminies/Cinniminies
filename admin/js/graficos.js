@@ -18,10 +18,6 @@ export function variacion(actual, anterior, contra, { masEsMejor = true } = {}) 
     `${sube ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs ${contra}`);
 }
 
-// Línea en el tiempo (p. ej. el precio de un insumo en cada compra). datos: [{ x: 'AAAA-MM-DD', valor,
-// etiqueta }], ordenados por fecha. El eje x respeta las fechas (compras espaciadas quedan espaciadas)
-// y el y arranca en el mínimo, no en cero: lo que importa es cuánto cambió. Se rotulan la primera y la
-// última; tocar (o enfocar) un punto muestra su detalle con una línea vertical.
 const SVG = 'http://www.w3.org/2000/svg';
 function s(tag, attrs, ...hijos) {
   const el = document.createElementNS(SVG, tag);
@@ -30,46 +26,64 @@ function s(tag, attrs, ...hijos) {
   return el;
 }
 
+// Contenedor de un SVG que se dibuja al ancho que tiene de verdad (1 unidad = 1 px): el texto y los puntos
+// quedan del mismo tamaño en el celular y en la compu. `dibujar(ancho)` devuelve el SVG; se vuelve a llamar
+// cuando cambia el ancho (girar el celular, achicar la ventana) y después `alDibujar()` repone lo elegido.
+function lienzo(alto, dibujar, alDibujar) {
+  const caja = h('div', { class: 'graf-lienzo', style: `height:${alto}px` });
+  let ancho = 0;
+  const observador = new ResizeObserver(([medida]) => {
+    if (!caja.isConnected) { observador.disconnect(); return; }
+    const nuevo = Math.round(medida.contentRect.width);
+    if (!nuevo || nuevo === ancho) return;
+    ancho = nuevo;
+    caja.replaceChildren(dibujar(ancho));
+    alDibujar();
+  });
+  observador.observe(caja);
+  return caja;
+}
+
+// Línea en el tiempo (p. ej. el precio de un insumo en cada compra). datos: [{ x: 'AAAA-MM-DD', valor,
+// etiqueta }], ordenados por fecha. El eje x respeta las fechas (compras espaciadas quedan espaciadas)
+// y el y arranca en el mínimo, no en cero: lo que importa es cuánto cambió. Se rotulan la primera y la
+// última; tocar (o enfocar) un punto muestra su detalle con una línea vertical.
 export function linea(datos, { formato, titulo, columnasTabla }) {
-  const W = 320, H = 160, IZQ = 10, DER = 10, ARR = 22, ABA = 36;
+  const H = 170, IZQ = 10, DER = 10, ARR = 22, ABA = 36;
   const dia = (iso) => Date.parse(`${iso}T12:00:00Z`) / 864e5;
   const x0 = dia(datos[0].x), x1 = dia(datos[datos.length - 1].x);
   const vals = datos.map((d) => d.valor);
   let min = Math.min(...vals), max = Math.max(...vals);
   if (max - min < 1e-9) { min -= Math.abs(min) * 0.1 || 1; max += Math.abs(max) * 0.1 || 1; }
-  const px = (d, i) => (x1 > x0 ? IZQ + ((dia(d.x) - x0) / (x1 - x0)) * (W - IZQ - DER)
-    : IZQ + (i / Math.max(1, datos.length - 1)) * (W - IZQ - DER));
   const py = (v) => ARR + (1 - (v - min) / (max - min)) * (H - ARR - ABA);
-  const pts = datos.map((d, i) => [px(d, i), py(d.valor)]);
+  const ultimo = datos.length - 1;
+  // Se rotulan la primera, la última, y el mínimo y el máximo si quedan en el medio.
+  const iMin = vals.indexOf(Math.min(...vals)), iMax = vals.indexOf(Math.max(...vals));
+  const rotulados = [[0], ultimo ? [ultimo] : [], iMax > 0 && iMax < ultimo ? [iMax] : [],
+    iMin > 0 && iMin < ultimo && iMin !== iMax ? [iMin, true] : []].filter((r) => r.length);
 
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
-  const guia = s('line', { class: 'graf-guia', y1: ARR - 8, y2: H - ABA, x1: -10, x2: -10 });
-  const marcas = [];
+  let elegido = ultimo;
+  let dibujo = null; // { guia, marcas, pts } del último dibujo
   const mostrar = (i) => {
-    const d = datos[i];
-    detalle.replaceChildren(h('strong', {}, formato(d.valor)), h('span', {}, d.etiqueta));
-    guia.setAttribute('x1', pts[i][0]); guia.setAttribute('x2', pts[i][0]);
-    marcas.forEach((m, j) => m.classList.toggle('activa', i === j));
+    elegido = i;
+    detalle.replaceChildren(h('strong', {}, formato(datos[i].valor)), h('span', {}, datos[i].etiqueta));
+    if (!dibujo) return;
+    dibujo.guia.setAttribute('x1', dibujo.pts[i][0]); dibujo.guia.setAttribute('x2', dibujo.pts[i][0]);
+    dibujo.marcas.forEach((m, j) => m.classList.toggle('activa', i === j));
   };
-  const rotulo = (i, abajo = false) => {
-    const [x, y] = pts[i];
-    const ancla = i === 0 && datos.length > 1 ? 'start' : i === datos.length - 1 ? 'end' : 'middle';
-    return s('text', { class: 'graf-rotulo', x, y: abajo ? y + 18 : y - 10, 'text-anchor': ancla }, formato(datos[i].valor));
-  };
-  // Primera, última, y el mínimo y el máximo si quedan en el medio.
-  const ultimo = datos.length - 1;
-  const iMin = vals.indexOf(Math.min(...vals)), iMax = vals.indexOf(Math.max(...vals));
-  const rotulos = [rotulo(0), ultimo ? rotulo(ultimo) : ''];
-  if (iMax > 0 && iMax < ultimo) rotulos.push(rotulo(iMax));
-  if (iMin > 0 && iMin < ultimo && iMin !== iMax) rotulos.push(rotulo(iMin, true));
 
-  const svg = s('svg', { class: 'graf-linea', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
-    s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: H - ABA + 6, y2: H - ABA + 6 }),
-    s('text', { class: 'graf-eje', x: IZQ, y: H - 4, 'text-anchor': 'start' }, datos[0].etiquetaEje || ''),
-    datos.length > 1 ? s('text', { class: 'graf-eje', x: W - DER, y: H - 4, 'text-anchor': 'end' }, datos[datos.length - 1].etiquetaEje || '') : '',
-    guia,
-    s('polyline', { class: 'graf-trazo', points: pts.map((p) => p.join(',')).join(' ') }),
-    ...datos.map((d, i) => {
+  const dibujar = (W) => {
+    const px = (d, i) => (x1 > x0 ? IZQ + ((dia(d.x) - x0) / (x1 - x0)) * (W - IZQ - DER)
+      : IZQ + (i / Math.max(1, ultimo)) * (W - IZQ - DER));
+    const pts = datos.map((d, i) => [px(d, i), py(d.valor)]);
+    const guia = s('line', { class: 'graf-guia', y1: ARR - 8, y2: H - ABA, x1: -10, x2: -10 });
+    const rotulo = ([i, abajo = false]) => {
+      const [x, y] = pts[i];
+      const ancla = i === 0 && ultimo ? 'start' : i === ultimo ? 'end' : 'middle';
+      return s('text', { class: 'graf-rotulo', x, y: abajo ? y + 18 : y - 10, 'text-anchor': ancla }, formato(datos[i].valor));
+    };
+    const marcas = datos.map((d, i) => {
       const g = s('g', { class: 'graf-punto', tabindex: '0', role: 'button', 'aria-label': `${d.etiqueta}: ${formato(d.valor)}` },
         s('circle', { class: 'graf-toque', cx: pts[i][0], cy: pts[i][1], r: 14 }),
         s('circle', { class: 'graf-marca', cx: pts[i][0], cy: pts[i][1], r: 4.5 }));
@@ -77,14 +91,22 @@ export function linea(datos, { formato, titulo, columnasTabla }) {
       g.addEventListener('pointerenter', ver);
       g.addEventListener('focus', ver);
       g.addEventListener('click', ver);
-      marcas.push(g);
       return g;
-    }),
-    ...rotulos);
+    });
+    dibujo = { guia, marcas, pts };
+    return s('svg', { class: 'graf-linea', width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
+      s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: H - ABA + 6, y2: H - ABA + 6 }),
+      s('text', { class: 'graf-eje', x: IZQ, y: H - 4, 'text-anchor': 'start' }, datos[0].etiquetaEje || ''),
+      ultimo ? s('text', { class: 'graf-eje', x: W - DER, y: H - 4, 'text-anchor': 'end' }, datos[ultimo].etiquetaEje || '') : '',
+      guia,
+      s('polyline', { class: 'graf-trazo', points: pts.map((p) => p.join(',')).join(' ') }),
+      ...marcas,
+      ...rotulados.map(rotulo));
+  };
 
-  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), svg, detalle,
-    tablaNumeros([...datos].reverse(), columnasTabla));
-  queueMicrotask(() => mostrar(datos.length - 1));
+  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo),
+    lienzo(H, dibujar, () => mostrar(elegido)), detalle, tablaNumeros([...datos].reverse(), columnasTabla));
+  mostrar(elegido);
   return fig;
 }
 
@@ -110,52 +132,48 @@ function leyenda(series) {
 // datos: [{ etiqueta, etiquetaLarga, valores: { clave: n }, destacado }]; series: [{ clave, nombre, color }], la
 // primera es la de afuera. Un solo eje en pesos desde cero. Tocar una franja muestra el mes (y lo elige con `alElegir`).
 export function areas(datos, { series, formato, titulo, columnasTabla, alElegir, ayudaElegir }) {
-  const W = 340, H = 180, IZQ = 12, DER = 12, ARR = 26, ABA = 26;
+  const H = 190, IZQ = 12, DER = 12, ARR = 26, ABA = 26;
   const n = datos.length;
   const valor = (d, serie) => Number(d.valores[serie.clave]) || 0;
   const nombreDe = (d) => d.etiquetaLarga || d.etiqueta;
   const max = Math.max(1, ...datos.flatMap((d) => series.map((serie) => valor(d, serie))));
-  const paso = (W - IZQ - DER) / Math.max(1, n - 1);
-  const px = (i) => IZQ + i * paso;
   const py = (v) => ARR + (1 - Math.max(0, v) / max) * (H - ARR - ABA);
   const base = H - ABA;
 
   const detalle = h('div', { class: 'graf-detalle', role: 'status' });
-  const guia = s('line', { class: 'graf-guia', y1: ARR - 6, y2: base, x1: -10, x2: -10 });
-  const marcasMes = series.map((serie) => datos.map((d, i) => s('circle', {
-    class: 'graf-marca', cx: px(i), cy: py(valor(d, serie)), r: 4, style: `fill:${serie.color}`, opacity: 0,
-  })));
-  const etiquetas = [];
-  const franjas = [];
+  let elegido = Math.max(0, datos.findIndex((d) => d.destacado));
+  let dibujo = null; // { px, guia, marcasMes, etiquetas, franjas } del último dibujo
   const mostrar = (i) => {
+    elegido = i;
     const d = datos[i];
     detalle.replaceChildren(h('span', {}, nombreDe(d)),
       ...series.map((serie) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${serie.color}` }),
         `${serie.nombre}: `, h('strong', {}, formato(valor(d, serie))))));
-    guia.setAttribute('x1', px(i)); guia.setAttribute('x2', px(i));
-    marcasMes.forEach((fila) => fila.forEach((p, j) => p.setAttribute('opacity', i === j ? 1 : 0)));
-    etiquetas.forEach((t, j) => t.classList.toggle('activa', i === j));
-    franjas.forEach((f, j) => f.classList.toggle('activa', i === j));
+    if (!dibujo) return;
+    dibujo.guia.setAttribute('x1', dibujo.px(i)); dibujo.guia.setAttribute('x2', dibujo.px(i));
+    dibujo.marcasMes.forEach((fila) => fila.forEach((p, j) => p.setAttribute('opacity', i === j ? 1 : 0)));
+    dibujo.etiquetas.forEach((t, j) => t.classList.toggle('activa', i === j));
+    dibujo.franjas.forEach((f, j) => f.classList.toggle('activa', i === j));
   };
 
-  const capas = series.map((serie) => {
-    const trazo = datos.map((d, i) => `${px(i)},${py(valor(d, serie))}`).join(' ');
-    return [
-      s('polygon', { class: 'graf-relleno', points: `${px(0)},${base} ${trazo} ${px(n - 1)},${base}`, style: `fill:${serie.color}` }),
-      s('polyline', { class: 'graf-trazo', points: trazo, style: `stroke:${serie.color}` }),
-    ];
-  });
-  const svg = s('svg', { class: 'graf-linea graf-areas', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
-    s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: base, y2: base }),
-    ...capas.flat(), guia, ...marcasMes.flat(),
-    ...datos.map((d, i) => {
-      const t = s('text', { class: 'graf-eje' + (d.destacado ? ' destacado' : ''), x: px(i), y: H - 6,
-        'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' }, d.etiqueta);
-      etiquetas.push(t);
-      return t;
-    }),
+  const dibujar = (W) => {
+    const paso = (W - IZQ - DER) / Math.max(1, n - 1);
+    const px = (i) => IZQ + i * paso;
+    const guia = s('line', { class: 'graf-guia', y1: ARR - 6, y2: base, x1: -10, x2: -10 });
+    const marcasMes = series.map((serie) => datos.map((d, i) => s('circle', {
+      class: 'graf-marca', cx: px(i), cy: py(valor(d, serie)), r: 4, style: `fill:${serie.color}`, opacity: 0,
+    })));
+    const capas = series.map((serie) => {
+      const trazo = datos.map((d, i) => `${px(i)},${py(valor(d, serie))}`).join(' ');
+      return [
+        s('polygon', { class: 'graf-relleno', points: `${px(0)},${base} ${trazo} ${px(n - 1)},${base}`, style: `fill:${serie.color}` }),
+        s('polyline', { class: 'graf-trazo', points: trazo, style: `stroke:${serie.color}` }),
+      ];
+    });
+    const etiquetas = datos.map((d, i) => s('text', { class: 'graf-eje' + (d.destacado ? ' destacado' : ''), x: px(i), y: H - 6,
+      'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' }, d.etiqueta));
     // Franjas invisibles a lo alto: el blanco del toque es todo el mes, no el punto.
-    ...datos.map((d, i) => {
+    const franjas = datos.map((d, i) => {
       const montos = series.map((serie) => `${serie.nombre} ${formato(valor(d, serie))}`).join(', ');
       const f = s('rect', { class: 'graf-franja', x: px(i) - paso / 2, y: 0, width: paso, height: H, tabindex: '0', role: 'button',
         'aria-label': `${nombreDe(d)}: ${montos}`, 'aria-pressed': alElegir ? String(Boolean(d.destacado)) : null });
@@ -167,16 +185,19 @@ export function areas(datos, { series, formato, titulo, columnasTabla, alElegir,
         e.preventDefault();
         alElegir(d);
       });
-      franjas.push(f);
       return f;
-    }));
+    });
+    dibujo = { px, guia, marcasMes, etiquetas, franjas };
+    return s('svg', { class: 'graf-linea graf-areas', width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
+      s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: base, y2: base }),
+      ...capas.flat(), guia, ...marcasMes.flat(), ...etiquetas, ...franjas);
+  };
 
-  const elegido = Math.max(0, datos.findIndex((d) => d.destacado));
   const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo),
-    leyenda(series), svg, detalle,
+    leyenda(series), lienzo(H, dibujar, () => mostrar(elegido)), detalle,
     alElegir && ayudaElegir ? h('p', { class: 'graf-ayuda' }, ayudaElegir) : null,
     tablaNumeros(datos, columnasTabla));
-  queueMicrotask(() => mostrar(elegido));
+  mostrar(elegido);
   return fig;
 }
 
