@@ -758,7 +758,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 /* Promociones: cada promo es un cupón. A la izquierda el descuento en grande (lo que se busca de un vistazo),
    separado con un borde punteado; a la derecha cuándo, a qué cajas y sabores, y cómo quedan los precios. */
 .promo-lista { display: grid; gap: .75rem; margin-bottom: 1rem; }
-@media (min-width: 900px) { .promo-lista { grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); } }
+/* auto-fit: una sola promo ocupa todo el ancho, en vez de dejar una columna vacía al lado. */
+@media (min-width: 900px) { .promo-lista { grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr)); } }
 .promo-tarjeta { display: grid; grid-template-columns: 7.5rem 1fr; background: var(--card); border: 1px solid var(--borde);
   border-radius: var(--radio); overflow: hidden; }
 .promo-tarjeta.en-curso { border: 2px solid var(--marca); }
@@ -776,8 +777,11 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .promo-ejemplos { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .9375rem; }
 .promo-ejemplos s, .promo-ejemplo s, .promo-resumen s { color: var(--suave); }
 .promo-texto { margin: .55rem 0 0; font-style: italic; color: var(--suave); font-size: .9375rem; overflow-wrap: anywhere; }
-.promo-cuerpo .plegable { margin-top: .6rem; }
 .promo-cuerpo .acciones { margin-top: .5rem; }
+/* El formulario va en una fila propia, a todo el ancho del ticket: dentro del cuerpo lo estiraba hacia abajo. */
+.promo-editar { grid-column: 1 / -1; margin: 0; border: 0; border-top: 1px solid var(--borde); border-radius: 0; }
+.promo-editar[open] { padding-bottom: 1rem; }
+.promo-tarjeta:has(.promo-editar[open]) { grid-column: 1 / -1; }
 .promo-vista { display: grid; gap: .25rem; }
 .promo-ejemplo { display: flex; justify-content: space-between; padding: .4rem .6rem; border-radius: var(--radio-control); background: var(--marca-suave); }
 .promo-vista:empty::before { content: "Poné cuánto descuenta para ver cómo quedan los precios."; color: var(--suave); font-size: .9375rem; }

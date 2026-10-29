@@ -146,8 +146,8 @@ export async function mostrar(cont) {
         filas.length ? h('div', { class: 'promo-ejemplos' }, filas.map((e) => h('span', {},
           `${e.nombre}: `, h('s', {}, pesos(e.antes)), ' ', h('strong', {}, pesos(e.despues))))) : null,
         p.texto_web ? h('p', { class: 'promo-texto' }, `“${p.texto_web}”`) : null,
-        h('details', { class: 'plegable' }, h('summary', {}, 'Editar'), formulario(p)),
-        h('div', { class: 'acciones' }, prender, borrar)));
+        h('div', { class: 'acciones' }, prender, borrar)),
+      h('details', { class: 'plegable promo-editar' }, h('summary', {}, 'Editar'), formulario(p)));
   }
 
   const vigentes = promos.filter((p) => estado(p, hoy)[1] === 'ok');
