@@ -5,6 +5,7 @@ import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { irA } from '../app.js';
 import { linea } from '../graficos.js';
 import { puntos, cambio, impactoPorRoll, impactoPorCaja } from '../historial.js';
+import { textoPanel } from '../textos.js';
 
 const TIPOS = [{ valor: 'ingrediente', texto: 'Ingrediente' }, { valor: 'packaging', texto: 'Packaging' }];
 const UNIDADES = [{ valor: 'g', texto: 'gramos (g)' }, { valor: 'ml', texto: 'mililitros (ml)' },
@@ -114,6 +115,7 @@ async function ficha(cont, id) {
       nombre: datos.nombre.trim(), tipo: datos.tipo, unidad_base: datos.unidad_base,
       stock_minimo: Number(datos.stock_minimo) || 0, costo_referencia: ref, activo: datos.activo,
       es_glaseado: datos.tipo === 'ingrediente' && !!datos.es_glaseado,
+      se_descuenta_solo: !!datos.se_descuenta_solo,
     };
     const guardado = id
       ? await q(sb.from('insumos').update(fila).eq('id', id).select('id').single())
@@ -174,6 +176,9 @@ async function ficha(cont, id) {
           oninput: (e) => { datos.costo_referencia = e.target.value; } }), ayudaRef)),
       datos.tipo === 'ingrediente' ? interruptor('Va en el glaseado', !!datos.es_glaseado, (v) => { datos.es_glaseado = v; },
         'Los rolls que se piden sin glaseado no lo gastan ni lo cuentan en el costo.') : null,
+      interruptor('Se descuenta solo', !!datos.se_descuenta_solo, (v) => { datos.se_descuenta_solo = v; },
+        textoPanel('panel.stock_solo_ayuda', 'Para lo que no se puede medir después de usarlo, como el papel manteca. '
+          + 'No se cuenta: su stock baja solo con cada caja hecha y cada tanda.')),
       interruptor('Activo', datos.activo, (v) => { datos.activo = v; }, 'Los inactivos no aparecen para comprar, contar ni en recetas nuevas.')),
     historial ? seccionHistorial(historial, insumo, cat) : null,
     seccionCaja,
