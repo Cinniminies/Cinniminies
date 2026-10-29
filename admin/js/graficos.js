@@ -4,70 +4,6 @@ import { h } from './util.js';
 // color de acento (el resto en gris de contexto), etiquetas selectivas en color de texto, detalle
 // al tocar o con el teclado, y siempre una tabla con los mismos datos.
 
-// Columnas (p. ej. vendido por mes). datos: [{ etiqueta, valor, destacado, filas: [[nombre, texto]] }]
-// Se rotula solo la columna destacada y la más alta; el resto está en el detalle y en la tabla.
-// `alElegir(d)`: si está, tocar (o Enter sobre) una columna la elige además de mostrar el detalle.
-export function columnas(datos, { formato, titulo, columnasTabla, alElegir, ayudaElegir }) {
-  const max = Math.max(0, ...datos.map((d) => d.valor));
-  const iMax = datos.findIndex((d) => d.valor === max && max > 0);
-  const detalle = h('div', { class: 'graf-detalle', role: 'status' });
-
-  const mostrar = (d, col) => {
-    detalle.replaceChildren(
-      h('strong', {}, formato(d.valor)), h('span', {}, d.etiquetaLarga || d.etiqueta),
-      ...(d.filas || []).map(([n, t]) => h('span', { class: 'graf-fila' }, `${n}: ${t}`)));
-    for (const c of col.parentNode.children) c.classList.toggle('activa', c === col);
-  };
-
-  const cols = datos.map((d, i) => {
-    const alto = max > 0 && d.valor > 0 ? Math.max(2, (100 * d.valor) / max) : 0;
-    const col = h('button', {
-      type: 'button', class: 'graf-col' + (d.destacado ? ' destacado' : ''),
-      'aria-label': `${d.etiquetaLarga || d.etiqueta}: ${formato(d.valor)}`,
-      'aria-pressed': alElegir ? String(Boolean(d.destacado)) : null,
-    },
-    h('span', { class: 'graf-valor' }, d.destacado || i === iMax ? formato(d.valor) : ''),
-    h('span', { class: 'graf-area' }, h('span', { class: 'graf-barra', style: `height:${alto}%` })),
-    h('span', { class: 'graf-etq' }, d.etiqueta));
-    const ver = () => mostrar(d, col);
-    col.addEventListener('pointerenter', ver);
-    col.addEventListener('focus', ver);
-    col.addEventListener('click', alElegir ? () => alElegir(d) : ver);
-    return col;
-  });
-
-  const tabla = h('details', { class: 'graf-tabla' }, h('summary', {}, 'Ver los números'),
-    h('table', { class: 'tabla' },
-      h('tr', {}, columnasTabla.map((c, i) => h('th', { class: i ? 'num-der' : null }, c[0]))),
-      datos.map((d) => h('tr', {}, columnasTabla.map((c, i) => h('td', { class: i ? 'num-der' : null }, c[1](d)))))));
-
-  const destacado = datos.find((d) => d.destacado) || datos[datos.length - 1];
-  const fig = h('figure', { class: 'grafico' },
-    h('figcaption', { class: 'graf-titulo' }, titulo),
-    h('div', { class: 'graf-columnas', style: `--n:${datos.length}` }, cols),
-    detalle,
-    alElegir && ayudaElegir ? h('p', { class: 'graf-ayuda' }, ayudaElegir) : null,
-    tabla);
-  if (destacado) queueMicrotask(() => mostrar(destacado, cols[datos.indexOf(destacado)]));
-  return fig;
-}
-
-// Barras horizontales para comparar cantidades (p. ej. rolls por sabor), de mayor a menor.
-// datos: [{ etiqueta, valor }]. El valor va en la punta de cada barra.
-export function barras(datos, { formato, titulo, vacio }) {
-  const ordenados = [...datos].filter((d) => d.valor > 0).sort((a, b) => b.valor - a.valor);
-  const max = Math.max(0, ...ordenados.map((d) => d.valor));
-  return h('figure', { class: 'grafico' },
-    h('figcaption', { class: 'graf-titulo' }, titulo),
-    ordenados.length
-      ? h('ul', { class: 'graf-barras' }, ordenados.map((d) => h('li', {},
-        h('span', { class: 'graf-etq' }, d.etiqueta),
-        h('span', { class: 'graf-pista' },
-          h('span', { class: 'graf-barra', style: `width:${(100 * d.valor) / max}%` }),
-          h('span', { class: 'graf-valor' }, formato(d.valor))))))
-      : h('p', { class: 'ayuda' }, vacio));
-}
-
 // Variación contra el período anterior: "▲ 12 % vs agosto" (verde si sube algo bueno).
 export function variacion(actual, anterior, contra, { masEsMejor = true } = {}) {
   if (!anterior || anterior === 0 || actual == null) return null;
@@ -154,4 +90,204 @@ export function linea(datos, { formato, titulo, columnasTabla }) {
   const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), svg, detalle, tabla);
   queueMicrotask(() => mostrar(datos.length - 1));
   return fig;
+}
+
+// Tabla "Ver los números" con los mismos datos del gráfico. columnasTabla: [[título, (d) => texto]].
+function tablaNumeros(datos, columnasTabla) {
+  return h('details', { class: 'graf-tabla' }, h('summary', {}, 'Ver los números'),
+    h('table', { class: 'tabla' },
+      h('tr', {}, columnasTabla.map((c, i) => h('th', { class: i ? 'num-der' : null }, c[0]))),
+      datos.map((d) => h('tr', {}, columnasTabla.map((c, i) => h('td', { class: i ? 'num-der' : null }, c[1](d)))))));
+}
+
+// Leyenda: [{ nombre, color }]. Va siempre que haya dos series o más.
+function leyenda(series) {
+  return h('div', { class: 'leyenda' }, series.map((s) => h('span', {}, h('i', { style: `--c:${s.color}` }), s.nombre)));
+}
+
+// Áreas en el tiempo: dos montos que van uno dentro del otro (p. ej. vendido y, adentro, la ganancia), mes a mes.
+// datos: [{ etiqueta, etiquetaLarga, valores: { clave: n }, destacado }]; series: [{ clave, nombre, color }], la
+// primera es la de afuera. Un solo eje en pesos desde cero. Tocar una franja muestra el mes (y lo elige con `alElegir`).
+export function areas(datos, { series, formato, titulo, columnasTabla, alElegir, ayudaElegir }) {
+  const W = 340, H = 180, IZQ = 12, DER = 12, ARR = 26, ABA = 26;
+  const n = datos.length;
+  const max = Math.max(1, ...datos.flatMap((d) => series.map((s) => Number(d.valores[s.clave]) || 0)));
+  const paso = (W - IZQ - DER) / Math.max(1, n - 1);
+  const px = (i) => IZQ + i * paso;
+  const py = (v) => ARR + (1 - Math.max(0, v) / max) * (H - ARR - ABA);
+  const base = H - ABA;
+
+  const detalle = h('div', { class: 'graf-detalle', role: 'status' });
+  const guia = s('line', { class: 'graf-guia', y1: ARR - 6, y2: base, x1: -10, x2: -10 });
+  const puntos = series.map((se) => datos.map((d, i) => s('circle', {
+    class: 'graf-marca', cx: px(i), cy: py(Number(d.valores[se.clave]) || 0), r: 4, style: `fill:${se.color}`, opacity: 0,
+  })));
+  const etiquetas = [];
+  const franjas = [];
+  const mostrar = (i) => {
+    const d = datos[i];
+    detalle.replaceChildren(h('span', {}, d.etiquetaLarga || d.etiqueta),
+      ...series.map((se) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${se.color}` }),
+        `${se.nombre}: `, h('strong', {}, formato(Number(d.valores[se.clave]) || 0)))));
+    guia.setAttribute('x1', px(i)); guia.setAttribute('x2', px(i));
+    puntos.forEach((fila) => fila.forEach((p, j) => p.setAttribute('opacity', i === j ? 1 : 0)));
+    etiquetas.forEach((t, j) => t.classList.toggle('activa', i === j));
+    franjas.forEach((f, j) => f.classList.toggle('activa', i === j));
+  };
+
+  const capas = series.map((se) => {
+    const pts = datos.map((d, i) => `${px(i)},${py(Number(d.valores[se.clave]) || 0)}`);
+    return [
+      s('polygon', { class: 'graf-relleno', points: `${px(0)},${base} ${pts.join(' ')} ${px(n - 1)},${base}`, style: `fill:${se.color}` }),
+      s('polyline', { class: 'graf-trazo', points: pts.join(' '), style: `stroke:${se.color}` }),
+    ];
+  });
+  const svg = s('svg', { class: 'graf-linea graf-areas', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': titulo },
+    s('line', { class: 'graf-base', x1: IZQ, x2: W - DER, y1: base, y2: base }),
+    ...capas.flat(), guia, ...puntos.flat(),
+    ...datos.map((d, i) => {
+      const t = s('text', { class: 'graf-eje' + (d.destacado ? ' destacado' : ''), x: px(i), y: H - 6,
+        'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' }, d.etiqueta);
+      etiquetas.push(t);
+      return t;
+    }),
+    // Franjas invisibles a lo alto: el blanco del toque es todo el mes, no el punto.
+    ...datos.map((d, i) => {
+      const f = s('rect', { class: 'graf-franja', x: px(i) - paso / 2, y: 0, width: paso, height: H, tabindex: '0', role: 'button',
+        'aria-label': `${d.etiquetaLarga || d.etiqueta}: ${series.map((se) => `${se.nombre} ${formato(Number(d.valores[se.clave]) || 0)}`).join(', ')}`,
+        'aria-pressed': alElegir ? String(Boolean(d.destacado)) : null });
+      f.addEventListener('pointerenter', () => mostrar(i));
+      f.addEventListener('focus', () => mostrar(i));
+      f.addEventListener('click', alElegir ? () => alElegir(d) : () => mostrar(i));
+      f.addEventListener('keydown', (e) => { if (alElegir && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); alElegir(d); } });
+      franjas.push(f);
+      return f;
+    }));
+
+  const iDest = Math.max(0, datos.findIndex((d) => d.destacado));
+  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo),
+    leyenda(series), svg, detalle,
+    alElegir && ayudaElegir ? h('p', { class: 'graf-ayuda' }, ayudaElegir) : null,
+    tablaNumeros(datos, columnasTabla));
+  queueMicrotask(() => mostrar(iDest));
+  return fig;
+}
+
+// Partes de un total (p. ej. rolls vendidos por sabor): una sola barra partida y, abajo, cada parte con su
+// cantidad y su porcentaje. datos: [{ etiqueta, valor, color }] en el orden fijo de las entidades (el color
+// sigue al sabor, no al puesto). Más de 7 partes: las chicas se juntan en "Otros".
+export function partes(datos, { formato, titulo, vacio }) {
+  let lista = datos.filter((d) => d.valor > 0);
+  if (lista.length > 7) {
+    const chicas = [...lista].sort((a, b) => b.valor - a.valor).slice(6);
+    lista = [...lista.filter((d) => !chicas.includes(d)),
+      { etiqueta: 'Otros', valor: chicas.reduce((a, d) => a + d.valor, 0), color: 'var(--graf-gris)' }];
+  }
+  const total = lista.reduce((a, d) => a + d.valor, 0);
+  const pct = (v) => `${Math.round((100 * v) / total)} %`;
+  if (!total) return h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'ayuda' }, vacio));
+  const mayor = Math.max(...lista.map((d) => d.valor));
+  return h('figure', { class: 'grafico' },
+    h('figcaption', { class: 'graf-titulo' }, titulo, h('span', { class: 'graf-total' }, ` · ${formato(total)} en total`)),
+    h('div', { class: 'graf-partes', role: 'img', 'aria-label': lista.map((d) => `${d.etiqueta} ${pct(d.valor)}`).join(', ') },
+      lista.map((d) => h('span', { style: `flex:${d.valor};--c:${d.color}`, title: `${d.etiqueta}: ${formato(d.valor)} (${pct(d.valor)})` }))),
+    h('ul', { class: 'graf-partes-lista' }, lista.map((d) => h('li', { class: d.valor === mayor ? 'mayor' : null },
+      h('i', { style: `--c:${d.color}` }), h('span', { class: 'graf-etq' }, d.etiqueta),
+      h('span', { class: 'graf-valor' }, formato(d.valor)), h('span', { class: 'graf-pct' }, pct(d.valor))))));
+}
+
+// Pesas (dumbbell): dos montos por fila sobre la misma escala desde cero, unidos por el tramo que los separa
+// (p. ej. costo → precio: el tramo es lo que queda). datos: [{ etiqueta, desde, hasta, nota, href }];
+// nombres: [nombre de "desde", nombre de "hasta"]. Ordenadas por el tramo, de mayor a menor.
+export function pesas(datos, { formato, titulo, nombres, nota, columnasTabla }) {
+  // Un poco de aire a la derecha para que la cifra de la punta no se salga.
+  const max = Math.max(1, ...datos.map((d) => d.hasta)) * 1.08;
+  const pos = (v) => `${(100 * Math.max(0, v)) / max}%`;
+  const ordenadas = [...datos].sort((a, b) => (b.hasta - b.desde) - (a.hasta - a.desde));
+  return h('figure', { class: 'grafico' },
+    h('figcaption', { class: 'graf-titulo' }, titulo),
+    leyenda([{ nombre: nombres[0], color: 'var(--graf-gris)' }, { nombre: nombres[1], color: 'var(--graf-acento)' }]),
+    h('ul', { class: 'graf-pesas' }, ordenadas.map((d) => h('li', {},
+      d.href ? h('a', { class: 'graf-etq', href: d.href }, d.etiqueta) : h('span', { class: 'graf-etq' }, d.etiqueta),
+      h('span', { class: 'graf-pesa', role: 'img', 'aria-label': `${d.etiqueta}: ${nombres[0]} ${formato(d.desde)}, ${nombres[1]} ${formato(d.hasta)}` },
+        h('span', { class: 'graf-tramo', style: `left:${pos(d.desde)};width:calc(${pos(d.hasta)} - ${pos(d.desde)})` }),
+        h('span', { class: 'graf-bola desde', style: `left:${pos(d.desde)}` }),
+        h('span', { class: 'graf-bola hasta', style: `left:${pos(d.hasta)}` }),
+        h('span', { class: 'graf-cifra desde', style: `left:${pos(d.desde)}` }, formato(d.desde)),
+        h('span', { class: 'graf-cifra hasta', style: `left:${pos(d.hasta)}` }, formato(d.hasta))),
+      h('span', { class: 'graf-nota' }, h('strong', {}, nota(d).valor), h('small', {}, nota(d).sub))))),
+    columnasTabla ? tablaNumeros(ordenadas, columnasTabla) : null);
+}
+
+// Composición al 100 %: en qué se va el precio de cada cosa (p. ej. cada caja: rolls, empaque y lo que queda).
+// grupos: [{ titulo, filas: [{ etiqueta, total, valores: { clave: n } }] }]; partes: [{ clave, nombre, color }],
+// la última es la que se rotula a la derecha con su porcentaje. Tocar una fila muestra sus montos.
+export function composicion(grupos, { partes: ps, formato, titulo, columnasTabla }) {
+  const ultima = ps[ps.length - 1];
+  const detalle = h('div', { class: 'graf-detalle', role: 'status' });
+  const filas = [];
+  const mostrar = (f, el) => {
+    detalle.replaceChildren(h('span', {}, `${f.etiqueta} · ${formato(f.total)}`),
+      ...ps.map((p) => h('span', { class: 'graf-fila' }, h('i', { class: 'graf-punto-leyenda', style: `--c:${p.color}` }),
+        `${p.nombre}: `, h('strong', {}, formato(f.valores[p.clave])))));
+    filas.forEach((x) => x.classList.toggle('activa', x === el));
+  };
+  const pct = (f, clave) => (f.total > 0 ? (100 * Math.max(0, f.valores[clave])) / f.total : 0);
+  let primera = null;
+  const cuerpo = grupos.map((g) => h('div', { class: 'graf-grupo' },
+    grupos.length > 1 ? h('div', { class: 'graf-subtitulo' }, g.titulo) : null,
+    g.filas.map((f) => {
+      const el = h('button', { type: 'button', class: 'graf-comp',
+        'aria-label': `${f.etiqueta}: ${ps.map((p) => `${p.nombre} ${formato(f.valores[p.clave])}`).join(', ')}` },
+      h('span', { class: 'graf-etq' }, f.etiqueta),
+      h('span', { class: 'graf-pila' }, ps.map((p) => h('span', { style: `flex:${pct(f, p.clave)};--c:${p.color}` }))),
+      h('span', { class: 'graf-valor' }, `${Math.round(pct(f, ultima.clave))} %`));
+      el.addEventListener('pointerenter', () => mostrar(f, el));
+      el.addEventListener('focus', () => mostrar(f, el));
+      el.addEventListener('click', () => mostrar(f, el));
+      filas.push(el);
+      if (!primera) primera = [f, el];
+      return el;
+    })));
+  const fig = h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo),
+    leyenda(ps), h('div', { class: 'graf-comps' }, cuerpo), detalle,
+    columnasTabla ? tablaNumeros(grupos.flatMap((g) => g.filas), columnasTabla) : null);
+  if (primera) queueMicrotask(() => mostrar(...primera));
+  return fig;
+}
+
+// Puntos por grupo (strip plot): cada publicación es un punto y la raya oscura es el promedio del grupo. Muestra
+// además de "cuál rinde más en promedio" si es parejo o depende de una sola. grupos: [{ etiqueta, puntos:
+// [{ valor, etiqueta }] }]. Escala desde cero, compartida.
+export function puntos(grupos, { formato, titulo, vacio }) {
+  const con = grupos.filter((g) => g.puntos.length);
+  if (!con.length) return h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'ayuda' }, vacio));
+  const max = Math.max(1, ...con.flatMap((g) => g.puntos.map((p) => p.valor)));
+  const pos = (v) => `${(100 * v) / max}%`;
+  const prom = (g) => g.puntos.reduce((a, p) => a + p.valor, 0) / g.puntos.length;
+  const ordenados = [...con].sort((a, b) => prom(b) - prom(a));
+  const detalle = h('div', { class: 'graf-detalle', role: 'status' });
+  const todos = [];
+  const mostrar = (p, g, el) => {
+    detalle.replaceChildren(h('strong', {}, formato(p.valor)), h('span', {}, `${g.etiqueta} · ${p.etiqueta}`));
+    todos.forEach((x) => x.classList.toggle('activa', x === el));
+  };
+  return h('figure', { class: 'grafico' },
+    h('figcaption', { class: 'graf-titulo' }, titulo),
+    h('ul', { class: 'graf-puntos' }, ordenados.map((g) => h('li', {},
+      h('span', { class: 'graf-etq' }, g.etiqueta, h('small', {}, `${g.puntos.length} ${g.puntos.length === 1 ? 'publicación' : 'publicaciones'}`)),
+      h('span', { class: 'graf-riel' },
+        g.puntos.map((p) => {
+          const el = h('button', { type: 'button', class: 'graf-pto', style: `left:${pos(p.valor)}`, 'aria-label': `${g.etiqueta}, ${p.etiqueta}: ${formato(p.valor)}` });
+          el.addEventListener('pointerenter', () => mostrar(p, g, el));
+          el.addEventListener('focus', () => mostrar(p, g, el));
+          el.addEventListener('click', () => mostrar(p, g, el));
+          todos.push(el);
+          return el;
+        }),
+        h('span', { class: 'graf-media', style: `left:${pos(prom(g))}`, 'aria-hidden': 'true' })),
+      h('span', { class: 'graf-valor' }, formato(Math.round(prom(g))), h('small', {}, 'promedio'))))),
+    h('div', { class: 'leyenda' }, h('span', {}, h('i', { class: 'redondo', style: '--c:var(--graf-acento)' }), 'una publicación'),
+      h('span', {}, h('i', { class: 'raya', style: '--c:var(--texto)' }), 'promedio')),
+    detalle);
 }

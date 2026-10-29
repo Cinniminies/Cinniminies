@@ -30,6 +30,9 @@
   --serie-1: #a8531d;
   --serie-2: #3d6fa6;
   --serie-3: #1b9e77;
+  --serie-4: #d4a017; /* bajo 3:1 sobre la miga: siempre con su nombre y número al lado */
+  --serie-5: #c25a8a;
+  --serie-6: #6250d6;
   --graf-perdido: #b3401a; /* rolls perdidos: siempre con su etiqueta */
   --radio: 14px;           /* contenedores */
   --radio-control: 8px;    /* campos, botones, chips */
@@ -63,6 +66,9 @@
     --serie-1: #d07a38;
     --serie-2: #5b93d6;
     --serie-3: #2fa883;
+    --serie-4: #b8860b;
+    --serie-5: #d86b9b;
+    --serie-6: #9085e9;
     --graf-perdido: #d9663e;
     color-scheme: dark;
   }
@@ -428,16 +434,6 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 /* Gráficos: marcas finas, punta redondeada, acento + gris de contexto (colores validados) */
 .grafico { margin: 0; }
 .graf-titulo { font-weight: 600; font-size: .9375rem; margin-bottom: .75rem; }
-.graf-columnas { display: grid; grid-template-columns: repeat(var(--n), 1fr); height: 11.5rem; }
-.graf-col { display: flex; flex-direction: column; align-items: center; height: 100%; padding: 0; margin: 0;
-  background: none; border: 0; color: var(--texto); font: inherit; cursor: pointer; }
-.graf-col .graf-valor { height: 1.3rem; font-size: .8125rem; font-weight: 600; white-space: nowrap; }
-.graf-area { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--borde); }
-.graf-columnas .graf-barra { display: block; width: min(24px, 60%); background: var(--graf-gris); border-radius: 4px 4px 0 0; }
-.graf-col.destacado .graf-barra { background: var(--graf-acento); }
-.graf-col.activa .graf-barra { outline: 2px solid var(--graf-acento); outline-offset: 2px; }
-.graf-col .graf-etq { padding-top: .35rem; font-size: .8125rem; color: var(--suave); }
-.graf-col.destacado .graf-etq { color: var(--texto); font-weight: 600; }
 .graf-ayuda { margin: .35rem 0 0; font-size: .8125rem; color: var(--suave); }
 .graf-detalle { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .75rem; min-height: 1.6rem;
   margin-top: .75rem; font-size: .875rem; color: var(--suave); }
@@ -455,12 +451,76 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .graf-linea .graf-base { stroke: var(--borde); stroke-width: 1; }
 .graf-linea .graf-rotulo { font-size: 12px; font-weight: 600; fill: var(--texto); }
 .graf-linea .graf-eje { font-size: 12px; fill: var(--suave); }
-.graf-barras { list-style: none; margin: 0; padding: 0; }
-.graf-barras li { display: grid; grid-template-columns: minmax(6rem, 36%) 1fr; align-items: center; gap: .6rem; padding: .3rem 0; }
-.graf-barras .graf-etq { font-size: .9rem; line-height: 1.2; overflow-wrap: anywhere; }
-.graf-pista { display: flex; align-items: center; gap: .45rem; min-width: 0; }
-.graf-barras .graf-barra { display: block; height: 14px; min-width: 3px; background: var(--graf-acento); border-radius: 0 4px 4px 0; }
-.graf-barras .graf-valor { font-size: .875rem; font-weight: 600; }
+.graf-titulo .graf-total { font-weight: 400; color: var(--suave); }
+.graf-fila i, .graf-punto-leyenda { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; background: var(--c); margin-right: .3rem; }
+.leyenda i.redondo { border-radius: 50%; }
+.leyenda i.raya { width: 3px; height: .9rem; border-radius: 2px; }
+
+/* Áreas en el tiempo (vendido y, adentro, la ganancia) */
+.graf-areas .graf-relleno { opacity: .16; }
+.graf-areas .graf-franja { fill: transparent; cursor: pointer; outline: none; }
+.graf-areas .graf-franja:focus-visible { fill: var(--marca-suave); opacity: .5; }
+.graf-areas .graf-marca { stroke: var(--card); stroke-width: 2; }
+.graf-areas .graf-eje.destacado, .graf-areas .graf-eje.activa { fill: var(--texto); font-weight: 600; }
+
+/* Partes de un total: una barra partida y la lista con cantidades y porcentajes */
+.graf-partes { display: flex; gap: 2px; height: 18px; margin-bottom: .75rem; }
+.graf-partes span { background: var(--c); min-width: 4px; }
+.graf-partes span:first-child { border-radius: 4px 0 0 4px; }
+.graf-partes span:last-child { border-radius: 0 4px 4px 0; }
+.graf-partes span:only-child { border-radius: 4px; }
+.graf-partes-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: .1rem 1.25rem; }
+@media (min-width: 480px) { .graf-partes-lista { grid-template-columns: 1fr 1fr; } }
+.graf-partes-lista li { display: grid; grid-template-columns: .75rem 1fr auto 3rem; align-items: center; gap: .5rem; padding: .3rem 0; font-size: .9rem; border-top: 1px solid var(--borde); }
+.graf-partes-lista i { width: .75rem; height: .75rem; border-radius: 3px; background: var(--c); }
+.graf-partes-lista .graf-valor { font-weight: 600; }
+.graf-partes-lista .graf-pct { text-align: right; color: var(--suave); font-size: .8125rem; }
+.graf-partes-lista li.mayor .graf-pct { color: var(--texto); font-weight: 600; }
+
+/* Pesas: costo → precio sobre la misma escala; el tramo es lo que queda */
+.graf-pesas { list-style: none; margin: 0; padding: 0; }
+.graf-pesas li { display: grid; grid-template-columns: minmax(5rem, 26%) 1fr 4.6rem; align-items: center; gap: .75rem; padding: .55rem 0; border-top: 1px solid var(--borde); }
+.graf-pesas li:first-child { border-top: 0; }
+.graf-pesas .graf-etq { font-size: .9rem; line-height: 1.2; overflow-wrap: anywhere; }
+.graf-pesa { position: relative; height: 2.6rem; margin: 0 1rem; }
+.graf-pesa::before { content: ''; position: absolute; left: 0; right: 0; top: .9rem; border-top: 1px dashed var(--borde); }
+.graf-tramo { position: absolute; top: calc(.9rem - 2px); height: 4px; background: var(--graf-acento); opacity: .35; border-radius: 2px; }
+.graf-bola { position: absolute; top: .9rem; width: 12px; height: 12px; margin: -8px 0 0 -8px; border-radius: 50%; border: 2px solid var(--card); box-sizing: content-box; }
+.graf-bola.desde { background: var(--graf-gris); }
+.graf-bola.hasta { background: var(--graf-acento); }
+.graf-cifra { position: absolute; top: 1.45rem; font-size: .8125rem; white-space: nowrap; color: var(--suave); translate: -50% 0; }
+.graf-cifra.hasta { color: var(--texto); font-weight: 600; }
+.graf-nota { text-align: right; line-height: 1.15; }
+.graf-nota strong { display: block; font-size: .95rem; }
+.graf-nota small { font-size: .8125rem; color: var(--suave); }
+
+/* Composición al 100 %: en qué se va el precio de cada caja */
+.graf-grupo + .graf-grupo { margin-top: .6rem; }
+.graf-subtitulo { font-size: .875rem; font-weight: 600; color: var(--suave); padding: .2rem 0; }
+.graf-comp { display: grid; grid-template-columns: minmax(5rem, 30%) 1fr 3rem; align-items: center; gap: .6rem; width: 100%; min-height: 44px;
+  padding: .25rem .25rem; background: none; border: 0; border-radius: var(--radio-control); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.graf-comp.activa { background: var(--marca-suave); }
+.graf-comp .graf-etq { font-size: .9rem; line-height: 1.2; overflow-wrap: anywhere; }
+.graf-pila { display: flex; gap: 2px; height: 16px; }
+.graf-pila span { background: var(--c); min-width: 0; }
+.graf-pila span:first-child { border-radius: 4px 0 0 4px; }
+.graf-pila span:last-child { border-radius: 0 4px 4px 0; }
+.graf-comp .graf-valor { text-align: right; font-weight: 600; font-size: .9rem; }
+
+/* Puntos por grupo: cada publicación un punto, la raya es el promedio */
+.graf-puntos { list-style: none; margin: 0; padding: 0; }
+.graf-puntos li { display: grid; grid-template-columns: minmax(5rem, 24%) 1fr 4.4rem; align-items: center; gap: .75rem; padding: .45rem 0; border-top: 1px solid var(--borde); }
+.graf-puntos li:first-child { border-top: 0; }
+.graf-puntos .graf-etq { font-size: .9rem; line-height: 1.2; }
+.graf-puntos .graf-etq small, .graf-puntos .graf-valor small { display: block; font-size: .8125rem; color: var(--suave); font-weight: 400; }
+.graf-riel { position: relative; height: 44px; margin: 0 7px; }
+.graf-riel::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid var(--borde); }
+.graf-pto { position: absolute; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; padding: 0; background: none; border: 0; cursor: pointer; }
+.graf-pto::after { content: ''; position: absolute; inset: 8px; border-radius: 50%; background: var(--graf-acento); opacity: .55; box-shadow: 0 0 0 2px var(--card); }
+.graf-pto.activa::after, .graf-pto:focus-visible::after { opacity: 1; inset: 6px; }
+.graf-pto:focus-visible { outline: none; }
+.graf-media { position: absolute; top: 50%; width: 3px; height: 26px; margin: -13px 0 0 -1.5px; background: var(--texto); border-radius: 2px; pointer-events: none; }
+.graf-puntos .graf-valor { text-align: right; font-weight: 600; font-size: .95rem; line-height: 1.15; }
 
 /* Ventas por día */
 .resumen-lista { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-bottom: .5rem;
@@ -573,7 +633,7 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
    Solo con mouse (en el celular el hover queda "pegado" después del toque). Cambia el fondo o el color;
    nada se mueve ni flota. */
 .tabs a, .subnav a, a.fila, button.fila, summary.fila, .acceso, .tarea-link, .btn, .chip,
-.stepper button, .atras, .link, .ver-todo, .auto-lista li button, .graf-col .graf-barra, .div-fila, .chev,
+.stepper button, .atras, .link, .ver-todo, .auto-lista li button, .graf-comp, .div-fila, .chev,
 .tabla a, .marca, .quitar, details.plegable > summary, .graf-tabla > summary, .semana-sabado {
   transition: background-color .15s ease, border-color .15s ease, color .15s ease, filter .15s ease, opacity .15s ease;
 }
@@ -613,8 +673,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
   details.plegable > summary:hover, .graf-tabla > summary:hover { opacity: .8; }
 
   /* Gráficos */
-  .graf-col:hover .graf-barra { filter: brightness(1.12); }
-  .graf-col:hover .graf-etq { color: var(--texto); }
+  .graf-comp:hover { background: var(--marca-suave); }
+  .graf-pto:hover::after { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
