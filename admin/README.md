@@ -2,7 +2,7 @@
 
 App para cargar ventas, tandas, compras y gastos desde el celular. Es un sitio estático, igual que
 la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve tal cual en
-`https://cinniminies.vercel.app/admin/`.
+`https://cinniminies.emprendeuy.com/admin/`.
 
 - **Datos:** Supabase, con `@supabase/supabase-js` desde jsDelivr. La URL y la clave *publishable*
   están en `js/config.js`: son públicas, y la seguridad la da la RLS (solo los usuarios de
@@ -128,9 +128,9 @@ entra con él. Mientras está adentro, la barra muestra "Modo prueba": lo que ca
 
 ### Configuración de Supabase
 
-- **Authentication → URL Configuration** (hecho el 25/09): *Site URL*
-  `https://cinniminies.vercel.app/admin/`; *Redirect URLs* `https://cinniminies.vercel.app/admin/**`
-  y `http://localhost:8777/admin/**`.
+- **Authentication → URL Configuration** (al dominio propio el 29/10): *Site URL*
+  `https://cinniminies.emprendeuy.com/admin/`; *Redirect URLs* `https://cinniminies.emprendeuy.com/admin/**`
+  y `http://localhost:8777/admin/**`. `cinniminies.vercel.app` redirige al dominio nuevo desde Vercel.
 - **Envío de mails:** el servicio de mail que trae Supabase solo manda a los miembros de la
   organización y tiene un límite bajo por hora. Si a alguien no le llega el link, sumalo a la
   organización de Supabase o configurá un SMTP propio (*Authentication → Emails → SMTP Settings*).

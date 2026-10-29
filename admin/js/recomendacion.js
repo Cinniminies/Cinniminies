@@ -3,7 +3,7 @@
 import { sb, q } from './db.js';
 import { hoyISO, linkWhatsapp } from './util.js';
 
-const WEB = 'cinniminies.vercel.app';
+const WEB = 'cinniminies.emprendeuy.com';
 
 // Campaña vigente hoy (la RLS ya separa las de prueba de las reales), o null. Trae también `mensaje` y
 // `mensaje_bono`: el texto del WhatsApp con el código y lo que se agrega si tiene el bono de la Box de 12,

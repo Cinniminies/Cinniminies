@@ -5,4 +5,4 @@ Allow: /api/catalogo
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: https://cinniminies.vercel.app/sitemap.xml
+Sitemap: https://cinniminies.emprendeuy.com/sitemap.xml
