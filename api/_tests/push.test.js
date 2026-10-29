@@ -1,7 +1,8 @@
-// Pruebas de los avisos push (fase 2 · 2.1): node --test api/_tests/*.test.js
+// Pruebas de los avisos push (fase 2 · 2.1 y cierre de mes): node --test api/_tests/*.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { configuracionPush, armarAviso, avisarPedidoNuevo } = require('../_lib/push.js');
+const { configuracionPush, armarAviso, armarAvisoCierre, avisarPedidoNuevo } = require('../_lib/push.js');
+const { mesAnterior } = require('../cierre-mes.js');
 
 const vapid = { publica: 'pub', privada: 'priv', sujeto: 'mailto:x@y.z' };
 const pedido = { nombre: 'Ana', modalidad: 'retiro' };
@@ -30,6 +31,26 @@ test('armarAviso: nombre, total y link a Pedidos web', () => {
   assert.equal(a.url, '/admin/#/pedidos');
   assert.equal(a.tag, 'CM-2026-ABCD');
   assert.match(armarAviso({ ...pedido, modalidad: 'entrega' }, guardado).cuerpo, /con entrega$/);
+});
+
+test('armarAvisoCierre: mes, vendido contra el mes anterior, ganancia y link al cierre', () => {
+  const cierre = {
+    mes: '2026-10-01',
+    actual: { vendido: 6790, ganancia_bruta: 4120 },
+    anterior: { mes: '2026-09-01', vendido: 4565 },
+  };
+  const a = armarAvisoCierre(cierre);
+  assert.equal(a.titulo, 'Cierre de octubre');
+  assert.equal(a.cuerpo, 'Vendieron $6.790 (sube 49 % vs septiembre) · ganancia $4.120');
+  assert.equal(a.url, '/admin/#/cierre/2026-10-01');
+  assert.equal(a.tag, 'cierre-2026-10-01');
+  // Sin mes anterior (el primero) o un mes sin ventas: sin comparación
+  assert.equal(armarAvisoCierre({ mes: '2026-05-01', actual: null, anterior: null }).cuerpo, 'Vendieron $0 · ganancia $0');
+});
+
+test('mesAnterior: el mes que terminó, también en enero', () => {
+  assert.equal(mesAnterior('2026-11-01'), '2026-10-01');
+  assert.equal(mesAnterior('2027-01-01'), '2026-12-01');
 });
 
 test('avisarPedidoNuevo: uno por endpoint, borra los vencidos (410/404) y anota otros errores', async () => {

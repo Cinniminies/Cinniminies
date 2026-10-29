@@ -1,13 +1,13 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, hoyISO, proximoSabado, sumarDias, sumarMeses, sumar, conBoton, toast, plural,
-  ETIQUETAS,
+  h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, soloMes, hoyISO, proximoSabado, sumarDias, sumarMeses, sumar,
+  conBoton, toast, plural, ETIQUETAS,
 } from '../util.js';
 import { icono } from '../iconos.js';
-import { areas, partes, variacion } from '../graficos.js';
+import { areas, variacion } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { irA, sesion } from '../app.js';
-import { tituloSemana, stat, filaLista, pastilla, monto } from '../componentes.js';
+import { tituloSemana, stat, filaLista, pastilla, monto, partesPorSabor } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 
 const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', texto: 'Mes pasado' }, { valor: 'todo', texto: 'Todo' }];
@@ -16,7 +16,6 @@ let periodo = 'mes';
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const nombreCorto = (mes) => MESES_CORTOS[Number(mes.slice(5, 7)) - 1];
-const soloMes = (mes) => nombreMes(mes).split(' ')[0];
 
 // La semana de pedidos: de domingo a sábado entran los pedidos (cuántos se cargaron cada día) y el sábado,
 // en canela, se hornea y se entrega (los rolls de las ventas "por hacer", lo mismo que usa el plan de horneado).
@@ -186,21 +185,7 @@ export async function mostrar(cont) {
     Promise.all([q(consulta), catalogo()]).then(([filas, cat]) => {
       const suma = {};
       for (const f of filas) suma[f.sabor] = (suma[f.sabor] || 0) + f.unidades;
-      // Cada sabor con su color fijo, así no cambia cuando cambia el período: primero los de masa compartida
-      // (los mismos colores que en el desglose del plan de horneado), después los de masa propia y los inactivos.
-      const orden = [...cat.saboresActivos.filter((x) => !x.masa_propia), ...cat.saboresActivos.filter((x) => x.masa_propia),
-        ...cat.sabores.filter((x) => !x.activo)].map((x) => x.nombre);
-      const colorDe = (nombre) => {
-        const i = orden.indexOf(nombre);
-        return i >= 0 && i < 6 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
-      };
-      const lista = Object.entries(suma).map(([etiqueta, valor]) => ({ etiqueta, valor, color: colorDe(etiqueta) }))
-        .sort((a, b) => (orden.indexOf(a.etiqueta) + 1 || 999) - (orden.indexOf(b.etiqueta) + 1 || 999));
-      vaciar(porSabor, partes(lista, {
-        titulo: 'Rolls vendidos por sabor',
-        formato: (v) => numero(v, 0),
-        vacio: 'No hubo ventas en este período.',
-      }));
+      vaciar(porSabor, partesPorSabor(suma, cat));
     }).catch((e) => vaciar(porSabor, h('p', { class: 'mensaje-error' }, e.message)));
 
     vaciar(contPeriodo,

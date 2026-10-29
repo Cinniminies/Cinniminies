@@ -4,18 +4,31 @@ import { h, plural, sumar } from './util.js';
 // redondeada, acento para lo que importa y gris de contexto (colores de --serie-* para identidades),
 // etiquetas selectivas en color de texto, detalle al tocar o con el teclado, y una tabla con los mismos datos.
 
-// Variación contra el período anterior: "▲ 12 % vs agosto" (verde si sube algo bueno).
+// Cambio relativo contra el período anterior (0.12 = 12 %), o null si no hay con qué comparar.
+function cambio(actual, anterior) {
+  if (!anterior || actual == null) return null;
+  const c = (actual - anterior) / Math.abs(anterior);
+  return Number.isFinite(c) ? c : null;
+}
+
+// "sube 12 % vs agosto", "baja 3,5 % vs agosto" o "igual que agosto"; null si no hay con qué comparar.
+export function textoVariacion(actual, anterior, contra) {
+  const c = cambio(actual, anterior);
+  if (c == null) return null;
+  const pct = Math.abs(c * 100);
+  if (pct < 0.05) return `igual que ${contra}`;
+  return `${c > 0 ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs ${contra}`;
+}
+
+// Variación contra el período anterior: "▲ sube 12 % vs agosto" (verde si sube algo bueno).
 export function variacion(actual, anterior, contra, { masEsMejor = true } = {}) {
-  if (!anterior || anterior === 0 || actual == null) return null;
-  const cambio = (actual - anterior) / Math.abs(anterior);
-  if (!Number.isFinite(cambio)) return null;
-  const pct = Math.abs(cambio * 100);
-  if (pct < 0.05) return h('span', { class: 'delta' }, `igual que ${contra}`);
-  const sube = cambio > 0;
-  const bueno = sube === masEsMejor;
+  const texto = textoVariacion(actual, anterior, contra);
+  if (!texto) return null;
+  const c = cambio(actual, anterior);
+  if (Math.abs(c * 100) < 0.05) return h('span', { class: 'delta' }, texto);
+  const bueno = c > 0 === masEsMejor;
   return h('span', { class: 'delta ' + (bueno ? 'bueno' : 'malo') },
-    h('span', { 'aria-hidden': 'true' }, sube ? '▲ ' : '▼ '),
-    `${sube ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs ${contra}`);
+    h('span', { 'aria-hidden': 'true' }, c > 0 ? '▲ ' : '▼ '), texto);
 }
 
 const SVG = 'http://www.w3.org/2000/svg';

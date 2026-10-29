@@ -62,6 +62,14 @@ sábados sin horneado se cambian abajo de todo en Pedidos web (`parametros.cierr
 `push_suscripciones` (`js/push.js`) y `sw.js` muestra el aviso; tocarlo abre Pedidos web. En iPhone solo
 funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari común la fila explica cómo.
 
+## Cierre de mes (idea 4.4)
+
+**Más → Cierre de mes** (`#/cierre/AAAA-MM-01`; sin mes, el mes pasado): vendido, ganancia, resultado, ventas,
+clientes (y cuántos nuevos) contra el mes anterior, rolls por sabor, lo vendido cada sábado y los que más compraron.
+Lo arma la base (`cierre_mes`). **Guardar PDF** imprime la pantalla (sin barra ni menú, siempre en claro) y
+**Mandar por WhatsApp** arma el resumen en texto. El día 1 a las 9 el cron de Vercel (`/api/cierre-mes`) manda un
+aviso push con el link al mes que terminó, a los mismos celulares que reciben los pedidos nuevos.
+
 ## Plan de horneado (fase 2 · 3.1 + 3.2)
 
 **Producción → Plan** calcula cuántas tandas hacer para el sábado que viene con las ventas marcadas **Por hacer**

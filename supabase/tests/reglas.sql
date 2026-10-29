@@ -1449,3 +1449,30 @@ begin
   end if;
   raise exception 'TODO OK';
 end $$;
+
+-- Cierre de mes (20261030100000): los totales son los de v_resumen_mensual y están todos los sábados del mes.
+do $$
+declare
+  r jsonb := cierre_mes('2026-10-15');
+begin
+  if r->>'mes' <> '2026-10-01' then raise exception 'mes: %', r->>'mes'; end if;
+  if (r->'actual'->>'vendido')::numeric <> (select vendido from v_resumen_mensual where mes = '2026-10-01') then
+    raise exception 'vendido distinto de v_resumen_mensual';
+  end if;
+  if (select array_agg(s->>'sabado') from jsonb_array_elements(r->'semanas') s)
+     <> array['2026-10-03', '2026-10-10', '2026-10-17', '2026-10-24', '2026-10-31'] then
+    raise exception 'sábados de octubre: %', r->'semanas';
+  end if;
+  if (select sum((s->>'vendido')::numeric) from jsonb_array_elements(r->'semanas') s) <> (r->'actual'->>'vendido')::numeric then
+    raise exception 'las semanas no suman lo vendido';
+  end if;
+  if jsonb_array_length(r->'clientes') > 5 or (r->>'clientes_nuevos')::int > (r->>'clientes_total')::int then
+    raise exception 'clientes: %', r;
+  end if;
+  if (r->>'ticket')::numeric <> round((r->'actual'->>'vendido')::numeric / (r->'actual'->>'ventas')::numeric)
+     or (r->'mejor_sabado'->>'vendido')::numeric <> (select max((s->>'vendido')::numeric) from jsonb_array_elements(r->'semanas') s)
+     or (r->'sabor_top'->>'nombre') is null then
+    raise exception 'ticket, mejor sábado o sabor: %', r;
+  end if;
+  raise exception 'TODO OK';
+end $$;
