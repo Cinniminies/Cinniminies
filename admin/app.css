@@ -440,7 +440,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .graf-detalle strong { font-size: 1rem; color: var(--texto); }
 .graf-tabla { margin-top: .5rem; }
 .graf-tabla > summary { cursor: pointer; font-size: .875rem; color: var(--marca); font-weight: 600; padding: .25rem 0; }
-.graf-linea { display: block; width: 100%; height: auto; max-height: 16rem; overflow: visible; } /* en la compu no crece de alto con el ancho */
+.graf-lienzo { width: 100%; }
+.graf-linea { display: block; overflow: visible; } /* se dibuja al ancho real: el texto no crece en la compu */
 .graf-linea .graf-trazo { fill: none; stroke: var(--graf-acento); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .graf-linea .graf-marca { fill: var(--graf-acento); stroke: var(--card); stroke-width: 2; }
 .graf-linea .graf-toque { fill: transparent; }
