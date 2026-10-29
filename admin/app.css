@@ -264,7 +264,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--marca); out
 .btn.chico.peligro:focus-visible { color: var(--alerta); background: var(--alerta-suave); }
 .btn.bloque { width: 100%; }
 .btn:disabled { opacity: .5; cursor: default; }
-.acciones { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.acciones { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+.card > .acciones:last-child { margin-bottom: 0; } /* al final de una tarjeta ya separa el padding */
 .link { background: none; border: 0; padding: 0; font: inherit; color: var(--marca); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
 .guardar {
