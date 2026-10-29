@@ -115,11 +115,17 @@ function partes(iso) {
   return { a, m, d, dia: DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()] };
 }
 
+// "12/09"
+export function diaMes(iso) {
+  if (!iso) return '';
+  const { m, d } = partes(iso);
+  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
 // "sáb 12/09"
 export function fechaCorta(iso) {
   if (!iso) return '';
-  const { m, d, dia } = partes(iso);
-  return `${dia} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+  return `${partes(iso).dia} ${diaMes(iso)}`;
 }
 
 // "12/09/2026"
@@ -149,12 +155,15 @@ export const ETIQUETAS = {
 
 export const opciones = (mapa) => Object.entries(mapa).map(([valor, texto]) => ({ valor, texto }));
 
-// Link de WhatsApp si el contacto parece un celular uruguayo (09x xxx xxx).
-export function linkWhatsapp(contacto) {
+// Link de WhatsApp si el contacto parece un celular uruguayo (09x xxx xxx), con el `texto` ya escrito si viene.
+export function linkWhatsapp(contacto, { texto } = {}) {
   const digitos = (contacto || '').replace(/\D/g, '');
   const m = digitos.match(/^(?:598)?0?(9\d{7})$/);
-  return m ? `https://wa.me/598${m[1]}` : null;
+  return m ? `https://wa.me/598${m[1]}${texto ? `?text=${encodeURIComponent(texto)}` : ''}` : null;
 }
+
+// Link de WhatsApp sin destinatario: el que lo abre elige el chat (el suyo propio, el del socio…).
+export const compartirWhatsapp = (texto) => `https://wa.me/?text=${encodeURIComponent(texto)}`;
 
 // ---------------------------------------------------------------- componentes
 

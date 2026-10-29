@@ -67,8 +67,7 @@ export function mensajeCodigo(nombre, codigo, campana, bono = null) {
 
 // Link de WhatsApp con el mensaje armado, si el contacto es un celular uruguayo.
 export function linkCodigo(contacto, nombre, codigo, campana, bono = null) {
-  const wa = linkWhatsapp(contacto);
-  return wa ? `${wa}?text=${encodeURIComponent(mensajeCodigo(nombre, codigo, campana, bono))}` : null;
+  return linkWhatsapp(contacto, { texto: mensajeCodigo(nombre, codigo, campana, bono) });
 }
 
 export const ESTADO_RECOMENDACION = { pendiente: 'Pendiente', valida: 'Válida', anulada: 'Anulada' };
