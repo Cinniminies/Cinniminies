@@ -2,7 +2,7 @@ import { sb, q, rpc } from '../db.js';
 import {
   h, vaciar, chips, stepper, campo, numero, cantidad, plural, fechaCorta, hoyISO, proximoSabado, toast, conBoton, debounce, sumar,
 } from '../util.js';
-import { catalogo } from '../catalogo.js';
+import { catalogo, guardarParametros } from '../catalogo.js';
 import { irA } from '../app.js';
 import { subnavProduccion, pastilla } from '../componentes.js';
 import { cargarPlan } from './comprar.js';
@@ -19,7 +19,7 @@ export async function mostrar(cont) {
   const [cat, recetas, porHacer, pedidosNuevos, glaseado] = await Promise.all([
     catalogo(),
     q(sb.from('recetas').select('sabor_id,insumo_id,cantidad')),
-    q(sb.from('v_ventas').select('id,fecha,cliente,sabores,rolls,estado_pago')
+    q(sb.from('v_ventas').select('id,fecha,pedido_el,cliente,sabores,rolls,estado_pago')
       .eq('por_hacer', true).order('fecha').order('creado_en')),
     q(sb.from('pedidos').select('id').eq('estado', 'nuevo')),
     q(sb.from('venta_linea_sabores').select('sin_glaseado,venta_lineas!inner(venta_id,ventas!inner(por_hacer))')
@@ -36,7 +36,9 @@ export async function mostrar(cont) {
 
   const sabores = cat.saboresActivos.filter((s) => recetas.some((r) => r.sabor_id === s.id));
   const compartidos = sabores.filter((s) => !s.masa_propia);
-  const incluidas = () => porHacer.filter((v) => !estado.excluidas.has(v.id)).map((v) => v.id);
+  // Entran los pedidos de ese sábado y los atrasados; los de sábados siguientes esperan su semana.
+  const delSabado = () => porHacer.filter((v) => v.fecha <= estado.fecha);
+  const incluidas = () => delSabado().filter((v) => !estado.excluidas.has(v.id)).map((v) => v.id);
   const payload = () => ({
     ventas: incluidas(),
     extra: Object.fromEntries(Object.entries(estado.extra).filter(([, n]) => n > 0)),
@@ -202,8 +204,7 @@ export async function mostrar(cont) {
       if (Object.values(valores).some((v) => !(Number(v) > 0))) throw new Error('Los tiempos tienen que ser mayores a 0');
       const enteros = ['masas_por_preparacion', 'horno_tandas'];
       if (enteros.some((k) => !Number.isInteger(Number(valores[k])))) throw new Error('Masas y tandas por horneada van sin decimales');
-      await q(sb.from('parametros').upsert(Object.entries(valores).map(([clave, v]) => ({ clave, valor: String(Number(v)) }))));
-      Object.assign(cat.parametros, Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, String(Number(v))])));
+      await guardarParametros(Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, Number(v)])));
       toast('Tiempos guardados');
       dibujarTiempo();
     });
@@ -242,22 +243,29 @@ export async function mostrar(cont) {
 
   const fecha = h('input', {
     type: 'date', value: estado.fecha, required: true,
-    onchange: (e) => { estado.fecha = e.target.value || proximoSabado(); if (plan) dibujarResultado(); },
+    onchange: (e) => { estado.fecha = e.target.value || proximoSabado(); dibujarPedidos(); calcular(); },
   });
 
-  const listaPedidos = porHacer.length
-    ? h('div', {}, porHacer.map((v) => h('label', { class: 'interruptor' },
+  const listaPedidos = h('div');
+  const dibujarPedidos = () => {
+    const lista = delSabado();
+    const despues = porHacer.length - lista.length;
+    vaciar(listaPedidos, lista.length ? lista.map((v) => h('label', { class: 'interruptor' },
       h('input', {
         type: 'checkbox', checked: !estado.excluidas.has(v.id),
         onchange: (e) => { if (e.target.checked) estado.excluidas.delete(v.id); else estado.excluidas.add(v.id); calcular(); },
       }),
-      h('span', {}, h('strong', {}, v.cliente || 'Sin cliente'), ` · ${fechaCorta(v.fecha)} `,
+      h('span', {}, h('strong', {}, v.cliente || 'Sin cliente'), ` · ${fechaCorta(v.pedido_el)} `,
+        v.fecha < estado.fecha ? [pastilla('alerta', `del ${fechaCorta(v.fecha)}`), ' '] : null,
         pastilla(v.estado_pago === 'pagado' ? 'ok' : 'pendiente',
           v.estado_pago === 'pagado' ? 'Cobrado' : 'Sin cobrar'),
         sinGlaseadoPorVenta[v.id] ? [' ', pastilla('alerta', `${sinGlaseadoPorVenta[v.id]} sin glaseado`)] : null,
-        h('small', {}, `${v.sabores || ''} · `, h('a', { href: `#/ventas/${v.id}` }, 'ver venta'))))))
-    : h('p', { class: 'vacio', style: 'padding:0' }, 'No hay ventas por hacer. Al cargar una venta, elegí "Por hacer"; '
-      + 'los pedidos web confirmados entran solos.');
+        h('small', {}, `${v.sabores || ''} · `, h('a', { href: `#/ventas/${v.id}` }, 'ver venta')))))
+      : h('p', { class: 'vacio', style: 'padding:0' }, 'No hay ventas por hacer para este sábado. Al cargar una venta, '
+        + 'elegí "Por hacer"; los pedidos web confirmados entran solos.'),
+    despues ? h('p', { class: 'ayuda' }, `${plural(despues, 'pedido es', 'pedidos son')} para sábados siguientes.`) : null);
+  };
+  dibujarPedidos();
 
   // En la compu: a la izquierda qué se hornea (pedidos y extra); a la derecha el resultado y el tiempo.
   vaciar(cont,

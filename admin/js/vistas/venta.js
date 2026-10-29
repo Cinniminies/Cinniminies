@@ -1,27 +1,36 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, campoFecha, grupo, pesos, hoyISO, toast, conBoton, debounce, mostrarError, ETIQUETAS, opciones, campoPesos
+  h, vaciar, chips, campo, campoSabado, grupo, pesos, diaMes, toast, conBoton, debounce, mostrarError, ETIQUETAS,
+  opciones, campoPesos,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
 
 // Borrador de la venta: sobrevive si se sale de la pantalla y se vuelve.
 let estado = null;
-const nuevoEstado = (fecha = hoyISO()) => ({
+// El sábado que sugiere la base para lo que se carga hoy, según quede por hacer (cierre del jueves 23:59 y sábados
+// sin horneado) o ya se haya entregado (el del horneado): { true: '2026-11-07', false: '2026-10-31' }.
+let sugerido = {};
+// fecha: el sábado de entrega elegido a mano; null = el que corresponde según si ya se entregó o queda por hacer.
+const nuevoEstado = (fecha = null) => ({
   fecha, cliente: null, origen: '', entrega: 'retiro', medio_pago: null, estado_pago: 'pagado',
   tipo: 'venta', precio_especial: '', propina: '', notas: '', lineas: [], abierto: false, por_hacer: false,
   sin_promo: false, // la promo vigente (/admin → Promociones) se descuenta sola salvo que se saque
 });
 
 export async function mostrar(cont) {
-  const [cat, clientes, origenes] = await Promise.all([catalogo(), leerClientes(), leerOrigenes()]);
+  const [cat, clientes, origenes, porHacer, entregado] = await Promise.all([catalogo(), leerClientes(), leerOrigenes(),
+    rpc('sabado_de_entrega', { p_por_hacer: true }), rpc('sabado_de_entrega', { p_por_hacer: false })]);
+  sugerido = { true: porHacer, false: entregado };
   if (!estado) estado = nuevoEstado();
   formulario(cont, cat, clientes, origenes);
 }
 
+const sabadoDeEntrega = () => estado.fecha || sugerido[estado.por_hacer];
+
+// Sin la fecha: calcular_venta toma precios y promos de hoy, el día del pedido (el sábado va al guardar).
 function payload() {
   const p = {
-    fecha: estado.fecha,
     entrega: estado.entrega,
     medio_pago: estado.medio_pago,
     estado_pago: estado.estado_pago,
@@ -122,7 +131,7 @@ function formulario(cont, cat, clientes, origenes) {
   guardar.onclick = () => conBoton(guardar, async () => {
     if (!estado.cliente || (estado.cliente.nuevo && !estado.cliente.nombre.trim())) throw new Error('Elegí o cargá el cliente');
     if (!estado.medio_pago) throw new Error('Elegí el medio de pago');
-    const p = payload();
+    const p = { ...payload(), fecha: sabadoDeEntrega() };
     p.lineas = editor.valor();
     const r = await rpc('registrar_venta', { p });
     const guardado = estado;
@@ -130,9 +139,11 @@ function formulario(cont, cat, clientes, origenes) {
     confirmacion(cont, cat, r, guardado);
   });
 
+  const sabado = campoSabado(sabadoDeEntrega(), (v) => { estado.fecha = v; });
+
   // En la compu: el formulario a la izquierda y el resumen fijo a la derecha, siempre a la vista.
   vaciar(cont, h('div', { class: 'con-guardar' }, h('div', { class: 'dos-col ancha-izq' }, h('div', {},
-    campoFecha(estado.fecha, (v) => { estado.fecha = v; recalcular(); }),
+    sabado,
     grupo('Cliente', selector),
     editor.el,
     grupo('Entrega', chips([
@@ -143,7 +154,10 @@ function formulario(cont, cat, clientes, origenes) {
     grupo('Pago', chips(opciones(ETIQUETAS.medio_pago), estado.medio_pago, (v) => { estado.medio_pago = v; })),
     grupo('Estado', chips(opciones(ETIQUETAS.estado_pago), estado.estado_pago, (v) => { estado.estado_pago = v; })),
     grupo('Pedido', chips([{ valor: false, texto: 'Ya entregado' }, { valor: true, texto: 'Por hacer' }], estado.por_hacer,
-      (v) => { estado.por_hacer = v; })),
+      (v) => {
+        estado.por_hacer = v;
+        sabado.querySelector('select').value = sabadoDeEntrega();
+      })),
     opcionesMas),
     h('div', { class: 'col-fija' },
       h('h2', {}, 'Resumen'),
@@ -174,7 +188,7 @@ function confirmacion(cont, cat, r, guardado) {
     h('h1', {}, 'Venta guardada'),
     h('div', { class: 'monto-grande' }, pesos(total)),
     h('p', {}, h('strong', {}, cliente?.nombre || ''), ` · ${ETIQUETAS.estado_pago[guardado.estado_pago]}`,
-      guardado.por_hacer ? ' · Por hacer (entra en el plan de horneado)' : ''),
+      ` · Sábado ${diaMes(r.fecha)}`, guardado.por_hacer ? ' · Por hacer (entra en el plan de horneado)' : ''),
     h('p', { class: 'ayuda' }, detalle),
     h('div', { class: 'acciones', style: 'justify-content:center' }, otra, deshacer)));
   window.scrollTo(0, 0);

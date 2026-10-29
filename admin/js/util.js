@@ -106,7 +106,8 @@ export function sumarMeses(mes, n) {
 // Suma de un valor de cada elemento: sumar(ventas, (v) => v.total). Lo que no es número cuenta 0.
 export const sumar = (lista, valorDe = (x) => x) => lista.reduce((total, x) => total + (Number(valorDe(x)) || 0), 0);
 
-const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+export const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const DIAS = DIAS_SEMANA.map((d) => d.slice(0, 3));
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
   'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -233,6 +234,18 @@ export function campoFecha(valor, alCambiar, etiqueta = 'Fecha') {
   });
   revisar(valor);
   return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), input, aviso);
+}
+
+// La fecha de una venta es siempre el sábado de entrega: se elige entre 8 sábados para atrás y 8 para adelante
+// (y el que ya tenía la venta, si es más viejo).
+export function campoSabado(valor, alCambiar, etiqueta = 'Sábado de entrega') {
+  const este = proximoSabado();
+  const sabados = Array.from({ length: 17 }, (_, i) => sumarDias(este, (i - 8) * 7));
+  if (valor && !sabados.includes(valor)) sabados.unshift(valor);
+  const select = h('select', { required: true, onchange: (e) => alCambiar(e.target.value) },
+    sabados.map((s) => h('option', { value: s }, `${fechaCorta(s)}${s === este ? ' · este sábado' : ''}`)));
+  select.value = valor;
+  return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), select);
 }
 
 export function grupo(etiqueta, control) {

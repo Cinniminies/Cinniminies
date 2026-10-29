@@ -85,7 +85,8 @@ begin
   end loop;
 
   -- 5.5 El snapshot no cambia al subir precios o costos
-  r := registrar_venta(jsonb_build_object('fecha', '2026-09-20', 'entrega', 'envio', 'medio_pago', 'Efectivo',
+  r := registrar_venta(jsonb_build_object('fecha', '2026-09-26', 'pedido_el', '2026-09-20', 'entrega', 'envio',
+         'medio_pago', 'Efectivo',
          'cliente', jsonb_build_object('nombre', 'Prueba', 'origen', 'IG'),
          'lineas', jsonb_build_array(jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(
            jsonb_build_object('sabor_id', ca, 'unidades', 6))))));
@@ -153,7 +154,8 @@ begin
   select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
     from usuarios_admin;
   perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
-  r := registrar_venta(jsonb_build_object('fecha', '2026-09-20', 'entrega', 'retiro', 'medio_pago', 'efectivo',
+  r := registrar_venta(jsonb_build_object('fecha', '2026-09-26', 'pedido_el', '2026-09-20', 'entrega', 'retiro',
+         'medio_pago', 'efectivo',
          'cliente', jsonb_build_object('nombre', 'Prueba A', 'contacto', '099'),
          'lineas', jsonb_build_array(jsonb_build_object('formato_id', b6, 'sabores', jsonb_build_array(
            jsonb_build_object('sabor_id', ca, 'unidades', 6))))));
@@ -1339,5 +1341,111 @@ begin
   if (r->>'promos')::int <> 1 then raise exception 'promos borradas: %', r; end if;
   if exists (select 1 from promos where nombre = 'T prueba') then raise exception 'quedó la promo de prueba'; end if;
   if not exists (select 1 from promos where nombre = 'T real') then raise exception 'borró una promo real'; end if;
+  raise exception 'TODO OK';
+end $$;
+
+-- Cierre de pedidos y sábado de entrega (20261029160000): la fecha de una venta es siempre el sábado de entrega; los
+-- pedidos de un sábado cierran el jueves a las 23:59 (editable) y los sábados sin horneado pasan al siguiente.
+do $$
+declare
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  b6 uuid := (select id from formatos where nombre = 'Box de 6');
+  seis jsonb;
+  r jsonb;
+  ped jsonb;
+  fallo text;
+begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
+  seis := jsonb_build_array(jsonb_build_object('formato_id', b6, 'sabores',
+            jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 6))));
+  update parametros set valor = '4' where clave = 'cierre_dia';
+  update parametros set valor = '23:59' where clave = 'cierre_hora';
+  delete from sabados_sin_horneado where sabado between '2026-10-31' and '2026-11-14';
+
+  -- El cierre vale hasta el final de su minuto; después, el sábado siguiente (también el mismo sábado y el domingo)
+  if sabado_de_pedido('2026-10-26 10:00-03') <> '2026-10-31' then raise exception 'lunes'; end if;
+  if sabado_de_pedido('2026-10-29 23:59:59-03') <> '2026-10-31' then raise exception 'jueves 23:59'; end if;
+  if sabado_de_pedido('2026-10-30 00:00-03') <> '2026-11-07' then raise exception 'viernes'; end if;
+  if sabado_de_pedido('2026-10-31 12:00-03') <> '2026-11-07' then raise exception 'sábado'; end if;
+  if sabado_de_pedido('2026-11-01 09:00-03') <> '2026-11-07' then raise exception 'domingo'; end if;
+  insert into sabados_sin_horneado (sabado, motivo) values ('2026-11-07', 'PRUEBA');
+  if sabado_de_pedido('2026-11-01 09:00-03') <> '2026-11-14' then raise exception 'sábado sin horneado'; end if;
+  begin
+    insert into sabados_sin_horneado (sabado) values ('2026-11-06');
+  exception when check_violation then fallo := 'ok';
+  end;
+  if fallo is null then raise exception 'aceptó un viernes como sábado sin horneado'; end if;
+  update parametros set valor = '5' where clave = 'cierre_dia';
+  update parametros set valor = '12:00' where clave = 'cierre_hora';
+  if sabado_de_pedido('2026-10-30 11:59-03') <> '2026-10-31' or sabado_de_pedido('2026-10-30 12:01-03') <> '2026-11-14' then
+    raise exception 'cierre editable (viernes 12:00)';
+  end if;
+  update parametros set valor = '4' where clave = 'cierre_dia';
+  update parametros set valor = '23:59' where clave = 'cierre_hora';
+
+  -- La venta guarda el sábado y el día del pedido
+  r := registrar_venta(jsonb_build_object('fecha', '2026-10-31', 'pedido_el', '2026-10-28', 'lineas', seis));
+  if (select fecha from ventas where id = (r->>'venta_id')::uuid) <> '2026-10-31'
+     or (select pedido_el from ventas where id = (r->>'venta_id')::uuid) <> '2026-10-28' then
+    raise exception 'sábado y día del pedido: %', r;
+  end if;
+  -- Sin sábado: lo ya entregado va al sábado del horneado (el domingo, al anterior); lo por hacer, al del cierre
+  r := registrar_venta(jsonb_build_object('pedido_el', '2026-11-01', 'lineas', seis));
+  if (r->>'fecha')::date <> '2026-10-31' then raise exception 'entregado el domingo: %', r->>'fecha'; end if;
+  r := registrar_venta(jsonb_build_object('pedido_el', '2026-10-31', 'lineas', seis));
+  if (r->>'fecha')::date <> '2026-10-31' then raise exception 'entregado el sábado: %', r->>'fecha'; end if;
+  r := registrar_venta(jsonb_build_object('por_hacer', true, 'lineas', seis));
+  if (r->>'fecha')::date <> sabado_de_pedido() then raise exception 'por hacer: %', r->>'fecha'; end if;
+  -- Lo mismo que sugiere + Venta en /admin
+  if sabado_de_entrega(false, '2026-11-01') <> '2026-10-31' or sabado_de_entrega(true) <> sabado_de_pedido() then
+    raise exception 'sabado_de_entrega';
+  end if;
+  -- Una fecha que no es sábado no se acepta, ni al cargar ni al editar
+  fallo := null;
+  begin
+    perform registrar_venta(jsonb_build_object('fecha', '2026-10-29', 'lineas', seis));
+  exception when others then fallo := sqlerrm;
+  end;
+  if fallo not like '%no es sábado%' then raise exception 'cargó un jueves: %', fallo; end if;
+  fallo := null;
+  begin
+    perform actualizar_venta((r->>'venta_id')::uuid, '{"fecha": "2026-11-05"}');
+  exception when others then fallo := sqlerrm;
+  end;
+  if fallo not like '%no es sábado%' then raise exception 'editó a un jueves: %', fallo; end if;
+  if actualizar_venta((r->>'venta_id')::uuid, '{"fecha": "2026-11-14"}')->>'fecha' <> '2026-11-14' then
+    raise exception 'editar el sábado';
+  end if;
+
+  -- Precios del día del pedido, no del sábado
+  insert into precios (formato_id, precio, vigente_desde) values (b6, 999, '2026-10-30');
+  r := registrar_venta(jsonb_build_object('fecha', '2026-10-31', 'pedido_el', '2026-10-29', 'lineas', seis));
+  if (r->>'precio_lista')::numeric = 999 then raise exception 'tomó el precio del sábado'; end if;
+  r := registrar_venta(jsonb_build_object('fecha', '2026-10-31', 'pedido_el', '2026-10-30', 'lineas', seis));
+  if (r->>'precio_lista')::numeric <> 999 then raise exception 'no tomó el precio del día del pedido'; end if;
+  delete from precios where formato_id = b6 and precio = 999;
+
+  -- Pedido web: la base fija el sábado y la venta confirmada lo toma, con el día del pedido
+  ped := crear_pedido_web(jsonb_build_object('nombre', 'Prueba Sábado', 'telefono', '091000009', 'modalidad', 'retiro',
+    'pago', 'efectivo', 'prueba', true, 'cajas', jsonb_build_array(jsonb_build_object('tipo', 'caja_fija', 'rolls', 6,
+      'sabores', jsonb_build_object((select slug from sabores where id = ca), 6)))));
+  if (ped->>'sabado')::date <> sabado_de_pedido() then raise exception 'sábado del pedido web: %', ped; end if;
+  update pedidos set sabado = '2026-11-21' where codigo = ped->>'codigo';
+  r := confirmar_pedido((select id from pedidos where codigo = ped->>'codigo'));
+  if (select fecha from ventas where id = (r->>'venta_id')::uuid) <> '2026-11-21'
+     or (select pedido_el from ventas where id = (r->>'venta_id')::uuid) <> hoy() then
+    raise exception 'venta del pedido web: %', r;
+  end if;
+
+  -- La web recibe el sábado, el cierre y por qué no es el de esta semana
+  r := catalogo_web(true)->'pedidos';
+  if (r->>'sabado')::date <> sabado_de_pedido()
+     or r->>'cierre' <> to_char(privado.cierre_de(sabado_de_pedido()), 'YYYY-MM-DD"T"HH24:MI') then
+    raise exception 'catálogo: %', r;
+  end if;
   raise exception 'TODO OK';
 end $$;

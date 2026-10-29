@@ -696,12 +696,41 @@ document.addEventListener('DOMContentLoaded', () => {
       actualizarPreguntas();
       actualizarCuenta();
       if (!aplicarCatalogo(cat)) console.warn('Catálogo vacío: se usa el menú de respaldo');
+      pedidosPara = cat.pedidos || null;
+      mostrarSabado();
     } catch (e) {
       console.warn('No se pudo leer el catálogo, se usa el menú de respaldo:', e.message);
     } finally {
       clearTimeout(reloj);
     }
   })();
+
+  /* ---------- Para qué sábado es el pedido (ideas 2.9 y 6.8) ---------- */
+  // { sabado, cierre, motivo } de /api/catalogo. La regla está en la base (sabado_de_pedido): los pedidos de un
+  // sábado cierran el jueves a las 23:59 y los sábados sin horneado pasan al siguiente. Sin catálogo, no se muestra.
+  let pedidosPara = null;
+  const DIAS_SEMANA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+  // "jueves 29/10 a las 23:59" (cierre viene como "2026-10-29T23:59", hora de Uruguay)
+  function textoCierre(cierre) {
+    const dia = DIAS_SEMANA[new Date(`${cierre.slice(0, 10)}T12:00:00Z`).getUTCDay()];
+    return `${dia} ${diaMes(cierre.slice(0, 10))} a las ${cierre.slice(11, 16)}`;
+  }
+
+  function mostrarSabado() {
+    const nodo = document.getElementById('cartSabado');
+    if (!nodo) return;
+    nodo.hidden = !pedidosPara;
+    if (!pedidosPara) return;
+    const vars = { sabado: diaMes(pedidosPara.sabado), cierre: textoCierre(pedidosPara.cierre) };
+    nodo.textContent = pedidosPara.motivo === 'cierre'
+      ? textoWeb('carrito.sabado_cerrado', 'Ya cerramos los pedidos de este sábado. Tu pedido es para el sábado {sabado}.', vars)
+      : pedidosPara.motivo === 'sin_horneado'
+        ? textoWeb('carrito.sabado_sin_horneado', 'Este sábado no horneamos. Tu pedido es para el sábado {sabado}.', vars)
+        : textoWeb('carrito.sabado', 'Pedidos para el sábado {sabado}. Se puede pedir hasta el {cierre}.', vars);
+    nodo.classList.toggle('is-aviso', Boolean(pedidosPara.motivo));
+  }
+  document.addEventListener('textos-web', mostrarSabado);
 
   /* ---------- Generador de ID de pedido ---------- */
   function generateOrderId() {
@@ -1313,6 +1342,9 @@ document.addEventListener('DOMContentLoaded', () => {
         : { tipo: 'caja_fija', rolls: box.size, sabores: { ...box.flavors } })
     });
     const orderId = guardado?.codigo || generateOrderId();
+    // El sábado lo fija la base al guardar; si no respondió, el que mostraba el carrito.
+    const sabadoPedido = guardado?.sabado || pedidosPara?.sabado;
+    const paraSabado = sabadoPedido ? ` para el sábado ${diaMes(sabadoPedido)}` : '';
     const precioCaja = (box, i) => guardado?.cajas?.[i]?.precio ?? boxPrice(box);
 
     const detailLines = cart.map((box, i) => {
@@ -1340,7 +1372,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : `Código ${codigoUsado}`;
 
     const fullDetail = [
-      `Pedido: ${orderId}`,
+      `Pedido: ${orderId}${paraSabado}`,
       `Cliente: ${nombre}`,
       `WhatsApp: ${telefonoFmt}`,
       `Modalidad: ${modalidad}`,
@@ -1396,11 +1428,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Armar el link de WhatsApp con todo prearmado
     const waMessage = encodeURIComponent(
-      `¡Hola! Quiero confirmar mi pedido ${orderId} en Cinniminies:\n\n${detailLines}${lineaPromo ? `\n${lineaPromo}` : ''}${lineaCodigo ? `\n${lineaCodigo}` : ''}${lineaEnvio ? `\n${lineaEnvio}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
+      `¡Hola! Quiero confirmar mi pedido ${orderId}${paraSabado} en Cinniminies:\n\n${detailLines}${lineaPromo ? `\n${lineaPromo}` : ''}${lineaCodigo ? `\n${lineaCodigo}` : ''}${lineaEnvio ? `\n${lineaEnvio}` : ''}\n\nTotal: $${total}\nModalidad: ${modalidad}${esEntrega && direccion ? `\nDirección: ${direccion}` : ''}\nPago: ${pago}\nNombre: ${nombre}${notas ? `\nNotas: ${notas}` : ''}`
     );
     const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 
     document.getElementById('orderIdDisplay').textContent = orderId;
+    const doneSabado = document.getElementById('doneSabado');
+    if (doneSabado) {
+      doneSabado.hidden = !sabadoPedido;
+      if (sabadoPedido) doneSabado.textContent = textoWeb('pedido.sabado', 'Tu pedido es para el sábado {sabado}.',
+        { sabado: diaMes(sabadoPedido) });
+    }
     document.getElementById('doneWhatsapp').href = waLink;
 
     enviandoPedido = false;

@@ -20,10 +20,12 @@ const soloMes = (mes) => nombreMes(mes).split(' ')[0];
 
 // La semana de pedidos: de domingo a sábado entran los pedidos (cuántos se cargaron cada día) y el sábado,
 // en canela, se hornea y se entrega (los rolls de las ventas "por hacer", lo mismo que usa el plan de horneado).
+// `ventasSemana`: las de este sábado, con el día en que entró cada pedido (pedido_el). Los que entraron después del
+// cierre de la semana anterior (viernes o sábado) cuentan en el domingo, el primer día de esta semana.
 function tiraSemana(sabado, ventasSemana, rollsPorHacer) {
   const hoy = hoyISO();
   const dias = Array.from({ length: 6 }, (_, i) => sumarDias(sabado, i - 6));
-  const cuantos = (dia) => ventasSemana.filter((v) => v.fecha === dia).length;
+  const cuantos = (dia) => ventasSemana.filter((v) => (v.pedido_el < dias[0] ? dias[0] : v.pedido_el) === dia).length;
   const clases = (dia) => ['semana-dia', dia > hoy ? 'futuro' : '', dia === hoy ? 'hoy' : ''].join(' ').trim();
   return h('section', { class: 'semana', 'aria-labelledby': 'semana-titulo' },
     h('div', { class: 'semana-cab' },
@@ -61,8 +63,8 @@ export async function mostrar(cont) {
       .order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(5)),
     q(sb.from('v_ventas').select('total,ganancia,rolls,tipo').gte('fecha', inicioAnterior).lte('fecha', finAnterior)),
     q(sb.from('pedidos').select('nombre,total').eq('estado', 'nuevo').order('creado_en')),
-    q(sb.from('v_ventas').select('rolls').eq('por_hacer', true)),
-    q(sb.from('v_ventas').select('fecha').gte('fecha', sumarDias(proximoSabado(), -6)).lte('fecha', proximoSabado())),
+    q(sb.from('v_ventas').select('rolls').eq('por_hacer', true).lte('fecha', proximoSabado())),
+    q(sb.from('v_ventas').select('pedido_el').eq('fecha', proximoSabado())),
   ]);
   const cuentan = tramoAnterior.filter((v) => v.tipo !== 'regalo');
   const mismoTramo = {
