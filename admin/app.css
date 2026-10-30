@@ -41,7 +41,8 @@
   --cuerpo: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
+/* Al imprimir (Cierre de mes → Guardar PDF) siempre en claro: los tokens oscuros solo valen en pantalla. */
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --bg: #1c130d;
     --card: #281b13;
@@ -425,6 +426,16 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .stat .delta { display: block; font-size: .8125rem; }
 .graficos { display: grid; gap: .75rem; }
 .graficos > .card { margin: 0; }
+
+/* Cierre de mes: el mes y los botones arriba; al imprimir queda solo el resumen, sin barra ni menú. */
+.cierre-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.cierre-cab .acciones { margin: 0; }
+.cierre-titulo { margin: 1rem 0 .5rem; }
+@media print {
+  .barra, .tabs, .cierre-cab { display: none !important; }
+  .vista { padding: 0; max-width: none; }
+  .card, .stat { break-inside: avoid; }
+}
 
 .datos { margin: 0; padding-top: .35rem; padding-bottom: .35rem; }
 .dato { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .5rem 0; }

@@ -1,7 +1,8 @@
 // Pruebas de la lectura de Instagram: node --test api/_tests/*.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { actualizar, valoresInsights, fechaLocal } = require('../_lib/instagram.js');
+const { actualizar, valoresInsights } = require('../_lib/instagram.js');
+const { fechaLocal } = require('../_lib/supabase.js');
 
 const respuesta = (cuerpo, status = 200) => ({ ok: status < 400, status, json: async () => cuerpo });
 

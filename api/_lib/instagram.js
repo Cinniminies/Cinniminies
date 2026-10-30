@@ -3,13 +3,12 @@
 // Guarda una foto de la cuenta por día (ig_cuenta_dia) y los números de las últimas publicaciones
 // (ig_publicaciones). El token vive en ig_config (solo service_role); el primero sale de INSTAGRAM_TOKEN.
 // Los tokens duran 60 días: se renuevan cada RENOVAR_DIAS días al leer.
-const { encabezados } = require('./supabase.js');
+const { encabezados, fechaLocal } = require('./supabase.js');
 
 const API = 'https://graph.instagram.com';
 const VERSION = 'v24.0';
 const RENOVAR_DIAS = 7;
 const PUBLICACIONES = 50;
-const ZONA = 'America/Montevideo';
 
 class ErrorInstagram extends Error {
   constructor(mensaje, { codigo, token } = {}) {
@@ -95,8 +94,6 @@ async function leerTodo(token, pedir) {
   return { cuenta, dia, publicaciones };
 }
 
-const fechaLocal = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: ZONA }).format(d);
-
 // Supabase por REST con service_role.
 function base({ url, clave, fetch: pedir = fetch }) {
   const h = encabezados(clave);
@@ -174,4 +171,4 @@ async function actualizar(conf, { env = process.env, pedirIg: pedir = fetch, aho
   };
 }
 
-module.exports = { actualizar, valoresInsights, fechaLocal, ErrorInstagram, RENOVAR_DIAS };
+module.exports = { actualizar, valoresInsights, ErrorInstagram, RENOVAR_DIAS };

@@ -1,7 +1,8 @@
 import {
-  h, vaciar, chips, stepper, campo, normalizar, pesos, fechaLarga, fechaCorta, diaMes, hoyISO, proximoSabado, conBoton, sumar, campoPesos,
-  grupo,
+  h, vaciar, chips, stepper, campo, normalizar, pesos, numero, fechaLarga, fechaCorta, diaMes, hoyISO, proximoSabado, conBoton,
+  sumar, campoPesos, grupo,
 } from './util.js';
+import { partes } from './graficos.js';
 import { PRODUCCION } from './app.js';
 import { textoPanel } from './textos.js';
 
@@ -269,6 +270,26 @@ export function chipsUnidad(lista, valor, alCambiar) {
 // Tarjeta de un número: etiqueta, valor grande, aclaración y, si hay, la variación contra el período anterior.
 export const stat = (etiqueta, valor, sub, delta) => h('div', { class: 'stat' },
   h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), sub ? h('div', { class: 'sub' }, sub) : null, delta);
+
+// Rolls por sabor ({ 'Canela': 40, … }) en una barra partida. Cada sabor con su color fijo, así no cambia cuando
+// cambia el período: primero los de masa compartida (los mismos colores que en el desglose del plan de horneado),
+// después los de masa propia y los inactivos.
+export function partesPorSabor(rollsPorSabor, cat) {
+  const orden = [...cat.saboresActivos.filter((x) => !x.masa_propia), ...cat.saboresActivos.filter((x) => x.masa_propia),
+    ...cat.sabores.filter((x) => !x.activo)].map((x) => x.nombre);
+  const colorDe = (nombre) => {
+    const i = orden.indexOf(nombre);
+    return i >= 0 && i < 6 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
+  };
+  const lista = Object.entries(rollsPorSabor)
+    .map(([etiqueta, valor]) => ({ etiqueta, valor: Number(valor), color: colorDe(etiqueta) }))
+    .sort((a, b) => (orden.indexOf(a.etiqueta) + 1 || 999) - (orden.indexOf(b.etiqueta) + 1 || 999));
+  return partes(lista, {
+    titulo: 'Rolls vendidos por sabor',
+    formato: (v) => numero(v, 0),
+    vacio: 'No hubo ventas en este período.',
+  });
+}
 
 export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del sábado {fecha}', { fecha: diaMes(sabado) });
 

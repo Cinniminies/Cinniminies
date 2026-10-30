@@ -77,6 +77,25 @@ async function rpc(nombre, args, { url, clave, fetch: pedir = fetch }, { ErrorCl
   throw new Error(`Supabase respondió ${r.status} a ${nombre}: ${JSON.stringify(cuerpo).slice(0, 300)}`);
 }
 
+// El día de hoy (o de `d`) en Uruguay, AAAA-MM-DD.
+const fechaLocal = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo' }).format(d);
+
+// Las funciones que llama el cron de Vercel (vercel.json) traen "Authorization: Bearer <CRON_SECRET>". Si no, responde
+// el error y devuelve false.
+function cronAutorizado(req, res) {
+  const secreto = process.env.CRON_SECRET;
+  if (!secreto) {
+    responderJson(res, 500, { error: 'Falta CRON_SECRET en Vercel' });
+    return false;
+  }
+  if (req.headers.authorization !== `Bearer ${secreto}`) {
+    responderJson(res, 401, { error: 'No autorizado' });
+    return false;
+  }
+  return true;
+}
+
 module.exports = {
   URL_SUPABASE, configuracion, configuracionLista, encabezados, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, rpc,
+  cronAutorizado, fechaLocal,
 };

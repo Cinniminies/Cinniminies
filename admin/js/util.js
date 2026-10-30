@@ -142,6 +142,9 @@ export function nombreMes(iso) {
   return `${MESES[m - 1]} ${a}`;
 }
 
+// "septiembre" (sin el año: para comparar contra el mes anterior)
+export const soloMes = (iso) => MESES[partes(iso).m - 1];
+
 export const ETIQUETAS = {
   entrega: { retiro: 'Retiro', envio: 'Envío', sin_envio: 'Sin envío' },
   medio_pago: { efectivo: 'Efectivo', transferencia: 'Transferencia' },
