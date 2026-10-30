@@ -1476,3 +1476,34 @@ begin
   end if;
   raise exception 'TODO OK';
 end $$;
+
+-- Visitas (20261030110000): un paso por sesión y día, el origen sale de la visita y el embudo cuenta sesiones.
+do $$
+declare
+  r jsonb;
+  fallo text;
+begin
+  perform registrar_visita('{"sesion":"prueba1111","tipo":"visita","origen":"instagram","dispositivo":"celular"}', 'ip1');
+  perform registrar_visita('{"sesion":"prueba1111","tipo":"visita","origen":"instagram","dispositivo":"celular"}', 'ip1');
+  perform registrar_visita('{"sesion":"prueba1111","tipo":"carrito","origen":"directo","dispositivo":"celular"}', 'ip1');
+  perform registrar_visita('{"sesion":"prueba1111","tipo":"pedido","origen":"directo","dispositivo":"celular"}', 'ip1');
+  perform registrar_visita('{"sesion":"prueba2222","tipo":"visita","origen":"google","dispositivo":"compu"}', 'ip2');
+  begin
+    perform registrar_visita('{"sesion":"x","tipo":"visita","origen":"instagram","dispositivo":"celular"}', 'ip3');
+  exception when check_violation then fallo := 'ok';
+  end;
+  if fallo is null then raise exception 'aceptó una sesión inválida'; end if;
+  delete from visitas where sesion not like 'prueba%';   -- se deshace al final: solo cuentan las de esta prueba
+  r := resumen_visitas(hoy() - 6, hoy());
+  if (r->>'sesiones')::int <> 2 or (r->'embudo'->>'carrito')::int <> 1
+     or (r->'embudo'->>'pedido')::int <> 1 then
+    raise exception 'embudo: %', r;
+  end if;
+  if (select o->>'origen' from jsonb_array_elements(r->'origenes') o where (o->>'pedidos')::int = 1) <> 'instagram' then
+    raise exception 'el pedido no tomó el origen de la visita: %', r->'origenes';
+  end if;
+  if jsonb_array_length(r->'por_dia') <> 7 or (r->'dispositivos'->>'celular')::int <> 1 then
+    raise exception 'días o dispositivos: %', r;
+  end if;
+  raise exception 'TODO OK';
+end $$;

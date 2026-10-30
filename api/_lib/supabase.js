@@ -1,4 +1,5 @@
 // Lo común para leer Supabase desde las funciones de Vercel (siempre del lado del servidor).
+const crypto = require('node:crypto');
 
 // La URL es pública (también está en admin/js/config.js); se puede pisar con SUPABASE_URL.
 const URL_SUPABASE = 'https://skysdjfxuykrufawhzvn.supabase.co';
@@ -77,6 +78,12 @@ async function rpc(nombre, args, { url, clave, fetch: pedir = fetch }, { ErrorCl
   throw new Error(`Supabase respondió ${r.status} a ${nombre}: ${JSON.stringify(cuerpo).slice(0, 300)}`);
 }
 
+// IP del cliente según Vercel. No se guarda: solo un hash, para limitar pedidos y visitas seguidos.
+function hashIp(req, sal = process.env.PEDIDOS_SAL || 'cinniminies') {
+  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+  return ip ? crypto.createHash('sha256').update(`${sal}:${ip}`).digest('hex').slice(0, 32) : null;
+}
+
 // El día de hoy (o de `d`) en Uruguay, AAAA-MM-DD.
 const fechaLocal = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montevideo' }).format(d);
 
@@ -97,5 +104,5 @@ function cronAutorizado(req, res) {
 
 module.exports = {
   URL_SUPABASE, configuracion, configuracionLista, encabezados, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, rpc,
-  cronAutorizado, fechaLocal,
+  cronAutorizado, fechaLocal, hashIp,
 };

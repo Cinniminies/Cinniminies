@@ -1,7 +1,7 @@
 // POST /api/pedidos → guarda un pedido de la web (estado "nuevo") y devuelve { codigo, total, cajas }.
 // Lo llama cinniminies.js antes de mandar el mail y el WhatsApp. Si falla, la web sigue como antes.
-const { configuracionLista, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson } = require('./_lib/supabase.js');
-const { MAX_CUERPO, hashIp, armarPedido, guardarPedido, ErrorPedido } = require('./_lib/pedidos.js');
+const { configuracionLista, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, hashIp } = require('./_lib/supabase.js');
+const { MAX_CUERPO, armarPedido, guardarPedido, ErrorPedido } = require('./_lib/pedidos.js');
 const { configuracionPush, avisarPedidoNuevo } = require('./_lib/push.js');
 
 // Aviso push a los celulares de los dueños (fase 2 · 2.1), después de responderle al cliente.

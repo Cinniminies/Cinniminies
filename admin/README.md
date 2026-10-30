@@ -70,6 +70,15 @@ Lo arma la base (`cierre_mes`). **Guardar PDF** imprime la pantalla (sin barra n
 **Mandar por WhatsApp** arma el resumen en texto. El día 1 a las 9 el cron de Vercel (`/api/cierre-mes`) manda un
 aviso push con el link al mes que terminó, a los mismos celulares que reciben los pedidos nuevos.
 
+## Visitas a la web (idea 6.2)
+
+**Más → Visitas** (`#/visitas`): cuántos entraron en los últimos 7 o 30 días o en el mes, contra el período
+anterior; hasta dónde llegan (entraron → abrieron el carrito → tocaron "Pedir ahora" → mandaron el pedido), de dónde
+vienen (Instagram, WhatsApp, Google…; sale de `?utm_source=` o de la página anterior) y las visitas por día.
+La web manda cada paso a `/api/visita` con `sendBeacon`: un número al azar por pestaña, sin cookies ni datos
+personales, y la IP solo como hash para limitar abusos. Los bots y el servidor local (modo prueba) no cuentan.
+Lo guarda `registrar_visita` en `visitas` y lo resume `resumen_visitas`.
+
 ## Plan de horneado (fase 2 · 3.1 + 3.2)
 
 **Producción → Plan** calcula cuántas tandas hacer para el sábado que viene con las ventas marcadas **Por hacer**

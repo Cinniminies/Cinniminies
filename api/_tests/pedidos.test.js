@@ -1,7 +1,8 @@
 // Pruebas de /api/pedidos: node --test api/_tests/*.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { hashIp, armarPedido, guardarPedido, ErrorPedido } = require('../_lib/pedidos.js');
+const { armarPedido, guardarPedido, ErrorPedido } = require('../_lib/pedidos.js');
+const { hashIp } = require('../_lib/supabase.js');
 const handler = require('../pedidos.js');
 
 const valido = {
