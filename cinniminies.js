@@ -752,18 +752,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${dia} ${diaMes(cierre.slice(0, 10))} a las ${cierre.slice(11, 16)}`;
   }
 
-  function mostrarSabado() {
-    const nodo = document.getElementById('cartSabado');
-    if (!nodo) return;
-    nodo.hidden = !pedidosPara;
-    if (!pedidosPara) return;
-    const vars = { sabado: diaMes(pedidosPara.sabado), cierre: textoCierre(pedidosPara.cierre) };
-    nodo.textContent = pedidosPara.motivo === 'cierre'
+  function textoSabado({ sabado, cierre, motivo }) {
+    const vars = { sabado: diaMes(sabado), cierre: textoCierre(cierre) };
+    return motivo === 'cierre'
       ? textoWeb('carrito.sabado_cerrado', 'Ya cerramos los pedidos de este sábado. Tu pedido es para el sábado {sabado}.', vars)
-      : pedidosPara.motivo === 'sin_horneado'
+      : motivo === 'sin_horneado'
         ? textoWeb('carrito.sabado_sin_horneado', 'Este sábado no horneamos. Tu pedido es para el sábado {sabado}.', vars)
         : textoWeb('carrito.sabado', 'Pedidos para el sábado {sabado}. Se puede pedir hasta el {cierre}.', vars);
-    nodo.classList.toggle('is-aviso', Boolean(pedidosPara.motivo));
+  }
+
+  // Va arriba de la página y del carrito; si no es el sábado de esta semana, también junto a «Confirmar pedido»:
+  // quien pide después del cierre tiene que saberlo antes de elegir, no cuando ya mandó el pedido.
+  function mostrarSabado() {
+    const texto = pedidosPara ? textoSabado(pedidosPara) : '';
+    const esOtroSabado = Boolean(pedidosPara?.motivo);
+    [['heroSabado', true], ['cartSabado', true], ['formSabado', esOtroSabado]].forEach(([id, corresponde]) => {
+      const nodo = document.getElementById(id);
+      if (!nodo) return;
+      nodo.hidden = !texto || !corresponde;
+      nodo.textContent = texto;
+      nodo.classList.toggle('is-aviso', esOtroSabado);
+    });
   }
   document.addEventListener('textos-web', mostrarSabado);
 
