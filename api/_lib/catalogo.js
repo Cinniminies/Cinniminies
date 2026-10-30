@@ -7,6 +7,7 @@ async function leerCatalogo({ prueba = false, ...conf }) {
 }
 
 const num = (x) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));
+const esFecha = (x) => /^\d{4}-\d{2}-\d{2}$/.test(x);
 const txt = (x) => (typeof x === 'string' && x.trim() ? x.trim() : null);
 // Solo rutas del sitio (img/…) o URLs https: la web la pone en un <img>.
 const foto = (x) => {
@@ -32,11 +33,17 @@ function limpiarPromos(lista) {
       tipo: p.tipo,
       valor: num(p.valor),
       texto: txt(p.texto),
-      hasta: /^\d{4}-\d{2}-\d{2}$/.test(p.hasta) ? p.hasta : null,
+      hasta: esFecha(p.hasta) ? p.hasta : null,
       formatos: (Array.isArray(p.formatos) ? p.formatos : [])
         .filter((f) => f && typeof f.tipo === 'string').map((f) => ({ tipo: f.tipo, rolls: num(f.rolls) })),
       sabores: (Array.isArray(p.sabores) ? p.sabores : []).filter((x) => txt(x)),
     }));
+}
+
+// Para qué sábado es el pedido: { sabado: '2026-10-31', cierre: '2026-10-29T23:59', motivo: null | 'cierre' | 'sin_horneado' }.
+function limpiarPedidos(p) {
+  if (!esFecha(p?.sabado) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(p?.cierre)) return null;
+  return { sabado: p.sabado, cierre: p.cierre, motivo: ['cierre', 'sin_horneado'].includes(p.motivo) ? p.motivo : null };
 }
 
 // Deja solo los campos que usa la web, con los tipos correctos.
@@ -61,6 +68,7 @@ function limpiar(c) {
       precio: num(f.precio),
     })),
     promos: limpiarPromos(c?.promos),
+    pedidos: limpiarPedidos(c?.pedidos),
   };
 }
 

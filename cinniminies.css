@@ -252,6 +252,25 @@ a:hover{ color: var(--canela-hover); }
   margin: 0 0 36px;
 }
 
+/* Para qué sábado es el pedido, antes de elegir nada; en canela cuando no es el de esta semana */
+.hero-sabado{
+  width: fit-content;
+  max-width: 460px;
+  margin: -16px 0 28px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255,248,231,0.14);
+  color: var(--crema-card);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.hero-sabado.is-aviso{
+  border-left: 4px solid var(--canela);
+  background: var(--crema-card);
+  color: var(--cafe);
+  font-weight: 700;
+}
+
 .hero-actions{ display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
 
 .btn-primary{
@@ -1135,6 +1154,8 @@ a:hover{ color: var(--canela-hover); }
 .required-mark{
   color: #B2462E;
 }
+
+.form-sabado{ margin: 4px 0 12px; }
 
 .form-total{
   font-weight: 700;
