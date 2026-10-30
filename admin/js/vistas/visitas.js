@@ -1,5 +1,5 @@
 import { rpc } from '../db.js';
-import { h, vaciar, chips, numero, fechaCorta, hoyISO, mesISO, sumarDias } from '../util.js';
+import { h, vaciar, chips, numero, fechaCorta, diaMes, hoyISO, mesISO, sumarDias } from '../util.js';
 import { areas, partes, embudo, variacion } from '../graficos.js';
 import { irA } from '../app.js';
 import { stat } from '../componentes.js';
@@ -27,12 +27,17 @@ export async function mostrar(cont) {
   const contra = 'el período anterior';
   const pct = (n) => (r.sesiones ? `${Math.round((100 * n) / r.sesiones)} %` : '—');
 
-  // En 30 días no entran todas las fechas abajo: se rotula una por semana (y la primera y la última).
+  // Abajo no entran todas las fechas: en una semana va el día ("vie"); en más días, una fecha por semana y la última.
+  const ultimo = r.por_dia.length - 1;
+  const rotulo = (d, i) => {
+    if (r.por_dia.length <= 7) return fechaCorta(d.dia).slice(0, 3);
+    return i === ultimo || (i % 7 === 0 && ultimo - i > 2) ? diaMes(d.dia) : ''; // sin pisar a la última
+  };
   const dias = r.por_dia.map((d, i) => ({
-    etiqueta: r.por_dia.length <= 8 || i === 0 || i === r.por_dia.length - 1 || i % 7 === 0 ? fechaCorta(d.dia) : '',
+    etiqueta: rotulo(d, i),
     etiquetaLarga: fechaCorta(d.dia),
     valores: { sesiones: d.sesiones, pedidos: d.pedidos },
-    destacado: i === r.por_dia.length - 1,
+    destacado: i === ultimo,
   }));
 
   vaciar(cont,
