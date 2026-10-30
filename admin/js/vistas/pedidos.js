@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, linkWhatsapp, ETIQUETAS, diaMes, fechaCorta,
-  hoyISO, proximoSabado, sumarDias, mostrarError, DIAS_SEMANA,
+  h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, linkWhatsapp, ETIQUETAS, diaMes,
+  hoyISO, proximoSabado, sumarDias, sumarMeses, mesISO, nombreMes, mostrarError, DIAS_SEMANA,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes, guardarParametros } from '../catalogo.js';
 import { elegirCliente, pastilla } from '../componentes.js';
@@ -39,7 +39,6 @@ function cierrePedidos(parametros, sinHorneado) {
   });
 
   const sin = new Set(sinHorneado.map((s) => s.sabado));
-  const sabados = Array.from({ length: 8 }, (_, i) => sumarDias(proximoSabado(), i * 7));
   const alternar = async (sabado, horneamos) => {
     try {
       if (horneamos) await q(sb.from('sabados_sin_horneado').delete().eq('sabado', sabado));
@@ -58,8 +57,56 @@ function cierrePedidos(parametros, sinHorneado) {
       + 'Si un sábado no se hornea, sus pedidos pasan al próximo.'),
     h('div', { class: 'fila-campos' }, campo('Día del cierre', diaCierre), campo('Hora', horaCierre)),
     h('div', { class: 'acciones' }, guardar),
-    h('h3', {}, 'Próximos sábados'),
-    sabados.map((s) => interruptor(`Horneamos el ${fechaCorta(s)}`, !sin.has(s), (horneamos) => alternar(s, horneamos))));
+    h('h3', {}, 'Sábados de horneado'),
+    h('p', { class: 'ayuda' }, 'Tocá un sábado para marcar si se hornea o no.'),
+    calendarioSabados(sin, alternar));
+}
+
+// Este mes y los dos que siguen, de domingo a sábado: cada fila es una semana de pedidos. Los sábados desde el
+// próximo se tocan para alternar entre horneado y sin horneado. `sin`: Set de sábados ISO sin horneado.
+function calendarioSabados(sin, alternar) {
+  const primero = proximoSabado();
+  const meses = [0, 1, 2].map((i) => sumarMeses(mesISO(), i));
+  return h('div', { class: 'cal' },
+    h('div', { class: 'cal-meses' }, meses.map((mes) => mesCalendario(mes, primero, sin, alternar))),
+    h('p', { class: 'cal-leyenda' },
+      h('span', { class: 'cal-muestra cal-horno' }), 'Horneamos',
+      h('span', { class: 'cal-muestra cal-sin' }), 'Sin horneado'));
+}
+
+function mesCalendario(mes, primero, sin, alternar) {
+  const hueco = new Date(`${mes}T12:00:00Z`).getUTCDay();
+  const siguiente = sumarMeses(mes, 1);
+  const dias = [];
+  for (let dia = mes; dia < siguiente; dia = sumarDias(dia, 1)) dias.push(dia);
+  return h('section', { class: 'cal-mes' },
+    h('h4', {}, nombreMes(mes)),
+    h('div', { class: 'cal-grilla' },
+      DIAS_SEMANA.map((d) => h('span', { class: 'cal-cab' }, d.slice(0, 3))),
+      hueco ? h('span', { style: `grid-column: span ${hueco}` }) : null,
+      dias.map((dia) => diaCalendario(dia, primero, sin, alternar))));
+}
+
+function diaCalendario(dia, primero, sin, alternar) {
+  const diaDelMes = Number(dia.slice(8));
+  const esHoy = dia === hoyISO();
+  if (new Date(`${dia}T12:00:00Z`).getUTCDay() !== 6 || dia < primero) {
+    return h('span', { class: `cal-dia${esHoy ? ' cal-hoy' : ''}` }, diaDelMes);
+  }
+  const boton = h('button', { type: 'button', class: 'cal-dia cal-sabado' }, diaDelMes);
+  const pintar = (horneamos) => {
+    boton.classList.toggle('cal-horno', horneamos);
+    boton.classList.toggle('cal-sin', !horneamos);
+    boton.setAttribute('aria-pressed', String(horneamos));
+    boton.setAttribute('aria-label', `Sábado ${diaMes(dia)}: ${horneamos ? 'horneamos' : 'sin horneado'}`);
+  };
+  pintar(!sin.has(dia));
+  boton.onclick = () => {
+    const horneamos = !boton.classList.contains('cal-horno');
+    pintar(horneamos);
+    alternar(dia, horneamos);
+  };
+  return boton;
 }
 
 // A qué cliente va la venta al confirmar. Por defecto, el que la base encontró por el celular

@@ -303,6 +303,27 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .auto-lista small { color: var(--suave); }
 .cliente-pedido { margin: .75rem 0; padding-top: .75rem; border-top: 1px solid var(--borde); }
 .cliente-pedido p { margin: 0 0 .25rem; }
+
+/* Calendario de sábados de horneado (Pedidos web): el sábado lleno de canela se hornea; punteado y tachado, no */
+.cal-meses { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1.25rem; }
+.cal-mes h4 { margin: 0 0 .5rem; font-family: var(--display); font-variation-settings: 'SOFT' 100; font-size: 1.0625rem;
+  font-weight: 600; }
+.cal-mes h4::first-letter { text-transform: uppercase; }
+.cal-grilla { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-cab { font-size: .75rem; color: var(--suave); text-align: center; padding-bottom: .25rem; }
+.cal-dia { display: grid; place-items: center; aspect-ratio: 1; min-height: 2.25rem; border-radius: var(--radio-control);
+  font-size: .875rem; color: var(--suave); font-variant-numeric: tabular-nums; }
+.cal-hoy { border: 2px solid var(--marca); color: var(--texto); font-weight: 600; }
+.cal-sabado { min-height: 2.75rem; border: 1.5px solid var(--canela); background: none; font: inherit; font-size: .9375rem;
+  font-weight: 600; cursor: pointer; transition: background-color .15s, color .15s; }
+.cal-sabado.cal-horno { background: var(--canela); color: var(--sobre-canela); }
+.cal-sabado.cal-sin { border-style: dashed; color: var(--suave); text-decoration: line-through; }
+.cal-sabado:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
+.cal-leyenda { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin: .75rem 0 0; font-size: .8125rem;
+  color: var(--suave); }
+.cal-muestra { width: .9rem; height: .9rem; border-radius: 4px; border: 1.5px solid var(--canela); }
+.cal-muestra.cal-horno { background: var(--canela); }
+.cal-muestra.cal-sin { border-style: dashed; margin-left: .6rem; }
 .elegido { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .6rem .8rem; border-radius: var(--radio-control); background: var(--marca-suave); }
 
 /* Confirmación */
