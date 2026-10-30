@@ -94,10 +94,8 @@ a:hover{ color: var(--canela-hover); }
   align-items: center;
   justify-content: space-between;
   padding: 16px 5vw;
-  /* Vidrio crema: sobre la foto del hero y sobre el contenido al bajar, el logo y los links se leen siempre */
-  background: rgba(255,248,231,0.86);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  backdrop-filter: blur(14px) saturate(160%);
+  /* Crema sólida: sobre la foto del hero y sobre el contenido al bajar, el logo y los links se leen siempre */
+  background: var(--crema);
   border-bottom: 1px solid var(--linea);
 }
 .brand{
@@ -125,16 +123,16 @@ a:hover{ color: var(--canela-hover); }
 
 .topbar-cta{
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   text-decoration: none;
   background: var(--canela);
   color: var(--cafe);
   padding: 10px 20px;
   border-radius: 100px;
-  transition: background 0.3s var(--ease), transform 0.3s var(--ease);
+  transition: background 0.2s var(--ease);
 }
-.topbar-cta:hover{ background: var(--canela-hover); transform: translateY(-1px); color: var(--cafe); }
+.topbar-cta:hover{ background: var(--canela-hover); color: var(--cafe); }
 
 .menu-toggle{
   display: none;
@@ -256,7 +254,7 @@ a:hover{ color: var(--canela-hover); }
 
 .btn-primary{
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
   text-decoration: none;
   background: var(--canela);
@@ -265,14 +263,11 @@ a:hover{ color: var(--canela-hover); }
   padding: 16px 30px;
   border-radius: 100px;
   display: inline-block;
-  box-shadow: 0 8px 22px rgba(217,143,62,0.35);
-  transition: transform 0.3s var(--ease), background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  transition: background 0.2s var(--ease);
 }
 .btn-primary:hover{
-  transform: translateY(-2px);
   background: var(--canela-hover);
   color: var(--cafe);
-  box-shadow: 0 12px 26px rgba(217,143,62,0.42);
 }
 
 .btn-ghost{
@@ -289,7 +284,7 @@ a:hover{ color: var(--canela-hover); }
 
 .btn-secondary{
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
   background: transparent;
   color: var(--cafe);
@@ -317,7 +312,6 @@ a:hover{ color: var(--canela-hover); }
 .bake-meter-label{
   font-family: var(--font-mono);
   font-size: 12px;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--cafe-suave);
   margin: 0;
@@ -330,6 +324,14 @@ a:hover{ color: var(--canela-hover); }
   padding: 40px 5vw 100px;
 }
 .menu-head{ max-width: 600px; margin: 0 0 40px; }
+.section-title{
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  line-height: 1.1;
+  margin: 0;
+  color: var(--cafe);
+}
 .menu-sub{
   font-size: 16px;
   color: var(--cafe-suave);
@@ -338,28 +340,27 @@ a:hover{ color: var(--canela-hover); }
 
 .menu-grid{
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
   scroll-margin-top: 100px;
 }
 
 .roll-card{
+  display: flex;
+  flex-direction: column;
   background: var(--crema-card);
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid var(--linea);
-  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+  transition: border-color 0.2s var(--ease);
 }
-.roll-card:hover{
-  transform: translateY(-6px);
-  box-shadow: 0 24px 48px rgba(58,36,23,0.14);
-}
+.roll-card:hover{ border-color: var(--canela); }
 .roll-card.is-added{
   animation: card-pop 0.4s var(--ease);
 }
 @keyframes card-pop{
   0%{ transform: scale(1); }
-  35%{ transform: scale(1.035); box-shadow: 0 16px 32px rgba(217,143,62,0.28); }
+  35%{ transform: scale(1.02); }
   100%{ transform: scale(1); }
 }
 
@@ -372,13 +373,11 @@ a:hover{ color: var(--canela-hover); }
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.6s var(--ease);
 }
-.roll-card:hover .roll-photo{ transform: scale(1.08); }
 /* Sabor cargado en /admin sin foto todavía: la inicial sobre un fondo cálido */
 .roll-photo-vacia{
   display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--crema-suave), var(--canela-soft-text));
+  background: var(--crema-suave);
   color: var(--canela-tostada);
   font-family: var(--font-display); font-size: 72px; font-weight: 600;
 }
@@ -390,13 +389,11 @@ a:hover{ color: var(--canela-hover); }
   color: var(--canela-tostada);
   font-family: var(--font-mono);
   font-size: 11px;
-  text-transform: uppercase;
   padding: 6px 12px;
   border-radius: 100px;
-  box-shadow: 0 2px 8px rgba(58,36,23,0.12);
 }
 
-.roll-card-body{ padding: 22px; }
+.roll-card-body{ flex: 1; display: flex; flex-direction: column; padding: 24px; }
 .roll-card-body h3{
   font-family: var(--font-display);
   font-size: 22px;
@@ -407,11 +404,11 @@ a:hover{ color: var(--canela-hover); }
   font-size: 14px;
   line-height: 1.55;
   color: var(--cafe-suave);
-  margin: 0 0 18px;
-  min-height: 65px;
+  margin: 0 0 16px;
 }
 
 .roll-card-foot{
+  margin-top: auto; /* el botón de agregar queda a la misma altura en todas las tarjetas */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -420,7 +417,7 @@ a:hover{ color: var(--canela-hover); }
 }
 .roll-price{
   font-family: var(--font-mono);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   color: var(--cafe-suave);
 }
@@ -435,7 +432,7 @@ a:hover{ color: var(--canela-hover); }
   width: 56px;
   font-family: var(--font-mono);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   padding: 9px 4px;
   border-radius: 10px;
@@ -450,7 +447,7 @@ a:hover{ color: var(--canela-hover); }
 
 .roll-add{
   font-family: var(--font-body);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   background: var(--cafe);
   color: var(--crema-card);
@@ -504,8 +501,8 @@ a:hover{ color: var(--canela-hover); }
 }
 .box-option .box-qty{ font-family: var(--font-display); font-size: 24px; white-space: nowrap; }
 .box-option .box-desc{ font-size: 12px; opacity: 0.8; }
-.box-option .box-cost{ font-family: var(--font-mono); font-size: 13px; font-weight: 700; margin-top: 4px; }
-.box-option:hover{ border-color: var(--canela); transform: translateY(-2px); }
+.box-option .box-cost{ font-family: var(--font-mono); font-size: 13px; font-weight: 600; margin-top: 4px; }
+.box-option:hover{ border-color: var(--canela); }
 .box-option .box-cost s{ font-weight: 400; opacity: 0.6; }
 /* Promo de la caja (/admin → Promociones) */
 .box-option .box-promo{
@@ -516,7 +513,7 @@ a:hover{ color: var(--canela-hover); }
   color: var(--crema-card);
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   text-align: center;
 }
@@ -530,7 +527,7 @@ a:hover{ color: var(--canela-hover); }
   border: 1.5px dashed var(--canela);
   background: var(--crema-card);
   color: var(--canela-tostada);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
   line-height: 1.4;
 }
@@ -551,7 +548,7 @@ a:hover{ color: var(--canela-hover); }
 .box-progress{
   font-family: var(--font-mono);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--canela-tostada);
   margin: 14px 0 0;
   min-height: 18px;
@@ -592,7 +589,6 @@ a:hover{ color: var(--canela-hover); }
 .local-list li span:first-child{
   font-family: var(--font-mono);
   font-size: 11px;
-  text-transform: uppercase;
   color: var(--canela-tostada);
   letter-spacing: 0.04em;
 }
@@ -691,12 +687,12 @@ a:hover{ color: var(--canela-hover); }
   flex-direction: column;
   gap: 4px;
   min-width: 180px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 17px;
-  transition: border-color 0.3s var(--ease), background 0.3s var(--ease), transform 0.3s var(--ease);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
 }
 .contact-link small{ font-family: var(--font-mono); font-size: 11px; font-weight: 400; opacity: 0.75; }
-.contact-link:hover{ transform: translateY(-3px); border-color: var(--canela); }
+.contact-link:hover{ border-color: var(--canela); }
 .contact-link.is-primary{ background: var(--canela); color: var(--cafe); border-color: var(--canela); }
 .contact-link.is-primary small{ opacity: 1; }
 .contact-link.is-primary:hover{ background: var(--canela-hover); }
@@ -721,7 +717,7 @@ a:hover{ color: var(--canela-hover); }
   transform: translate(-50%, 20px);
   background: var(--cafe);
   color: var(--crema);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
   padding: 14px 24px;
   border-radius: 100px;
@@ -755,13 +751,13 @@ a:hover{ color: var(--canela-hover); }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(139,66,38,0.32);
-  transition: transform 0.3s var(--ease);
+  box-shadow: 0 8px 24px rgba(58,36,23,0.18);
+  transition: background 0.2s var(--ease), opacity 0.2s var(--ease);
   opacity: 0;
   pointer-events: none;
 }
 .cart-fab.is-visible{ opacity: 1; pointer-events: auto; }
-.cart-fab:hover{ transform: scale(1.07); }
+.cart-fab:hover{ background: var(--canela-hover); }
 .cart-fab svg{ width: 24px; height: 24px; }
 .cart-fab-count{
   position: absolute;
@@ -770,7 +766,7 @@ a:hover{ color: var(--canela-hover); }
   color: var(--crema);
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   width: 20px; height: 20px;
   border-radius: 50%;
   display: flex;
@@ -882,8 +878,7 @@ a:hover{ color: var(--canela-hover); }
   align-items: baseline;
   font-family: var(--font-mono);
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
   letter-spacing: 0.03em;
   margin-bottom: 8px;
   color: var(--cafe);
@@ -894,7 +889,7 @@ a:hover{ color: var(--canela-hover); }
   font-weight: 600;
 }
 .cart-box.is-incomplete .cart-box-fill{ color: #B2462E; }
-.cart-box-promo{ margin: 2px 0 6px; font-size: 13px; font-weight: 700; color: var(--canela-tostada); }
+.cart-box-promo{ margin: 2px 0 6px; font-size: 13px; font-weight: 600; color: var(--canela-tostada); }
 .cart-summary s{ font-weight: 400; opacity: 0.55; margin-right: 4px; }
 
 .cart-item{
@@ -907,7 +902,7 @@ a:hover{ color: var(--canela-hover); }
 }
 .cart-box .cart-item:last-child{ border-bottom: none; }
 .cart-item-info{ display: flex; flex-direction: column; }
-.cart-item-name{ font-weight: 700; font-size: 15px; color: var(--cafe); }
+.cart-item-name{ font-weight: 600; font-size: 15px; color: var(--cafe); }
 
 .cart-item-qty{
   display: flex;
@@ -934,7 +929,7 @@ a:hover{ color: var(--canela-hover); }
   border-color: var(--linea);
 }
 .qty-btn:disabled:hover{ background: transparent; color: var(--cafe); }
-.qty-value{ font-family: var(--font-mono); font-weight: 700; min-width: 18px; text-align: center; color: var(--cafe); }
+.qty-value{ font-family: var(--font-mono); font-weight: 600; min-width: 18px; text-align: center; color: var(--cafe); }
 
 .cart-summary{
   display: flex;
@@ -1029,12 +1024,12 @@ a:hover{ color: var(--canela-hover); }
   color: var(--crema-card);
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   text-align: center;
 }
 .codigo-premio-texto{ display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-.codigo-premio-texto strong{ font-size: 15px; font-weight: 700; }
+.codigo-premio-texto strong{ font-size: 15px; font-weight: 600; }
 .codigo-premio-texto > span:not(.codigo-premio-barra){ font-size: 12.5px; font-weight: 500; color: var(--cafe-suave); }
 .codigo-premio-barra{
   display: block;
@@ -1107,7 +1102,7 @@ a:hover{ color: var(--canela-hover); }
   padding: 12px 14px;
   font-family: var(--font-body);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--cafe-suave);
   background: var(--crema);
   cursor: pointer;
@@ -1137,7 +1132,7 @@ a:hover{ color: var(--canela-hover); }
 }
 
 .form-total{
-  font-weight: 700;
+  font-weight: 600;
   color: var(--cafe);
   margin: 4px 0 10px;
 }
@@ -1191,7 +1186,6 @@ a:hover{ color: var(--canela-hover); }
   display: block;
   font-family: var(--font-mono);
   font-size: 11px;
-  text-transform: uppercase;
   opacity: 0.6;
   margin-bottom: 6px;
 }
@@ -1236,7 +1230,6 @@ a:hover{ color: var(--canela-hover); }
   width: 92px;
   font-family: var(--font-mono);
   font-size: 11px;
-  text-transform: uppercase;
   color: var(--cafe-suave);
 }
 .cuenta-fila dd{
@@ -1261,7 +1254,7 @@ a:hover{ color: var(--canela-hover); }
   flex: none;
   font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--canela-tostada);
   background: none;
   border: 1.5px solid var(--linea);

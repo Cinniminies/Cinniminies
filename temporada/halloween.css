@@ -20,7 +20,6 @@
 }
 
 /* ---------- Lo que tenía colores fijos de la paleta crema ---------- */
-.tema-halloween .topbar{ background: rgba(13,18,34,0.86); }
 .tema-halloween .brand img{ content: url("../img/logo-pie.svg"); }
 .tema-halloween .mobile-nav.is-open{ box-shadow: -20px 0 50px rgba(0,0,0,0.5); }
 
@@ -33,19 +32,16 @@
     linear-gradient(100deg, rgba(5,7,15,0.9) 0%, rgba(8,12,28,0.74) 32%, rgba(14,22,48,0.4) 58%, rgba(14,22,48,0.15) 75%),
     linear-gradient(0deg, var(--crema) 0%, rgba(13,18,34,0) 22%);
 }
-.tema-halloween .btn-primary{ box-shadow: 0 8px 26px rgba(232,134,46,0.4); }
 .tema-halloween .btn-ghost{ color: #F3F6FC; }
 
 .tema-halloween .roll-swirl-line{ stroke: #3A4767; }
-.tema-halloween .roll-card:hover{ box-shadow: 0 24px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(159,195,232,0.25); }
-.tema-halloween .roll-tag{ box-shadow: 0 2px 10px rgba(0,0,0,0.4); }
 
 .tema-halloween .contact{ background: var(--hw-noche); color: var(--cafe); }
 .tema-halloween .contact-title,
 .tema-halloween .contact-link{ color: var(--cafe); }
 .tema-halloween .contact-link.is-primary{ color: var(--hw-noche); }
 
-.tema-halloween .cart-fab{ background: var(--canela); color: var(--hw-noche); box-shadow: 0 12px 28px rgba(232,134,46,0.4); }
+.tema-halloween .cart-fab{ background: var(--canela); color: var(--hw-noche); }
 .tema-halloween .cart-modal-backdrop,
 .tema-halloween .box-complete-backdrop{ background: rgba(2,4,10,0.7); }
 .tema-halloween .cart-submit:disabled,

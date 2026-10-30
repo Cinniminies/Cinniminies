@@ -6,7 +6,7 @@ import {
 import { icono } from '../iconos.js';
 import { areas, variacion } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
-import { irA, sesion } from '../app.js';
+import { irA } from '../app.js';
 import { tituloSemana, stat, filaLista, pastilla, monto, partesPorSabor } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 
@@ -219,9 +219,7 @@ export async function mostrar(cont) {
 
   // En la compu: lo pendiente, el resumen y los gráficos a la izquierda; la plata y las últimas ventas a la derecha.
   vaciar(cont, h('div', { class: 'dos-col ancha-izq' }, h('div', {},
-    h('div', { class: 'saludo' },
-      h('p', { class: 'saludo-hola' }, `Hola, ${sesion.nombre}`),
-      h('p', { class: 'ayuda' }, hoy.charAt(0).toUpperCase() + hoy.slice(1))),
+    h('p', { class: 'saludo' }, hoy.charAt(0).toUpperCase() + hoy.slice(1)),
     tiraSemana(proximoSabado(), ventasSemana, sumar(porHacer, (v) => v.rolls)),
 
     tareas.length ? [h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas] : null,
