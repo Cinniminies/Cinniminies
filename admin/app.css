@@ -487,6 +487,14 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .graf-partes-lista li { display: grid; grid-template-columns: .75rem 1fr auto 3rem; align-items: center; gap: .5rem; padding: .3rem 0; font-size: .9rem; border-top: 1px solid var(--borde); }
 .graf-partes-lista i { width: .75rem; height: .75rem; border-radius: 3px; background: var(--c); }
 .graf-partes-lista .graf-valor { font-weight: 600; }
+/* Embudo: el paso, cuántos y qué parte siguió del anterior arriba; la barra (proporcional al primero) abajo. */
+.graf-embudo { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.graf-embudo li { display: grid; grid-template-columns: 1fr auto 3rem; gap: .2rem .6rem; align-items: baseline; }
+.graf-embudo .graf-valor { font-weight: 600; }
+.graf-embudo .graf-pct { text-align: right; color: var(--suave); font-size: .8125rem; }
+.graf-embudo-barra { grid-column: 1 / -1; position: relative; height: 10px; border-radius: 5px; background: var(--hundido); }
+.graf-embudo-barra::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--ancho); min-width: 4px;
+  border-radius: 5px; background: var(--graf-acento); }
 .graf-partes-lista .graf-pct { text-align: right; color: var(--suave); font-size: .8125rem; }
 .graf-partes-lista li.mayor .graf-pct { color: var(--texto); font-weight: 600; }
 

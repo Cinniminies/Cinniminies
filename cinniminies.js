@@ -705,6 +705,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
+  /* ---------- Visitas (idea 6.2) ---------- */
+  // Sin cookies ni datos personales: un número al azar por pestaña, de dónde vino y si es celular o compu. Cada paso
+  // (visita, carrito, formulario, pedido) va una vez a /api/visita, que descarta los bots; lo resume /admin → Visitas.
+  const ORIGENES = [['instagram', /instagram|^ig$/], ['facebook', /facebook|^fb$/], ['whatsapp', /whatsapp|wa\.me/],
+    ['google', /google/], ['tiktok', /tiktok/]];
+  const sesionVisita = (() => {
+    const nueva = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    try {
+      const guardada = sessionStorage.getItem('visita') || nueva();
+      sessionStorage.setItem('visita', guardada);
+      return guardada;
+    } catch {
+      return nueva();
+    }
+  })();
+  // De dónde vino: ?utm_source= de un link armado o, si no, la página anterior (la web misma no cuenta).
+  const origenVisita = (() => {
+    let anterior = '';
+    try { anterior = document.referrer ? new URL(document.referrer).hostname : ''; } catch { /* referrer raro */ }
+    if (anterior === location.hostname) anterior = '';
+    const fuente = new URLSearchParams(location.search).get('utm_source')?.toLowerCase() || anterior;
+    if (!fuente) return 'directo';
+    return ORIGENES.find(([, regla]) => regla.test(fuente))?.[0] || 'otro';
+  })();
+  const dispositivoVisita = matchMedia('(pointer: coarse)').matches ? 'celular' : 'compu';
+  const pasosRegistrados = new Set();
+
+  function registrarPaso(tipo) {
+    if (pasosRegistrados.has(tipo) || !navigator.sendBeacon) return;
+    pasosRegistrados.add(tipo);
+    const datos = { sesion: sesionVisita, tipo, origen: origenVisita, dispositivo: dispositivoVisita };
+    navigator.sendBeacon('/api/visita', new Blob([JSON.stringify(datos)], { type: 'application/json' }));
+  }
+  registrarPaso('visita');
+
   /* ---------- Para qué sábado es el pedido (ideas 2.9 y 6.8) ---------- */
   // { sabado, cierre, motivo } de /api/catalogo. La regla está en la base (sabado_de_pedido): los pedidos de un
   // sábado cierran el jueves a las 23:59 y los sábados sin horneado pasan al siguiente. Sin catálogo, no se muestra.
@@ -759,7 +794,13 @@ document.addEventListener('DOMContentLoaded', () => {
     step.classList.remove('is-hidden');
   }
 
-  if (cartFab) cartFab.addEventListener('click', () => { goToStep(stepCart); openModal(); });
+  // El carrito se abre desde el botón flotante o desde el aviso de caja completa: las dos cuentan como paso "carrito".
+  function abrirCarrito() {
+    goToStep(stepCart);
+    openModal();
+    registrarPaso('carrito');
+  }
+  if (cartFab) cartFab.addEventListener('click', abrirCarrito);
   document.getElementById('cartClose')?.addEventListener('click', closeModal);
   document.getElementById('formClose')?.addEventListener('click', closeModal);
   document.getElementById('doneClose')?.addEventListener('click', closeModal);
@@ -788,8 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('boxCompleteCart')?.addEventListener('click', () => {
     closeBoxCompleteModal();
-    goToStep(stepCart);
-    openModal();
+    abrirCarrito();
   });
 
   // Escape cierra el popup de caja completa o el carrito (salvo mientras se envía el pedido).
@@ -803,6 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartHasIncompleteBox()) return;
     goToStep(stepForm);
     updateSubmitBtn();
+    registrarPaso('formulario');
   });
 
   /* ---------- Dirección condicional (solo si eligen Entrega) ---------- */
@@ -1342,6 +1383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : { tipo: 'caja_fija', rolls: box.size, sabores: { ...box.flavors } })
     });
     const orderId = guardado?.codigo || generateOrderId();
+    registrarPaso('pedido');
     // El sábado lo fija la base al guardar; si no respondió, el que mostraba el carrito.
     const sabadoPedido = guardado?.sabado || pedidosPara?.sabado;
     const paraSabado = sabadoPedido ? ` para el sábado ${diaMes(sabadoPedido)}` : '';

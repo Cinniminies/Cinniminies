@@ -1,4 +1,4 @@
-import { h, plural, sumar } from './util.js';
+import { h, plural, sumar, numero } from './util.js';
 
 // Gráficos en HTML y SVG (sin librerías), cada uno para un tipo de dato. Reglas: marcas finas con punta
 // redondeada, acento para lo que importa y gris de contexto (colores de --serie-* para identidades),
@@ -237,6 +237,25 @@ export function partes(datos, { formato, titulo, vacio }) {
     h('ul', { class: 'graf-partes-lista' }, lista.map((d) => h('li', { class: d.valor === mayor ? 'mayor' : null },
       h('i', { style: `--c:${d.color}` }), h('span', { class: 'graf-etq' }, d.etiqueta),
       h('span', { class: 'graf-valor' }, formato(d.valor)), h('span', { class: 'graf-pct' }, pct(d.valor))))));
+}
+
+// Embudo: cuántos llegan a cada paso (p. ej. entraron → abrieron el carrito → pidieron). pasos: [{ etiqueta, valor }]
+// en orden. Cada barra es proporcional al primer paso y a la derecha va qué parte siguió desde el paso anterior.
+export function embudo(pasos, { titulo, vacio }) {
+  const primero = Number(pasos[0]?.valor) || 0;
+  if (!primero) return sinDatos(titulo, vacio);
+  return h('figure', { class: 'grafico' },
+    h('figcaption', { class: 'graf-titulo' }, titulo),
+    h('ol', { class: 'graf-embudo' }, pasos.map((p, i) => {
+      const anterior = i ? Number(pasos[i - 1].valor) : 0;
+      const siguio = anterior ? `${Math.round((100 * p.valor) / anterior)} %` : '';
+      return h('li', {},
+        h('span', { class: 'graf-etq' }, p.etiqueta),
+        h('span', { class: 'graf-valor' }, numero(p.valor, 0)),
+        h('span', { class: 'graf-pct', title: siguio ? 'de los del paso anterior' : null }, siguio),
+        h('span', { class: 'graf-embudo-barra', 'aria-hidden': 'true', style: `--ancho:${(100 * p.valor) / primero}%` }));
+    })),
+    h('p', { class: 'graf-ayuda' }, 'El porcentaje es de los que llegaron al paso anterior.'));
 }
 
 // Pesas (dumbbell): dos montos por fila sobre la misma escala desde cero, unidos por el tramo que los separa

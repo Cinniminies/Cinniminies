@@ -1,15 +1,8 @@
 // Pedidos de la web (Etapa 6): se validan y se guardan en la base con crear_pedido_web(), que
 // recalcula el precio con la misma regla que las ventas. El total del navegador no se usa.
-const crypto = require('node:crypto');
 const { rpc } = require('./supabase.js');
 
 const MAX_CUERPO = 20000; // bytes: un pedido real ocupa menos de 2 KB
-
-// IP del cliente según Vercel. No se guarda: solo un hash, para limitar pedidos seguidos.
-function hashIp(req, sal = process.env.PEDIDOS_SAL || 'cinniminies') {
-  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
-  return ip ? crypto.createHash('sha256').update(`${sal}:${ip}`).digest('hex').slice(0, 32) : null;
-}
 
 const txt = (x, max) => (typeof x === 'string' ? x.trim().slice(0, max) : '');
 
@@ -43,4 +36,4 @@ function guardarPedido(pedido, ipHash, conf) {
   return rpc('crear_pedido_web', { p: pedido, p_ip_hash: ipHash }, conf, { ErrorCliente: ErrorPedido });
 }
 
-module.exports = { MAX_CUERPO, hashIp, armarPedido, guardarPedido, ErrorPedido };
+module.exports = { MAX_CUERPO, armarPedido, guardarPedido, ErrorPedido };
