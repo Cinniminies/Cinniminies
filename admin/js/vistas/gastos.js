@@ -2,6 +2,7 @@ import { sb, q } from '../db.js';
 import { h, vaciar, chips, campo, campoFecha, grupo, hoyISO, fechaCorta, pesos, toast, conBoton, ETIQUETAS, opciones, campoPesos } from '../util.js';
 import { irA, refrescarSi } from '../app.js';
 import { libroCaja } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 const AYUDA = {
   merma: 'Rolls quemados, muestras regaladas… Si se perdió un ingrediente (bolsa rota), cargalo en Producción → Stock → Registrar pérdida.',
@@ -69,7 +70,9 @@ export async function mostrar(cont, { id } = {}) {
   });
 
   vaciar(cont, h('div', { class: 'dos-col' },
-    h('div', { class: 'card col-fija' },
+    h('div', { class: 'col-fija' },
+      h('h2', { class: 'solo-lateral' }, textoPanel('panel.cargar_movimiento', 'Cargar un movimiento')),
+      h('div', { class: 'card' },
       h('div', { class: 'sentido' }, chips([{ valor: 'sale', texto: 'Sale plata' }, { valor: 'entra', texto: 'Entra plata' }],
         entra ? 'entra' : 'sale', (v) => {
           entra = v === 'entra';
@@ -82,7 +85,7 @@ export async function mostrar(cont, { id } = {}) {
       campo('Monto', campoPesos({ oninput: (e) => { f.monto = e.target.value; } })),
       campoRolls,
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),
-      guardar),
+      guardar)),
 
     h('div', {},
     h('h2', {}, 'Últimos movimientos'),

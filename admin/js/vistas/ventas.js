@@ -4,7 +4,7 @@ import {
   ETIQUETAS, opciones, linkWhatsapp, sumar, sumarMeses, campoPesos,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
-import { elegirCliente, editorLineas, tituloSemana, filaLista, pastilla, monto } from '../componentes.js';
+import { elegirCliente, editorLineas, tituloSemana, filaLista, pastilla, monto, cajaVacia } from '../componentes.js';
 import { irA } from '../app.js';
 import { textoPanel } from '../textos.js';
 import { campanaVigente, codigoDe, bonoDe, linkCodigo } from '../recomendacion.js';
@@ -72,8 +72,8 @@ async function lista(cont) {
             detalle: [v.formatos, v.sabores],
             derecha: monto(pesos(v.total)),
           })))])
-        : h('div', { class: 'vacio' }, h('p', { style: 'margin:0' }, 'No hay ventas con estos filtros.'),
-          h('a', { class: 'btn', href: '#/venta' }, textoPanel('panel.vacio_ventas', 'Cargar una venta'))));
+        : cajaVacia('No hay ventas con estos filtros.',
+          { href: '#/venta', texto: textoPanel('panel.vacio_ventas', 'Cargar una venta') }));
   }
 
   const buscar = debounce(cargar, 300);

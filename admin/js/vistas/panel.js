@@ -7,7 +7,7 @@ import { icono } from '../iconos.js';
 import { areas, variacion } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
-import { tituloSemana, stat, filaLista, pastilla, monto, partesPorSabor } from '../componentes.js';
+import { tituloSemana, stat, filaLista, pastilla, monto, partesPorSabor, cajaVacia } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 
 const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', texto: 'Mes pasado' }, { valor: 'todo', texto: 'Todo' }];
@@ -171,6 +171,7 @@ export async function mostrar(cont) {
       formato: (v) => (v >= 10000 ? `$${numero(v / 1000, 1)} mil` : pesos(v)),
       alElegir: (d) => elegirMes(d.mes),
       ayudaElegir: 'Tocá un mes para ver su resumen.',
+      vacio: textoPanel('panel.grafico_vacio', 'Todavía no hubo ventas en estos seis meses.'),
       columnasTabla: [
         ['Mes', (d) => d.etiquetaLarga],
         ['Vendido', (d) => pesos(d.valores.vendido)],
@@ -217,46 +218,50 @@ export async function mostrar(cont) {
   const plata = (etiqueta, valor, ayuda) => h('div', { class: 'dato' },
     h('dt', {}, etiqueta, ayuda ? h('small', {}, ayuda) : null), h('dd', {}, valor));
 
-  // En la compu: lo pendiente, el resumen y los gráficos a la izquierda; la plata y las últimas ventas a la derecha.
-  vaciar(cont, h('div', { class: 'dos-col ancha-izq' }, h('div', {},
+  // Se lee de arriba a abajo, en franjas: la semana, lo que hay que hacer, cómo va el período y, al pie, la plata
+  // y las últimas ventas lado a lado (en la compu), con la misma altura aunque una esté vacía.
+  vaciar(cont, h('div', { class: 'inicio' },
     h('p', { class: 'saludo' }, hoy.charAt(0).toUpperCase() + hoy.slice(1)),
     tiraSemana(proximoSabado(), ventasSemana, sumar(porHacer, (v) => v.rolls)),
 
-    tareas.length ? [h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas] : null,
+    h('div', { class: 'inicio-hacer' },
+      tareas.length ? h('section', {}, h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas) : null,
+      h('section', {},
+        h('h2', { class: 'seccion-titulo solo-lateral' }, textoPanel('panel.cargar', 'Cargar')),
+        h('nav', { class: 'accesos', 'aria-label': 'Cargar' },
+          acceso('#/tandas', 'roll', 'Tanda'),
+          acceso('#/compras', 'carrito', 'Compra'),
+          acceso('#/gastos', 'gasto', 'Gasto'),
+          acceso('#/gastos/ingreso', 'ingreso', 'Ingreso'),
+          acceso('#/stock/conteo', 'conteo', 'Conteo')))),
 
-    h('nav', { class: 'accesos', 'aria-label': 'Cargar' },
-      acceso('#/tandas', 'roll', 'Tanda'),
-      acceso('#/compras', 'carrito', 'Compra'),
-      acceso('#/gastos', 'gasto', 'Gasto'),
-      acceso('#/gastos/ingreso', 'ingreso', 'Ingreso'),
-      acceso('#/stock/conteo', 'conteo', 'Conteo')),
+    h('section', {},
+      h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Resumen'), contChips),
+      contPeriodo),
 
-    h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Resumen'),
-      contChips),
-    contPeriodo),
-
-    h('div', {},
-
-    h('h2', { class: 'seccion-titulo' }, 'La plata, acumulado'),
-    h('dl', { class: 'card datos' },
-      plata('Caja teórica', pesos(total.caja_teorica), 'lo que debería haber'),
-      plata('Pendiente de cobro', pesos(total.pendiente)),
-      plata('Stock', pesos(Number(total.stock_ingredientes) + Number(total.stock_packaging)), 'ingredientes y packaging'),
-      plata('Capital', pesos(total.capital), 'caja + stock'),
-      plata('Retiros de socios', pesos(total.retiros)),
-      plata('Aportes de socios', pesos(total.aportes)),
-      Number(total.otros_ingresos) ? plata('Otros ingresos', pesos(total.otros_ingresos), 'que no son ventas') : null,
-      plata('Tandas hechas', `${numero(total.tandas, 1)} · ${numero(total.rolls_producidos, 0)} rolls`)),
-
-    h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Últimas ventas'),
-      h('a', { href: '#/ventas', class: 'ver-todo' }, 'Ver todas')),
-    ultimas.length
-      ? h('ul', { class: 'lista' }, ultimas.map((v) => filaLista({
-        href: `#/ventas/${v.id}`,
-        titulo: [v.cliente || 'Sin cliente', v.estado_pago === 'pendiente' ? pastilla('pendiente', 'Pendiente') : null],
-        detalle: [fechaCorta(v.fecha), v.formatos, v.sabores],
-        derecha: monto(pesos(v.total)),
-      })))
-      : h('p', { class: 'vacio' }, 'Todavía no hay ventas.'))));
+    h('div', { class: 'inicio-pie' },
+      h('section', { class: 'inicio-bloque' },
+        h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'La plata, acumulado')),
+        h('dl', { class: 'card datos' },
+          plata('Caja teórica', pesos(total.caja_teorica), 'lo que debería haber'),
+          plata('Pendiente de cobro', pesos(total.pendiente)),
+          plata('Stock', pesos(Number(total.stock_ingredientes) + Number(total.stock_packaging)), 'ingredientes y packaging'),
+          plata('Capital', pesos(total.capital), 'caja + stock'),
+          plata('Retiros de socios', pesos(total.retiros)),
+          plata('Aportes de socios', pesos(total.aportes)),
+          Number(total.otros_ingresos) ? plata('Otros ingresos', pesos(total.otros_ingresos), 'que no son ventas') : null,
+          plata('Tandas hechas', `${numero(total.tandas, 1)} · ${numero(total.rolls_producidos, 0)} rolls`))),
+      h('section', { class: 'inicio-bloque' },
+        h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Últimas ventas'),
+          ultimas.length ? h('a', { href: '#/ventas', class: 'ver-todo' }, 'Ver todas') : null),
+        ultimas.length
+          ? h('ul', { class: 'lista' }, ultimas.map((v) => filaLista({
+            href: `#/ventas/${v.id}`,
+            titulo: [v.cliente || 'Sin cliente', v.estado_pago === 'pendiente' ? pastilla('pendiente', 'Pendiente') : null],
+            detalle: [fechaCorta(v.fecha), v.formatos, v.sabores],
+            derecha: monto(pesos(v.total)),
+          })))
+          : cajaVacia('Todavía no hay ventas.',
+            { href: '#/venta', texto: textoPanel('panel.vacio_ventas', 'Cargar una venta') })))));
   dibujarPeriodo();
 }

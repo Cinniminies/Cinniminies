@@ -259,6 +259,11 @@ export function filaLista({ href, titulo, detalle, derecha }) {
 // Etiqueta de estado ("Pendiente", "Inactivo"…). clase: ok, neutro, pendiente, alerta.
 export const pastilla = (clase, texto) => h('span', { class: `badge ${clase}` }, texto);
 
+// Lugar de una lista que todavía no tiene nada: el aviso y, si se pasa, el botón para cargar lo primero.
+// accion: { href, texto }.
+export const cajaVacia = (texto, accion) => h('div', { class: 'vacio' }, h('p', {}, texto),
+  accion ? h('a', { class: 'btn', href: accion.href }, accion.texto) : null);
+
 // Un monto a la derecha de una fila.
 export const monto = (texto) => h('span', { class: 'monto' }, texto);
 
@@ -298,7 +303,7 @@ export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del s
 // `filas`: [{ fecha, titulo, detalle, monto, entra, accion }]. `cortada`: la lista llegó al límite de la consulta, así
 // que la semana más vieja puede estar incompleta y no se le muestra el total.
 export function libroCaja(filas, vacio, { cortada = false } = {}) {
-  if (!filas.length) return h('p', { class: 'vacio' }, vacio);
+  if (!filas.length) return cajaVacia(vacio);
   const semanas = new Map();
   for (const f of filas) {
     const s = proximoSabado(f.fecha);

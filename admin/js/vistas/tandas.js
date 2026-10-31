@@ -3,6 +3,7 @@ import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
 import { subnavProduccion, pastilla } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
 // con la receta del día (snapshot en tanda_consumos).
@@ -41,6 +42,7 @@ export async function mostrar(cont) {
   vaciar(cont,
     subnavProduccion('tandas'),
     h('div', { class: 'dos-col' }, h('div', { class: 'col-fija' },
+    h('h2', { class: 'solo-lateral' }, textoPanel('panel.cargar_tanda', 'Cargar una tanda')),
     h('div', { class: 'card' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       grupo('Sabor', chips(cat.saboresActivos.map((s) => ({ valor: s.id, texto: s.nombre })), null,
