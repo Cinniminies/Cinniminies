@@ -4,7 +4,8 @@ import {
 } from '../util.js';
 import { catalogo, guardarParametros } from '../catalogo.js';
 import { irA } from '../app.js';
-import { subnavProduccion, pastilla } from '../componentes.js';
+import { subnavProduccion, pastilla, cajaVacia } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 import { cargarPlan } from './comprar.js';
 import { cronograma, duracion, horaMas, tiemposDe, TIEMPOS_DEFECTO } from '../tiempos.js';
 
@@ -70,7 +71,9 @@ export async function mostrar(cont) {
   function dibujarResultado() {
     if (!plan.sabores.length) {
       plan = null;
-      vaciar(resultado, h('p', { class: 'vacio' }, 'No hay nada para hornear: elegí al menos un pedido.'));
+      vaciar(resultado,
+        h('h2', {}, textoPanel('panel.plan_nada', 'Nada para hornear el {fecha}', { fecha: fechaCorta(estado.fecha) })),
+        cajaVacia('Elegí al menos un pedido o sumá rolls extra para vender.'));
       dibujarTiempo();
       return;
     }
@@ -272,6 +275,7 @@ export async function mostrar(cont) {
   vaciar(cont,
     subnavProduccion('plan'),
     h('div', { class: 'dos-col' }, h('div', { class: 'col-fija' },
+    h('h2', { class: 'solo-lateral' }, textoPanel('panel.plan_que', 'Qué se hornea')),
     h('div', { class: 'card' },
       campo('Día de horneado', fecha),
       pedidosNuevos.length ? h('p', { class: 'ayuda' }, h('a', { href: '#/pedidos' },

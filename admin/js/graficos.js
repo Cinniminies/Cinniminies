@@ -133,7 +133,8 @@ function tablaNumeros(datos, columnasTabla) {
 
 // Gráfico sin datos: el título y un aviso en lugar de la marca.
 function sinDatos(titulo, vacio) {
-  return h('figure', { class: 'grafico' }, h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'ayuda' }, vacio));
+  return h('figure', { class: 'grafico graf-sin-datos' },
+    h('figcaption', { class: 'graf-titulo' }, titulo), h('p', { class: 'vacio' }, vacio));
 }
 
 // Leyenda: [{ nombre, color }]. Va siempre que haya dos series o más.
@@ -144,10 +145,12 @@ function leyenda(series) {
 // Áreas en el tiempo: dos montos que van uno dentro del otro (p. ej. vendido y, adentro, la ganancia), mes a mes.
 // datos: [{ etiqueta, etiquetaLarga, valores: { clave: n }, destacado }]; series: [{ clave, nombre, color }], la
 // primera es la de afuera. Un solo eje en pesos desde cero. Tocar una franja muestra el mes (y lo elige con `alElegir`).
-export function areas(datos, { series, formato, titulo, columnasTabla, alElegir, ayudaElegir }) {
+// Con `vacio`, si todo da cero muestra ese aviso en vez de una línea plana.
+export function areas(datos, { series, formato, titulo, columnasTabla, alElegir, ayudaElegir, vacio }) {
   const H = 190, IZQ = 12, DER = 12, ARR = 26, ABA = 26;
   const n = datos.length;
   const valor = (d, serie) => Number(d.valores[serie.clave]) || 0;
+  if (vacio && !datos.some((d) => series.some((serie) => valor(d, serie) > 0))) return sinDatos(titulo, vacio);
   const nombreDe = (d) => d.etiquetaLarga || d.etiqueta;
   const max = Math.max(1, ...datos.flatMap((d) => series.map((serie) => valor(d, serie))));
   const py = (v) => ARR + (1 - Math.max(0, v) / max) * (H - ARR - ABA);

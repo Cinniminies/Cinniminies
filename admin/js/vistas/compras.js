@@ -3,6 +3,7 @@ import { h, vaciar, chips, campo, campoFecha, hoyISO, fechaCorta, pesos, numero,
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
 import { subnavProduccion, libroCaja, chipsUnidad } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 // Unidades que se pueden elegir según la unidad base del insumo (la primera es la de siempre).
 const UNIDADES = { g: ['kg', 'g'], ml: ['L', 'ml'], un: ['un'], paq: ['paq'], cm: ['m', 'cm'] };
@@ -109,7 +110,9 @@ export async function mostrar(cont) {
   vaciar(cont,
     subnavProduccion('compras'),
     h('div', { class: 'dos-col' },
-    h('div', { class: 'card col-fija' },
+    h('div', { class: 'col-fija' },
+      h('h2', { class: 'solo-lateral' }, textoPanel('panel.cargar_compra', 'Cargar una compra')),
+      h('div', { class: 'card' },
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       campo('Qué', selInsumo),
       campo('Descripción', inputDescripcion),
@@ -123,7 +126,7 @@ export async function mostrar(cont) {
       unidadesCont,
       vistaPrevia,
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),
-      guardar),
+      guardar)),
 
     h('div', {},
     h('h2', {}, 'Últimas compras'),
