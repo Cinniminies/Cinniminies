@@ -266,6 +266,21 @@ begin
   end;
   assert fallo = 'La receta solo puede llevar ingredientes', 'receta con packaging: ' || coalesce(fallo, 'no falló');
 
+  -- Relleno: se guarda como parte de la cantidad y no puede pasarse de ella
+  perform guardar_receta(pis, jsonb_build_array(jsonb_build_object('insumo_id', pist, 'cantidad', 100, 'relleno', 100),
+                                                jsonb_build_object('insumo_id', har, 'cantidad', 400, 'relleno', 100)));
+  assert (select parte_relleno from recetas where sabor_id = pis and insumo_id = pist) = 1, 'relleno entero';
+  assert (select parte_relleno from recetas where sabor_id = pis and insumo_id = har) = 0.25, 'relleno en parte';
+  fallo := null;
+  begin
+    perform guardar_receta(pis, jsonb_build_array(jsonb_build_object('insumo_id', pist, 'cantidad', 100, 'relleno', 120)));
+  exception when others then
+    fallo := sqlerrm;
+  end;
+  assert fallo = 'El relleno no puede ser más que la cantidad de la receta', 'relleno de más: ' || coalesce(fallo, 'no falló');
+  perform guardar_receta(pis, (select jsonb_agg(jsonb_build_object('insumo_id', insumo_id, 'cantidad', cantidad)) from recetas where sabor_id = ca)
+                              || jsonb_build_array(jsonb_build_object('insumo_id', pist, 'cantidad', 100)));
+
   -- Precio: corregir el mismo día no duplica; uno con fecha futura queda programado
   id1 := fijar_precio(jsonb_build_object('sabor_id', pis, 'precio', 70, 'vigente_desde', '2026-09-01'));
   id2 := fijar_precio(jsonb_build_object('sabor_id', pis, 'precio', 72, 'vigente_desde', '2026-09-01'));

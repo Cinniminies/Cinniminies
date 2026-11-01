@@ -34,7 +34,7 @@ async function lista(cont) {
 async function ficha(cont, id) {
   const [cat, recetas, costos, precios, usos] = await Promise.all([
     catalogo(true),
-    q(sb.from('recetas').select('sabor_id,insumo_id,cantidad')),
+    q(sb.from('recetas').select('sabor_id,insumo_id,cantidad,parte_relleno')),
     q(sb.from('v_costo_insumo').select('insumo_id,costo_unitario')),
     id ? q(sb.from('precios').select('id,precio,vigente_desde').eq('sabor_id', id).is('formato_id', null)) : [],
     id ? Promise.all([
@@ -48,11 +48,18 @@ async function ficha(cont, id) {
     ? { ...sabor }
     : { nombre: '', nombre_corto: '', slug: '', descripcion: '', etiqueta_web: '', foto: '', rolls_por_tanda: 12, masa_propia: false, activo: true, visible_web: false, orden: 10 };
   const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, Number(c.costo_unitario)]));
-  const receta = recetas.filter((r) => r.sabor_id === id).map((r) => ({ insumo_id: r.insumo_id, cantidad: Number(r.cantidad) }));
+  // relleno: la parte de esa cantidad que va al relleno (null = toda a la masa).
+  const recetaDe = (saborId) => recetas.filter((r) => r.sabor_id === saborId).map((r) => ({
+    insumo_id: r.insumo_id,
+    cantidad: Number(r.cantidad),
+    relleno: Number(r.parte_relleno) > 0 ? Math.round(Number(r.cantidad) * Number(r.parte_relleno) * 100) / 100 : null,
+  }));
+  const receta = recetaDe(id);
 
   // ---- receta
   const ingredientes = cat.insumos.filter((i) => i.tipo === 'ingrediente');
   const filasReceta = h('div');
+  const filasRelleno = h('div');
   const costoReceta = h('p', { class: 'ayuda' });
 
   function calcularCosto() {
@@ -86,14 +93,40 @@ async function ficha(cont, id) {
         h('button', { type: 'button', class: 'quitar', 'aria-label': 'Quitar', onclick: () => { receta.splice(i, 1); dibujarReceta(); } }, '×'));
     }));
     calcularCosto();
+    dibujarRelleno();
+  }
+
+  // El relleno se marca sobre los ingredientes de la receta: al agregar uno, arranca con toda su cantidad.
+  function dibujarRelleno() {
+    const conInsumo = receta.filter((r) => r.insumo_id);
+    const sinMarcar = conInsumo.filter((r) => r.relleno == null);
+    const agregar = h('select', {
+      onchange: (e) => {
+        const r = sinMarcar.find((x) => x.insumo_id === e.target.value);
+        r.relleno = r.cantidad;
+        dibujarRelleno();
+      },
+    }, h('option', { value: '' }, '+ Ingrediente del relleno…'),
+      sinMarcar.map((r) => h('option', { value: r.insumo_id }, cat.insumo(r.insumo_id).nombre)));
+    vaciar(filasRelleno, conInsumo.filter((r) => r.relleno != null).map((r) => h('div', { class: 'receta-fila' },
+      h('span', {}, cat.insumo(r.insumo_id).nombre),
+      h('div', { class: 'unidad' },
+        h('input', {
+          type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: r.relleno || '', 'aria-label': 'Relleno',
+          oninput: (e) => { r.relleno = Number(e.target.value); },
+        }),
+        h('small', {}, cat.insumo(r.insumo_id).unidad_base)),
+      h('button', {
+        type: 'button', class: 'quitar', 'aria-label': 'Quitar', onclick: () => { r.relleno = null; dibujarRelleno(); },
+      }, '×'))),
+    sinMarcar.length ? agregar : null);
   }
 
   const conReceta = cat.sabores.filter((s) => s.id !== id && !s.eliminado && recetas.some((r) => r.sabor_id === s.id));
   const copiar = h('select', {
     onchange: (e) => {
       if (!e.target.value) return;
-      receta.splice(0, receta.length, ...recetas.filter((r) => r.sabor_id === e.target.value)
-        .map((r) => ({ insumo_id: r.insumo_id, cantidad: Number(r.cantidad) })));
+      receta.splice(0, receta.length, ...recetaDe(e.target.value));
       e.target.value = '';
       dibujarReceta();
       toast('Receta copiada: ajustala y guardá');
@@ -124,7 +157,8 @@ async function ficha(cont, id) {
       : await q(sb.from('sabores').insert(fila).select('id').single());
     await rpc('guardar_receta', {
       p_sabor: guardado.id,
-      p_items: receta.filter((r) => r.insumo_id && r.cantidad > 0).map((r) => ({ insumo_id: r.insumo_id, cantidad: r.cantidad })),
+      p_items: receta.filter((r) => r.insumo_id && r.cantidad > 0)
+        .map((r) => ({ insumo_id: r.insumo_id, cantidad: r.cantidad, relleno: r.relleno || 0 })),
     });
     if (sabor?.foto && sabor.foto !== fila.foto) await borrarFotoDelBucket('sabores', sabor.foto);
     invalidarCatalogo();
@@ -238,6 +272,12 @@ async function ficha(cont, id) {
       filasReceta,
       h('button', { type: 'button', class: 'btn chico', onclick: () => { receta.push({ insumo_id: '', cantidad: 0 }); dibujarReceta(); } }, '+ Ingrediente'),
       costoReceta),
+
+    h('div', { class: 'card' },
+      h('h3', {}, 'Relleno'),
+      h('p', { class: 'ayuda' }, 'Cuánto de la receta va al relleno. Es lo único que se pesa por sabor en una tanda mezclada: '
+        + 'la masa es la misma para todos.'),
+      filasRelleno),
 
     h('div', { class: 'acciones' }, guardar, eliminar),
 

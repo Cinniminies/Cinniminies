@@ -18,7 +18,7 @@ const estado = { fecha: null, excluidas: new Set(), extra: {}, completar: null, 
 export async function mostrar(cont) {
   const [cat, recetas, porHacer, pedidosNuevos, glaseado] = await Promise.all([
     catalogo(),
-    q(sb.from('recetas').select('sabor_id,insumo_id,cantidad')),
+    q(sb.from('recetas').select('sabor_id,insumo_id,cantidad,parte_relleno')),
     q(sb.from('v_ventas').select('id,fecha,pedido_el,cliente,sabores,rolls,estado_pago')
       .eq('por_hacer', true).order('fecha').order('creado_en')),
     q(sb.from('pedidos').select('id').eq('estado', 'nuevo')),
@@ -142,8 +142,8 @@ export async function mostrar(cont) {
     dibujarTiempo();
   }
 
-  // Ingredientes de una tanda mezclada, como lista para pesar: el total grande y, abajo, cuánto pone cada sabor
-  // (su receta en proporción a sus rolls, lo mismo que se descuenta del stock). Cada sabor de masa compartida
+  // Relleno de una tanda mezclada, como lista para pesar: el total grande y, abajo, cuánto pone cada sabor (su
+  // relleno en proporción a sus rolls). La masa es una sola y siempre igual, así que no se lista. Cada sabor de masa compartida
   // tiene su color fijo (--serie-1, 2, 3 en el orden del catálogo), así se reconoce en todas las tandas.
   function desglose(t) {
     const colorDe = (id) => {
@@ -156,17 +156,17 @@ export async function mostrar(cont) {
     }));
     const filas = new Map();
     for (const p of partes) {
-      for (const r of recetas.filter((x) => x.sabor_id === p.sabor_id && Number(x.cantidad) > 0)) {
+      for (const r of recetas.filter((x) => x.sabor_id === p.sabor_id && Number(x.parte_relleno) > 0)) {
         if (!filas.has(r.insumo_id)) filas.set(r.insumo_id, { insumo: cat.insumo(r.insumo_id), por: {} });
-        filas.get(r.insumo_id).por[p.sabor_id] = Number(r.cantidad) * p.parte;
+        filas.get(r.insumo_id).por[p.sabor_id] = Number(r.cantidad) * Number(r.parte_relleno) * p.parte;
       }
     }
     const lista = [...filas.values()].filter((f) => f.insumo).sort((a, b) => a.insumo.nombre.localeCompare(b.insumo.nombre));
     const redondo = (n, u) => cantidad(u === 'un' || u === 'paq' ? Math.round(n * 10) / 10 : Math.round(n), u);
     return h('details', { class: 'plegable', style: 'margin-top:.5rem' },
-      h('summary', {}, 'Ingredientes para pesar'),
+      h('summary', {}, 'Relleno para pesar'),
       h('div', { class: 'leyenda' }, partes.map((p) => h('span', { style: `--c:${p.color}` }, h('i'), `${p.nombre} · ${p.rolls} rolls`))),
-      h('ul', { class: 'pesar' }, lista.map((f) => {
+      lista.length ? [h('ul', { class: 'pesar' }, lista.map((f) => {
         const u = f.insumo.unidad_base;
         const total = sumar(Object.values(f.por));
         const aportes = partes.filter((p) => f.por[p.sabor_id]);
@@ -178,8 +178,9 @@ export async function mostrar(cont) {
           h('div', { class: 'pesar-partes' }, aportes.length > 1
             ? aportes.map((p) => `${p.corto} ${redondo(f.por[p.sabor_id], u)}`).join(' · ')
             : `Solo ${aportes[0].nombre}`));
-      })),
-      h('p', { class: 'ayuda', style: 'margin:.5rem 0 0' }, 'Cada sabor pone su receta en proporción a sus rolls.'));
+      })), h('p', { class: 'ayuda', style: 'margin:.5rem 0 0' },
+        'La masa es la de siempre. Cada sabor pone su relleno en proporción a sus rolls.')]
+        : h('p', { class: 'ayuda' }, 'Ningún sabor tiene marcado su relleno: se marca en Sabores y recetas.'));
   }
 
   // Calculadora de tiempo: arranca con las tandas del plan (se pueden cambiar) y los tiempos guardados.
