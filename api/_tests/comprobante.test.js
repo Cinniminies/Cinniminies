@@ -1,7 +1,10 @@
 // Pruebas de /api/comprobante: node --test api/_tests/*.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { tipoReal, armarComprobante, guardarComprobante, ErrorComprobante, MAX_ARCHIVO } = require('../_lib/comprobante.js');
+const {
+  tipoReal, armarComprobante, guardarComprobante, ErrorComprobante, MAX_ARCHIVO, MAX_CUERPO,
+} = require('../_lib/comprobante.js');
+const { respuestaHttp, correrHandler } = require('./_ayudas.js');
 const handler = require('../comprobante.js');
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(20)]);
@@ -15,6 +18,13 @@ test('tipoReal: por los primeros bytes', () => {
   assert.equal(tipoReal(Buffer.from('<html><script>alert(1)</script>')), null);
 });
 
+test('tipoReal: WebP y archivos demasiado cortos para saber', () => {
+  assert.deepEqual(tipoReal(Buffer.from('RIFF\0\0\0\0WEBPVP8 ', 'latin1')), ['image/webp', 'webp']);
+  assert.equal(tipoReal(Buffer.from('RIFF\0\0\0\0WAVEfmt ', 'latin1')), null, 'un RIFF que no es WebP');
+  assert.equal(tipoReal(Buffer.from('%PDF-1.7')), null);
+  assert.equal(tipoReal(Buffer.alloc(0)), null);
+});
+
 test('armarComprobante: normaliza y valida', () => {
   const c = armarComprobante(valido);
   assert.equal(c.codigo, 'CM-2026-AB12');
@@ -24,6 +34,15 @@ test('armarComprobante: normaliza y valida', () => {
   assert.throws(() => armarComprobante({ ...valido, telefono: '123' }), /celular/);
   assert.throws(() => armarComprobante({ ...valido, archivo: Buffer.from('hola mundo, no soy una foto').toString('base64') }), /foto/);
   assert.throws(() => armarComprobante({ ...valido, archivo: Buffer.alloc(MAX_ARCHIVO + 1).toString('base64') }), /grande/);
+});
+
+test('armarComprobante: forma inválida, celulares que no son de Uruguay y archivo sin el prefijo data:', () => {
+  for (const cuerpo of [null, [], 'archivo']) assert.throws(() => armarComprobante(cuerpo), /Pedido inválido/);
+  assert.throws(() => armarComprobante({ ...valido, telefono: '090 111 333' }), /celular/);
+  assert.throws(() => armarComprobante({ ...valido, telefono: '0991113333' }), /celular/);
+  assert.throws(() => armarComprobante({ ...valido, codigo: 42 }), /número de pedido/);
+  assert.throws(() => armarComprobante({ ...valido, archivo: '' }), /Falta el archivo/);
+  assert.equal(armarComprobante({ ...valido, archivo: PNG.toString('base64') }).ext, 'png');
 });
 
 test('guardarComprobante: sube, anota y, si la base lo rechaza, borra el archivo', async () => {
@@ -45,24 +64,39 @@ test('guardarComprobante: sube, anota y, si la base lo rechaza, borra el archivo
   assert.deepEqual(pedidos.map((p) => p[0]), ['POST', 'POST', 'DELETE']);
 });
 
-function respuesta() {
-  return { statusCode: 200, headers: {}, cuerpo: '', setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, end(c) { this.cuerpo = c; } };
-}
+const ENTORNO = { SUPABASE_SERVICE_ROLE_KEY: 'eyJx' };
+const post = (body) => ({ method: 'POST', headers: {}, body });
 
 test('handler: método y cuerpo inválido', async () => {
-  const env = { ...process.env };
-  try {
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJx';
-    let res = respuesta();
-    await handler({ method: 'GET', headers: {} }, res);
-    assert.equal(res.statusCode, 405);
-    res = respuesta();
-    await handler({ method: 'POST', headers: {}, body: '{no es json' }, res);
-    assert.equal(res.statusCode, 400);
-    res = respuesta();
-    await handler({ method: 'POST', headers: {}, body: { ...valido, telefono: '' } }, res);
-    assert.equal(res.statusCode, 400);
-  } finally {
-    process.env = env;
-  }
+  let r = await correrHandler(handler, { method: 'GET', headers: {} }, { env: ENTORNO });
+  assert.equal(r.res.statusCode, 405);
+  r = await correrHandler(handler, post('{no es json'), { env: ENTORNO });
+  assert.equal(r.res.statusCode, 400);
+  assert.equal(r.cuerpo.error, 'Pedido inválido');
+  r = await correrHandler(handler, post({ ...valido, telefono: '' }), { env: ENTORNO });
+  assert.equal(r.res.statusCode, 400);
+  assert.equal(r.llamadas.length, 0);
+});
+
+test('handler: sube el archivo, lo anota en el pedido y responde 201 con el código', async () => {
+  const r = await correrHandler(handler, post(valido), { env: ENTORNO });
+  assert.equal(r.res.statusCode, 201);
+  assert.deepEqual(r.cuerpo, { codigo: 'CM-2026-AB12' });
+  assert.deepEqual(r.llamadas.map((l) => new URL(l.url).pathname.split('/').slice(0, 5).join('/')),
+    ['/storage/v1/object/comprobantes', '/rest/v1/rpc/adjuntar_comprobante']);
+  const { p_codigo: codigo, p_telefono: telefono } = r.llamadas[1].cuerpo;
+  assert.deepEqual([codigo, telefono], ['CM-2026-AB12', '099111333']);
+});
+
+test('handler: cuerpo más grande que el máximo → 400 con el aviso del tamaño', async () => {
+  const r = await correrHandler(handler, post({ ...valido, archivo: 'A'.repeat(MAX_CUERPO) }), { env: ENTORNO });
+  assert.equal(r.res.statusCode, 400);
+  assert.match(r.cuerpo.error, /máximo 3 MB/);
+});
+
+test('handler: si Storage falla responde 502 sin el detalle', async () => {
+  const r = await correrHandler(handler, post(valido), { env: ENTORNO, responder: () => respuestaHttp('bucket caído', 500) });
+  assert.equal(r.res.statusCode, 502);
+  assert.deepEqual(r.cuerpo, { error: 'No se pudo guardar el comprobante' });
+  assert.match(r.logs[0], /Storage respondió 500/);
 });

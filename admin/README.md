@@ -27,7 +27,7 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/iconos.js` | Íconos de línea (un solo estilo para pestañas, menú y accesos). |
 | `js/graficos.js` | Gráficos sin librerías, uno por tipo de dato: `linea` (en el tiempo), `areas` (dos montos anidados por mes), `partes` (parte de un total), `pesas` (dos valores por fila), `composicion` (100 % por fila) y `puntos` (cada caso por grupo). Colores validados para daltonismo en los dos temas, detalle al tocar o con teclado y tabla con los números. |
 | `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Catálogo (etapa 3): catalogo, sabores, insumos, formatos, precios. Stock: stock (con conteos) y comprar ("¿Qué compro?"). |
-| `tests/` | Pruebas de los formatos: `node --test admin/tests/*.test.mjs`. |
+| `tests/` | Pruebas de las funciones sin DOM: `node --test admin/tests/*.test.mjs`. Lo que usa `db.js` se prueba con el Supabase falso de `_supabase-falso.mjs` (lo carga `_cargador.mjs` en lugar del de la CDN). |
 
 Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.
 
