@@ -3,7 +3,6 @@
    Paleta tomada de la identidad real de marca (Instagram @cinniminies.pay):
    crema cálido dominante, canela dorada, café tostado para texto y acentos.
    ============================================ */
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 :root{
   --crema:        #FFF8E7;
   --crema-rgb:    255, 248, 231; /* la misma crema, para rgba() */
