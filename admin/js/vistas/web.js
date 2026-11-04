@@ -2,6 +2,7 @@ import { sb, q } from '../db.js';
 import { h, vaciar, campo, toast, conBoton } from '../util.js';
 import { srcFoto, subirFoto, borrarFotoDelBucket } from '../fotos.js';
 import { irA } from '../app.js';
+import { linkExterno } from '../componentes.js';
 
 // Textos e imágenes de la web pública (Etapa 7). Cada fila de contenido_web es un lugar de
 // index.html; la web los toma de /api/catalogo (tarda hasta 5 minutos en verse).
@@ -99,7 +100,7 @@ export async function mostrar(cont) {
 
   vaciar(cont, h('div', { class: 'con-guardar' },
     h('p', { class: 'ayuda', style: 'margin-top:0' },
-      'Lo que cambies acá aparece en ', h('a', { href: '/', target: '_blank', rel: 'noopener' }, 'la web'),
+      'Lo que cambies acá aparece en ', linkExterno('/', 'la web'),
       ' en unos 5 minutos, sin tocar código. Los sabores, fotos de sabores y precios se editan en Catálogo.'),
     SECCIONES.map((sec) => {
       const deSeccion = filas.filter((f) => f.seccion === sec);

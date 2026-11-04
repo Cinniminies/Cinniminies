@@ -3,7 +3,7 @@ import { h, vaciar, pesos, numero, plural, nombreMes, soloMes, mesISO, sumarMese
 import { variacion, textoVariacion } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
-import { stat, filaLista, monto, tituloSemana, partesPorSabor } from '../componentes.js';
+import { stat, filaLista, monto, tituloSemana, partesPorSabor, linkExterno } from '../componentes.js';
 
 // Cierre de mes (idea 4.4): el resumen de un mes para guardarlo en PDF (imprimir) o mandárselo al socio por WhatsApp.
 // Los números los arma la base (cierre_mes); el día 1 llega un aviso push con el link al mes que terminó
@@ -28,9 +28,8 @@ export async function mostrar(cont, { id }) {
   elegir.value = mes;
 
   const imprimir = h('button', { class: 'btn', type: 'button', onclick: () => window.print() }, 'Guardar PDF');
-  const whatsapp = h('a', {
-    class: 'btn primario', href: compartirWhatsapp(mensaje(cierre, cat, comparar)), target: '_blank', rel: 'noopener',
-  }, 'Mandar por WhatsApp');
+  const whatsapp = linkExterno(compartirWhatsapp(mensaje(cierre, cat, comparar)), 'Mandar por WhatsApp',
+    { clase: 'btn primario' });
 
   vaciar(cont,
     h('div', { class: 'cierre-cab' }, elegir, h('div', { class: 'acciones' }, imprimir, whatsapp)),

@@ -263,6 +263,10 @@ export const pastilla = (clase, texto) => h('span', { class: `badge ${clase}` },
 export const cajaVacia = (texto, accion) => h('div', { class: 'vacio' }, h('p', {}, texto),
   accion ? h('a', { class: 'btn', href: accion.href }, accion.texto) : null);
 
+// Link que se abre en otra pestaña (WhatsApp, Instagram, un comprobante). `clase`: 'btn', 'btn chico'… si va como botón.
+export const linkExterno = (href, contenido, { clase } = {}) =>
+  h('a', { class: clase, href, target: '_blank', rel: 'noopener' }, contenido);
+
 // Un monto a la derecha de una fila.
 export const monto = (texto) => h('span', { class: 'monto' }, texto);
 

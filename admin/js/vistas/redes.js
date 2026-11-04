@@ -2,7 +2,7 @@ import { sb, q } from '../db.js';
 import { h, vaciar, numero, fechaCorta, plural, sumar } from '../util.js';
 import { linea, puntos } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
-import { stat } from '../componentes.js';
+import { stat, linkExterno } from '../componentes.js';
 import { tipoDe, puntaje, interaccion, tendencia, sugerencias, resumenTexto } from '../redes.js';
 
 // Redes: Instagram leído por la API una vez por día (api/instagram.js). Seguidores, vistas,
@@ -52,14 +52,15 @@ export async function mostrar(cont) {
   }
 
   const mejores = [...pubs].filter((p) => puntaje(p) != null).sort((a, b) => puntaje(b) - puntaje(a)).slice(0, 5);
-  const tarjeta = (p) => h('li', {}, h('a', { class: 'fila', href: p.enlace || '#', target: '_blank', rel: 'noopener' },
+  const tarjeta = (p) => h('li', {}, linkExterno(p.enlace || '#', [
     p.imagen ? h('img', { src: p.imagen, alt: '', loading: 'lazy', width: 48, height: 48,
       style: 'width:48px;height:48px;object-fit:cover;border-radius:8px;flex:none', onerror: (e) => e.target.remove() }) : null,
     h('div', { class: 'princ' },
       h('div', { class: 't1' }, resumenTexto(p.texto, 48)),
       h('div', { class: 't2' }, [tipoDe(p), fechaCorta(p.publicada_en),
         `${numero(p.me_gusta || 0, 0)} me gusta`, p.guardados ? `${numero(p.guardados, 0)} guardados` : null].filter(Boolean).join(' · '))),
-    h('div', { class: 'num-der' }, h('strong', {}, numero(puntaje(p), 0)), h('div', { class: 'sub ayuda' }, p.vistas != null ? 'vistas' : 'alcance'))));
+    h('div', { class: 'num-der' }, h('strong', {}, numero(puntaje(p), 0)),
+      h('div', { class: 'sub ayuda' }, p.vistas != null ? 'vistas' : 'alcance'))], { clase: 'fila' }));
 
   vaciar(cont,
     estado.ultimo_error ? h('p', { class: 'mensaje-error' }, `La última lectura falló: ${estado.ultimo_error}`) : null,
@@ -78,7 +79,7 @@ export async function mostrar(cont) {
     h('h2', {}, 'Sugerencias'),
     h('ul', { class: 'lista card' }, sugerencias(pubs, { sabores: cat.saboresActivos }).map((s) => h('li', {},
       h('div', { class: 'fila' }, h('div', { class: 'princ' }, h('div', { class: 't1', style: 'white-space:normal;font-weight:500' }, s.texto),
-        s.enlace ? h('a', { class: 't2', href: s.enlace, target: '_blank', rel: 'noopener' }, 'Ver en Instagram') : null))))),
+        s.enlace ? linkExterno(s.enlace, 'Ver en Instagram', { clase: 't2' }) : null))))),
 
     h('div', { class: 'card' }, grafSeguidores),
     Object.keys(porTipo).length ? h('div', { class: 'card' }, puntos(
