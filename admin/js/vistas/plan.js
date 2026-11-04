@@ -4,7 +4,7 @@ import {
 } from '../util.js';
 import { catalogo, guardarParametros } from '../catalogo.js';
 import { irA } from '../app.js';
-import { subnavProduccion, pastilla, cajaVacia } from '../componentes.js';
+import { subnavProduccion, pastilla, cajaVacia, colorSabor } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 import { cargarPlan } from './comprar.js';
 import { cronograma, duracion, horaMas, tiemposDe, TIEMPOS_DEFECTO } from '../tiempos.js';
@@ -146,15 +146,11 @@ export async function mostrar(cont) {
   }
 
   // Relleno de una tanda mezclada, como lista para pesar: el total grande y, abajo, cuánto pone cada sabor (su
-  // relleno en proporción a sus rolls). La masa es una sola y siempre igual, así que no se lista. Cada sabor de masa compartida
-  // tiene su color fijo (--serie-1, 2, 3 en el orden del catálogo), así se reconoce en todas las tandas.
+  // relleno en proporción a sus rolls). La masa es una sola y siempre igual, así que no se lista. Cada sabor lleva su
+  // colorSabor, así se reconoce en todas las tandas y en los gráficos de Inicio.
   function desglose(t) {
-    const colorDe = (id) => {
-      const i = compartidos.findIndex((x) => x.id === id);
-      return i >= 0 && i < 3 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
-    };
     const partes = t.sabores.map((s) => ({
-      ...s, corto: cat.sabor(s.sabor_id)?.nombre_corto || s.nombre, color: colorDe(s.sabor_id),
+      ...s, corto: cat.sabor(s.sabor_id)?.nombre_corto || s.nombre, color: colorSabor(cat, s.sabor_id),
       parte: s.rolls / (cat.sabor(s.sabor_id)?.rolls_por_tanda || 12),
     }));
     const filas = new Map();

@@ -25,6 +25,7 @@ export async function mostrar(cont) {
   const desde = periodo === 'mes' ? mesISO(hasta) : sumarDias(hasta, 1 - periodo);
   const r = await rpc('resumen_visitas', { p_desde: desde, p_hasta: hasta });
   const contra = 'el período anterior';
+  const sinVisitas = 'Todavía no hay visitas en este período.';
   const pct = (n) => (r.sesiones ? `${Math.round((100 * n) / r.sesiones)} %` : '—');
 
   // En 30 días no entran todas las fechas abajo: se rotula una por semana (y la primera y la última).
@@ -50,10 +51,10 @@ export async function mostrar(cont) {
         { etiqueta: 'Abrieron el carrito', valor: r.embudo.carrito },
         { etiqueta: 'Tocaron "Pedir ahora"', valor: r.embudo.formulario },
         { etiqueta: 'Mandaron el pedido', valor: r.embudo.pedido },
-      ], { titulo: 'Hasta dónde llegan', vacio: 'Todavía no hay visitas en este período.' })),
+      ], { titulo: 'Hasta dónde llegan', vacio: sinVisitas })),
       h('div', { class: 'card' }, partes(r.origenes.map((o) => ({
         etiqueta: ORIGENES[o.origen][0], valor: o.sesiones, color: ORIGENES[o.origen][1],
-      })), { titulo: 'De dónde vienen', formato: (v) => numero(v, 0), vacio: 'Todavía no hay visitas en este período.' }),
+      })), { titulo: 'De dónde vienen', formato: (v) => numero(v, 0), vacio: sinVisitas }),
       r.origenes.some((o) => o.pedidos) ? h('p', { class: 'ayuda' }, 'Pidieron: ',
         r.origenes.filter((o) => o.pedidos).map((o) => `${ORIGENES[o.origen][0]} ${o.pedidos}`).join(' · ')) : null),
       h('div', { class: 'card' }, areas(dias, {

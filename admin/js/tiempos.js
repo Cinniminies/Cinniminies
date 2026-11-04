@@ -54,7 +54,7 @@ export function cronograma(n, t = TIEMPOS_DEFECTO) {
 
   // Horno: por orden de llegada; cada lugar del horno se libera a su tiempo.
   const lugares = Array(t.horno_tandas).fill(0);
-  const orden = tandas.map((x, i) => i).sort((a, b) => tandas[a].leudado2[1] - tandas[b].leudado2[1]);
+  const orden = tandas.map((_, i) => i).sort((a, b) => tandas[a].leudado2[1] - tandas[b].leudado2[1]);
   for (const i of orden) {
     const l = lugares.indexOf(Math.min(...lugares));
     const inicio = Math.max(lugares[l], tandas[i].leudado2[1]);

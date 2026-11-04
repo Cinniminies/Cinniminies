@@ -1,4 +1,5 @@
 import { sb } from './db.js';
+import '../../achicar-imagen.js';
 
 // Fotos para la web: se achican en el navegador (lado mayor 1200 px, WebP o JPEG) y se suben a un
 // bucket público de Supabase Storage ("sabores" o "web"). En la base queda la URL pública; también
@@ -10,17 +11,12 @@ export const srcFoto = (f) => (!f ? null : /^https?:\/\//.test(f) ? f : `/${f.re
 
 const rutaEnBucket = (bucket, url) => url?.match(new RegExp(`/storage/v1/object/public/${bucket}/(.+)$`))?.[1] ?? null;
 
+// WebP si el navegador lo genera; si no, JPEG.
 async function achicar(archivo) {
-  const bmp = await createImageBitmap(archivo).catch(() => { throw new Error('No se pudo leer la imagen'); });
-  const escala = Math.min(1, LADO_MAX / Math.max(bmp.width, bmp.height));
-  const lienzo = document.createElement('canvas');
-  lienzo.width = Math.round(bmp.width * escala);
-  lienzo.height = Math.round(bmp.height * escala);
-  lienzo.getContext('2d').drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
-  const aBlob = (tipo) => new Promise((ok) => lienzo.toBlob(ok, tipo, 0.82));
-  const webp = await aBlob('image/webp');
-  // Safari viejo no genera WebP y devuelve PNG: ahí va JPEG
-  return webp?.type === 'image/webp' ? webp : aBlob('image/jpeg');
+  const blob = await globalThis.achicarImagen(archivo, { ladoMax: LADO_MAX, tipos: ['image/webp', 'image/jpeg'], calidad: 0.82 })
+    .catch(() => { throw new Error('No se pudo leer la imagen'); });
+  if (!blob) throw new Error('No se pudo achicar la imagen');
+  return blob;
 }
 
 export async function subirFoto(bucket, archivo, base) {

@@ -1,9 +1,9 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, campo, pesos, numero, fechaCorta, toast, conBoton, linkWhatsapp, normalizar, plural } from '../util.js';
-import { filaLista, pastilla, monto } from '../componentes.js';
+import { h, vaciar, campo, pesos, numero, fechaCorta, diaMes, toast, conBoton, linkWhatsapp, normalizar, plural } from '../util.js';
+import { filaLista, pastilla, monto, linkExterno } from '../componentes.js';
 import { clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { irA } from '../app.js';
-import { campanaVigente, codigoDe, bonoDe, diaMes, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
+import { campanaVigente, codigoDe, bonoDe, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
 
 let busqueda = '';
 
@@ -88,7 +88,7 @@ async function ficha(cont, id) {
       h('h1', {}, c.nombre),
       h('p', { class: 'ayuda' }, `${plural(c.compras, 'compra')} · ${pesos(c.total_comprado)}`,
         c.ultima_compra ? ` · última ${fechaCorta(c.ultima_compra)}` : '',
-        wa ? [' · ', h('a', { href: wa, target: '_blank', rel: 'noopener' }, 'WhatsApp')] : null),
+        wa ? [' · ', linkExterno(wa, 'WhatsApp')] : null),
       campo('Nombre', entrada('nombre')),
       campo('Contacto', entrada('contacto', { placeholder: '099 123 456 o @instagram' })),
       campo('Cómo llegó', entrada('origen', { list: 'lista-origenes' })),
@@ -98,7 +98,7 @@ async function ficha(cont, id) {
 
     codigo ? h('div', { class: 'card' },
       h('div', { class: 'seccion-cab' }, h('strong', {}, `Código para recomendar: ${codigo}`),
-        waCodigo ? h('a', { class: 'btn chico', href: waCodigo, target: '_blank', rel: 'noopener' }, 'Mandar por WhatsApp') : null),
+        waCodigo ? linkExterno(waCodigo, 'Mandar por WhatsApp', { clase: 'btn chico' }) : null),
       h('p', { class: 'ayuda' }, campana || bono
         ? `Hoy tiene ${numero(saldo, 0)} % de descuento en una box de cada pedido que haga en la web con su código.`
         : 'No hay una campaña en curso.'),

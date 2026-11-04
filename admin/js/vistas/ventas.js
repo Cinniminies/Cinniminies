@@ -4,7 +4,9 @@ import {
   ETIQUETAS, opciones, linkWhatsapp, sumar, sumarMeses, campoPesos,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
-import { elegirCliente, editorLineas, tituloSemana, filaLista, pastilla, monto, cajaVacia } from '../componentes.js';
+import {
+  elegirCliente, editorLineas, tituloSemana, filaLista, pastilla, monto, cajaVacia, linkExterno,
+} from '../componentes.js';
 import { irA } from '../app.js';
 import { textoPanel } from '../textos.js';
 import { campanaVigente, codigoDe, bonoDe, linkCodigo } from '../recomendacion.js';
@@ -146,7 +148,7 @@ async function detalle(cont, id) {
       h('h1', {}, v.cliente || 'Sin cliente'),
       h('p', { class: 'ayuda' },
         `Sábado ${fechaLarga(v.fecha)} · pedido el ${fechaCorta(v.pedido_el)} · ${v.origen || 'sin origen'}`,
-        contacto ? [' · ', wa ? h('a', { href: wa, target: '_blank', rel: 'noopener' }, contacto) : contacto] : null),
+        contacto ? [' · ', wa ? linkExterno(wa, contacto) : contacto] : null),
       h('p', {},
         pastilla(pagada ? 'ok' : 'pendiente', ETIQUETAS.estado_pago[v.estado_pago]), ' ',
         v.tipo !== 'venta' ? pastilla('neutro', ETIQUETAS.tipo[v.tipo]) : null, ' ',
@@ -170,7 +172,7 @@ async function detalle(cont, id) {
         fila('Ganancia', h('strong', {}, pesos(v.ganancia)))),
       v.notas ? h('p', {}, h('strong', {}, 'Notas: '), v.notas) : null,
       codigo ? h('p', {}, h('strong', {}, 'Código para recomendar: '), codigo, ' ',
-        waCodigo ? h('a', { class: 'btn chico', href: waCodigo, target: '_blank', rel: 'noopener' }, 'Mandárselo por WhatsApp')
+        waCodigo ? linkExterno(waCodigo, 'Mandárselo por WhatsApp', { clase: 'btn chico' })
           : h('span', { class: 'ayuda' }, '(sin celular en el contacto: pasáselo a mano)')) : null,
       h('div', { class: 'acciones' },
         cambiarEstado,

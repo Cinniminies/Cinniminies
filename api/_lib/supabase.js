@@ -49,19 +49,37 @@ function configuracionLista(res) {
 }
 
 // Cuerpo JSON del pedido. Vercel ya lo parsea en req.body; en otros entornos se lee a mano.
-// Si pasa de `maximo` caracteres tira lo que devuelva `muyGrande()`; si no es JSON, un SyntaxError.
-async function leerCuerpoJson(req, { maximo, muyGrande }) {
+// Si pasa de `maximo` caracteres tira lo que devuelva `muyGrande()`. Si no se puede leer o no es JSON, tira lo que
+// devuelva `invalido()` o, sin él, el error tal cual (un SyntaxError si no es JSON).
+async function leerCuerpoJson(req, { maximo, muyGrande, invalido }) {
+  let grande = null;
+  const excedido = () => {
+    grande = muyGrande();
+    return grande;
+  };
+  try {
+    return await leerJson(req, maximo, excedido);
+  } catch (e) {
+    if (e === grande || !invalido) throw e;
+    throw invalido();
+  }
+}
+
+async function leerJson(req, maximo, muyGrande) {
   if (req.body !== undefined) {
     const texto = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     if (texto.length > maximo) throw muyGrande();
     return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
   }
-  let texto = '';
+  // Se juntan los bytes y se pasan a texto al final: una letra con tilde puede quedar partida entre dos pedazos.
+  const partes = [];
+  let bytes = 0;
   for await (const parte of req) {
-    texto += parte;
-    if (texto.length > maximo) throw muyGrande();
+    partes.push(Buffer.from(parte));
+    bytes += parte.length;
+    if (bytes > maximo) throw muyGrande();
   }
-  return JSON.parse(texto || 'null');
+  return JSON.parse(Buffer.concat(partes).toString('utf8') || 'null');
 }
 
 // Llama a una función de la base (POST /rest/v1/rpc/nombre) y devuelve su resultado. Los `raise exception` de la
@@ -125,7 +143,24 @@ function cronAutorizado(req, res) {
   return true;
 }
 
+// Handler de una función que llama el cron: autoriza, arma la configuración y responde 200 con lo que devuelve
+// `trabajo(conf)`, o 502 con el error (que queda en el log de Vercel con `nombre`).
+function funcionCron(nombre, trabajo) {
+  return async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!cronAutorizado(req, res)) return;
+    const conf = configuracionLista(res);
+    if (!conf) return;
+    try {
+      responderJson(res, 200, await trabajo(conf));
+    } catch (e) {
+      console.error(`${nombre}:`, e.message);
+      responderJson(res, 502, { error: e.message });
+    }
+  };
+}
+
 module.exports = {
   URL_SUPABASE, configuracion, configuracionLista, encabezados, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, rpc,
-  claveValida, cronAutorizado, fechaLocal, hashIp,
+  claveValida, cronAutorizado, funcionCron, fechaLocal, hashIp,
 };

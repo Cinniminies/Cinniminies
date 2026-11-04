@@ -25,12 +25,11 @@ module.exports = async (req, res) => {
   const conf = configuracionLista(res);
   if (!conf) return;
   try {
-    let cuerpo;
-    try {
-      cuerpo = await leerCuerpoJson(req, { maximo: MAX_CUERPO, muyGrande: () => new ErrorPedido('Pedido demasiado grande') });
-    } catch (e) {
-      throw e instanceof ErrorPedido ? e : new ErrorPedido('Pedido inválido');
-    }
+    const cuerpo = await leerCuerpoJson(req, {
+      maximo: MAX_CUERPO,
+      muyGrande: () => new ErrorPedido('Pedido demasiado grande'),
+      invalido: () => new ErrorPedido('Pedido inválido'),
+    });
     // Trampa para bots: un campo oculto que una persona nunca completa. Se responde como si nada.
     if (cuerpo && typeof cuerpo.sitio_web === 'string' && cuerpo.sitio_web.trim()) {
       responderJson(res, 200, { codigo: null, ignorado: true });

@@ -3,14 +3,13 @@
 // de push_suscripciones (una por endpoint). El cifrado de Web Push lo hace la librería web-push; acá solo se arma
 // el aviso y se limpian las suscripciones vencidas.
 const { encabezados } = require('./supabase.js');
+const { pesos, textoVariacion } = require('../../admin/js/cifras.js');
 
 // Claves VAPID de Vercel (las genera scripts/generar-vapid.js). Sin ellas no se manda nada.
 function configuracionPush(env = process.env) {
   const { VAPID_PUBLIC_KEY: publica, VAPID_PRIVATE_KEY: privada, VAPID_SUBJECT: sujeto } = env;
   return publica && privada && sujeto ? { publica, privada, sujeto } : null;
 }
-
-const pesos = (n) => `$${Number(n).toLocaleString('es-UY', { maximumFractionDigits: 2 })}`;
 
 // Lo que muestra el celular: "Pedido nuevo · Ana · $450". El service worker de /admin lo lee.
 function armarAviso(pedido, guardado) {
@@ -24,21 +23,18 @@ function armarAviso(pedido, guardado) {
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre',
   'noviembre', 'diciembre'];
-const nombreMes = (mes) => MESES[Number(mes.slice(5, 7)) - 1];
+// "octubre" (sin el año), como soloMes en admin/js/util.js.
+const soloMes = (mes) => MESES[Number(mes.slice(5, 7)) - 1];
 
 // "Cierre de octubre" · "Vendieron $6.790 (sube 49 % vs septiembre) · ganancia $4.120". `cierre`: lo que devuelve
 // la función cierre_mes de la base. El link abre /admin → Cierre de mes en ese mes.
 function armarAvisoCierre(cierre) {
   const actual = cierre.actual || { vendido: 0, ganancia_bruta: 0 };
-  const anterior = Number(cierre.anterior?.vendido);
-  // Igual que textoVariacion en admin/js/graficos.js: con decimal por debajo del 10 %
-  const cambio = anterior > 0 ? (100 * (Number(actual.vendido) - anterior)) / anterior : null;
-  const pct = Math.abs(cambio);
-  const como = pct < 0.05 ? 'igual que'
-    : `${cambio > 0 ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs`;
-  const comparacion = cambio == null ? '' : ` (${como} ${nombreMes(cierre.anterior.mes)})`;
+  const variacion = cierre.anterior && textoVariacion(Number(actual.vendido), Number(cierre.anterior.vendido),
+    soloMes(cierre.anterior.mes));
+  const comparacion = variacion ? ` (${variacion})` : '';
   return {
-    titulo: `Cierre de ${nombreMes(cierre.mes)}`,
+    titulo: `Cierre de ${soloMes(cierre.mes)}`,
     cuerpo: `Vendieron ${pesos(actual.vendido)}${comparacion} · ganancia ${pesos(actual.ganancia_bruta)}`,
     url: `/admin/#/cierre/${cierre.mes}`,
     tag: `cierre-${cierre.mes}`,

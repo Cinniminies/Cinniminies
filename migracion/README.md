@@ -8,6 +8,7 @@ estándar): no hace falta instalar nada.
 | `xlsx.py` | Lector mínimo de `.xlsx`. Busca hojas y columnas por nombre normalizado. |
 | `importar.py` | Lee el `.xlsx`, aplica las reglas de la Etapa 1, muestra la conciliación y (con `--aplicar`) carga todo. |
 | `crear_admins.py` | Crea los usuarios de `/admin` (confirmados, sin mandar mail) y los agrega a `usuarios_admin`. |
+| `usuario_prueba.py` | Crea el usuario de prueba fijo (`usuarios_admin.es_prueba`) para probar en local con `scripts/servidor-dev.js`. |
 | `datos/` | El `.xlsx` exportado. **No se commitea** (tiene teléfonos e Instagram de clientes). |
 
 ## Pasos

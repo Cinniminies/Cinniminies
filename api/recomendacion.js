@@ -21,12 +21,8 @@ module.exports = async (req, res) => {
     }
     res.setHeader('Cache-Control', 'no-store');
     if (!metodoPermitido(req, res, ['GET', 'HEAD', 'POST'])) return;
-    let cuerpo;
-    try {
-      cuerpo = await leerCuerpoJson(req, { maximo: MAX_CUERPO, muyGrande: () => new ErrorRecomendacion('Consulta inválida') });
-    } catch {
-      throw new ErrorRecomendacion('Consulta inválida');
-    }
+    const invalida = () => new ErrorRecomendacion('Consulta inválida');
+    const cuerpo = await leerCuerpoJson(req, { maximo: MAX_CUERPO, muyGrande: invalida, invalido: invalida });
     responderJson(res, 200, await consultarCodigo(cuerpo, prueba, conf));
   } catch (e) {
     res.setHeader('Cache-Control', 'no-store');

@@ -19,11 +19,15 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 
 | Archivo | Qué es |
 |---|---|
-| `index.html`, `app.css` | La estructura (barra, pestañas de abajo) y los estilos, con la paleta de la web app vieja. |
+| `index.html`, `app.css` | La estructura (barra, pestañas de abajo) y los estilos, con la paleta del logo (tokens en `:root`, claro y oscuro). |
 | `js/app.js` | Login, control de acceso y rutas (`#/panel`, `#/venta`, `#/ventas/:id`, …). |
 | `js/db.js`, `js/catalogo.js` | Cliente de Supabase y catálogo en memoria (sabores, formatos, insumos). |
-| `js/componentes.js` | Selector de cliente con autocompletar y editor de productos (formatos + sabores + caja). |
-| `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), chips, steppers y avisos. |
+| `js/componentes.js` | Piezas de varias pantallas: fila de lista, etiquetas, tarjeta de un número, caja vacía, link externo, selector de cliente con autocompletar, editor de productos (formatos + sabores + caja), precios, libro de caja y rolls por sabor. |
+| `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), links de WhatsApp, chips, steppers, campos y avisos. |
+| `js/cifras.js` | `pesos` y el texto de la variación, compartidos con los avisos push de `api/` (es un script común que también se carga con `require`). |
+| `js/textos.js` | `textoPanel`: los textos del panel que se editan en Web → Textos e imágenes (filas `panel.*`). |
+| `js/tiempos.js`, `js/desvios.js`, `js/historial.js`, `js/redes.js` | Cuentas puras (con pruebas): tiempo del horneado, desvíos de stock, historial de precios de un insumo y sugerencias de Instagram. |
+| `js/fotos.js`, `js/push.js`, `js/recomendacion.js` | Fotos al bucket (las achica `/achicar-imagen.js`, compartido con la web), suscripción a los avisos push y lo común del descuento por recomendación. |
 | `js/iconos.js` | Íconos de línea (un solo estilo para pestañas, menú y accesos). |
 | `js/graficos.js` | Gráficos sin librerías, uno por tipo de dato: `linea` (en el tiempo), `areas` (dos montos anidados por mes), `partes` (parte de un total), `pesas` (dos valores por fila), `composicion` (100 % por fila) y `puntos` (cada caso por grupo). Colores validados para daltonismo en los dos temas, detalle al tocar o con teclado y tabla con los números. |
 | `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Catálogo (etapa 3): catalogo, sabores, insumos, formatos, precios. Stock: stock (con conteos) y comprar ("¿Qué compro?"). |
@@ -119,14 +123,16 @@ Instagram, texto de pedido recibido) y la foto de fondo del inicio. Cada campo e
     vuelve a la última que se usó.
   - **Más**: Pedidos web, Clientes, Gastos e ingresos, todo el catálogo y la cuenta, cada uno a un toque.
 - **Compu y tablet (≥ 900 px):** menú lateral con todo a un clic: "+ Venta" arriba, Inicio, Ventas y
-  los grupos Producción (Plan de horneado, Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Gastos e ingresos) y
-  Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes) y Web (Textos e imágenes); abajo, **Cuenta** (contraseña y
+  los grupos Producción (Plan de horneado, Tandas, Stock, Compras, ¿Qué compro?), Negocio (Pedidos web, Clientes, Recomendaciones, Promociones,
+  Gastos e ingresos, Cierre de mes), Catálogo (Sabores, Formatos, Precios, Insumos, Costos y márgenes) y Web (Textos e imágenes,
+  Instagram, Visitas); abajo, **Cuenta** (contraseña y
   salir), que es lo único que queda en "Más". Sin las pestañas internas de Producción ni "←" hacia "Más".
   La lista del menú está en `MENU` (`js/app.js`).
 - Toda subpantalla tiene **←** arriba (vuelve a la pantalla de la que depende) y el título en la barra.
-- **Inicio**: accesos rápidos, "Para hacer" (pedidos web nuevos, cobros pendientes y stock para reponer), resumen del
-  período con variación (el mes en curso se compara con el mismo tramo del mes anterior), gráficos de
-  vendido por mes y rolls por sabor, y la plata acumulada.
+- **Inicio**: la semana de pedidos (cuántos entraron cada día y los rolls del sábado), "Para hacer" (pedidos web nuevos,
+  cobros pendientes y stock para reponer), accesos para cargar, resumen del período con variación (el mes en curso se
+  compara con el mismo tramo del mes anterior), gráficos de vendido por mes y rolls por sabor, la plata acumulada y
+  las últimas ventas.
 
 ## Probar en local
 

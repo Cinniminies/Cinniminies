@@ -4,7 +4,7 @@ import {
 } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { textoPanel } from '../textos.js';
-import { subnavProduccion, filaLista, monto, pastilla } from '../componentes.js';
+import { subnavProduccion, filaLista, monto, pastilla, linkExterno } from '../componentes.js';
 
 // 5.8 "¿Qué compro?": tandas planeadas por sabor → qué falta comprar contra el stock teórico,
 // redondeado a la presentación de la última compra de cada insumo.
@@ -56,9 +56,8 @@ export async function mostrar(cont) {
       vaciar(resultado,
         h('h2', {}, comprar.length ? `Comprar · ${pesos(total)}` : 'Tenés todo'),
         ...(comprar.length ? [
-          h('div', { class: 'acciones' }, h('a', {
-            class: 'btn', href: compartirWhatsapp(mensajeCompras(comprar, total)), target: '_blank', rel: 'noopener',
-          }, 'Mandar por WhatsApp')),
+          h('div', { class: 'acciones' },
+            linkExterno(compartirWhatsapp(mensajeCompras(comprar, total)), 'Mandar por WhatsApp', { clase: 'btn' })),
           h('ul', { class: 'lista' }, comprar.map((f) => filaLista({
             titulo: f.insumo,
             detalle: f.paquetes

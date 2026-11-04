@@ -1,10 +1,10 @@
 import { sb, q, rpc } from '../db.js';
 import {
   h, vaciar, pesos, numero, plural, chips, campo, interruptor, toast, conBoton, linkWhatsapp, ETIQUETAS, diaMes,
-  hoyISO, proximoSabado, sumarDias, sumarMeses, mesISO, nombreMes, mostrarError, DIAS_SEMANA,
+  hoyISO, proximoSabado, sumarDias, sumarMeses, mesISO, nombreMes, mostrarError, DIAS_SEMANA, diaDeLaSemana,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes, guardarParametros } from '../catalogo.js';
-import { elegirCliente, pastilla } from '../componentes.js';
+import { elegirCliente, pastilla, linkExterno } from '../componentes.js';
 import { irA } from '../app.js';
 
 // Pedidos que llegan desde la web (Etapa 6). Se confirman como venta (con los precios que vio el
@@ -75,7 +75,7 @@ function calendarioSabados(sin, alternar) {
 }
 
 function mesCalendario(mes, primero, sin, alternar) {
-  const hueco = new Date(`${mes}T12:00:00Z`).getUTCDay();
+  const hueco = diaDeLaSemana(mes);
   const siguiente = sumarMeses(mes, 1);
   const dias = [];
   for (let dia = mes; dia < siguiente; dia = sumarDias(dia, 1)) dias.push(dia);
@@ -90,7 +90,7 @@ function mesCalendario(mes, primero, sin, alternar) {
 function diaCalendario(dia, primero, sin, alternar) {
   const diaDelMes = Number(dia.slice(8));
   const esHoy = dia === hoyISO();
-  if (new Date(`${dia}T12:00:00Z`).getUTCDay() !== 6 || dia < primero) {
+  if (diaDeLaSemana(dia) !== 6 || dia < primero) {
     return h('span', { class: `cal-dia${esHoy ? ' cal-hoy' : ''}` }, diaDelMes);
   }
   const boton = h('button', { type: 'button', class: 'cal-dia cal-sabado' }, diaDelMes);
@@ -242,7 +242,7 @@ export async function mostrar(cont) {
         irA('#/pedidos');
       });
       acciones.push(h('div', { class: 'acciones' },
-        whatsapp ? h('a', { class: 'btn', href: whatsapp, target: '_blank', rel: 'noopener' }, 'WhatsApp') : null,
+        whatsapp ? linkExterno(whatsapp, 'WhatsApp', { clase: 'btn' }) : null,
         confirmar),
       h('details', { class: 'plegable' }, h('summary', {}, 'Rechazar el pedido'), campo('Motivo', motivo), rechazar));
     } else if (p.venta_id) {
@@ -266,7 +266,7 @@ export async function mostrar(cont) {
       p.notas ? h('p', {}, h('em', {}, `“${p.notas}”`)) : null,
       p.comprobante
         ? h('p', {}, links[p.comprobante]
-          ? h('a', { class: 'btn chico', href: links[p.comprobante], target: '_blank', rel: 'noopener' }, 'Ver comprobante')
+          ? linkExterno(links[p.comprobante], 'Ver comprobante', { clase: 'btn chico' })
           : h('span', { class: 'ayuda' }, 'Tiene comprobante, pero no se pudo abrir el link'))
         : p.medio_pago === 'transferencia' && p.estado === 'nuevo' ? h('p', { class: 'ayuda' }, 'Transferencia: todavía sin comprobante') : null,
       acciones);

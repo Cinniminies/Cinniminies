@@ -14,8 +14,8 @@ const PERIODOS = [{ valor: 'mes', texto: 'Este mes' }, { valor: 'anterior', text
 // 'mes', 'anterior', 'todo' o un mes elegido en el gráfico ('AAAA-MM-01').
 let periodo = 'mes';
 
-const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const nombreCorto = (mes) => MESES_CORTOS[Number(mes.slice(5, 7)) - 1];
+// "sep": el mes en tres letras, para el eje del gráfico.
+const nombreCorto = (mes) => soloMes(mes).slice(0, 3);
 
 // La semana de pedidos: de domingo a sábado entran los pedidos (cuántos se cargaron cada día) y el sábado,
 // en canela, se hornea y se entrega (los rolls de las ventas "por hacer", lo mismo que usa el plan de horneado).
