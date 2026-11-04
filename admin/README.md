@@ -29,9 +29,9 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/tiempos.js`, `js/desvios.js`, `js/historial.js`, `js/redes.js` | Cuentas puras (con pruebas): tiempo del horneado, desvíos de stock, historial de precios de un insumo y sugerencias de Instagram. |
 | `js/fotos.js`, `js/push.js`, `js/recomendacion.js` | Fotos al bucket (las achica `/achicar-imagen.js`, compartido con la web), suscripción a los avisos push y lo común del descuento por recomendación. |
 | `js/iconos.js` | Íconos de línea (un solo estilo para pestañas, menú y accesos). |
-| `js/graficos.js` | Gráficos sin librerías, uno por tipo de dato: `linea` (en el tiempo), `areas` (dos montos anidados por mes), `partes` (parte de un total), `embudo` (cuántos llegan a cada paso), `pesas` (dos valores por fila), `composicion` (100 % por fila) y `puntos` (cada caso por grupo), más `variacion` contra el período anterior. Colores validados para daltonismo en los dos temas, detalle al tocar o con teclado y tabla con los números. |
-| `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Producción: plan, stock (con conteos) y comprar ("¿Qué compro?"). Negocio: pedidos, recomendaciones, promos, cierre. Catálogo: catalogo, sabores, insumos, formatos, precios. Web: web, redes, visitas. Cuenta: mas, dispositivos. |
-| `tests/` | Pruebas de las funciones puras: `node --test admin/tests/*.test.mjs`. |
+| `js/graficos.js` | Gráficos sin librerías, uno por tipo de dato: `linea` (en el tiempo), `areas` (dos montos anidados por mes), `partes` (parte de un total), `pesas` (dos valores por fila), `composicion` (100 % por fila) y `puntos` (cada caso por grupo). Colores validados para daltonismo en los dos temas, detalle al tocar o con teclado y tabla con los números. |
+| `js/vistas/*.js` | Una pantalla por archivo. Carga: panel, venta, ventas, tandas, compras, gastos, clientes. Catálogo (etapa 3): catalogo, sabores, insumos, formatos, precios. Stock: stock (con conteos) y comprar ("¿Qué compro?"). |
+| `tests/` | Pruebas de las funciones sin DOM: `node --test admin/tests/*.test.mjs`. Lo que usa `db.js` se prueba con el Supabase falso de `_supabase-falso.mjs` (lo carga `_cargador.mjs` en lugar del de la CDN). |
 
 Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.
 

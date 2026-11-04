@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { ErrorRecomendacion, leerCampana, consultarCodigo, limpiarCodigo } = require('../_lib/recomendacion.js');
 const { modoPrueba } = require('../_lib/supabase.js');
+const { respuestaHttp, correrHandler } = require('./_ayudas.js');
 
 // Simula Supabase: guarda lo que se pidió y responde lo que se le pasa.
 function falso(respuesta, ok = true) {
@@ -52,28 +53,69 @@ test('consultarCodigo: normaliza, filtra campos y rechaza códigos cortos', asyn
   await assert.rejects(consultarCodigo({ codigo: 'ANAK7P' }, false, falso({ estado: 'raro' }).conf), (e) => !(e instanceof ErrorRecomendacion));
 });
 
+test('limpiarCodigo: hasta 20 caracteres', () => {
+  assert.equal(limpiarCodigo('a'.repeat(30)), 'A'.repeat(20));
+  assert.equal(limpiarCodigo(null), '');
+});
+
+test('leerCampana: sin respuesta de la base no hay campaña; un porcentaje que no es número queda null', async () => {
+  assert.deepEqual(await leerCampana(false, falso(null).conf), { activa: false });
+  assert.equal((await leerCampana(false, falso({ activa: true, porcentaje: 'x', tope: '30' }).conf)).porcentaje, null);
+});
+
+test('consultarCodigo: el bono necesita porcentaje y fecha válidos; el nombre se recorta', async () => {
+  const propio = { estado: 'propio', nombre: 'A'.repeat(60), porcentaje: 5, tope: 30, bono: 5, bono_hasta: '19/01/2027' };
+  assert.deepEqual(await consultarCodigo({ codigo: 'ANAK7P' }, false, falso(propio).conf),
+    { estado: 'propio', nombre: 'A'.repeat(40), porcentaje: 5, tope: 30, campana: true });
+  assert.deepEqual(await consultarCodigo({ codigo: 'ANAK7P' }, false, falso({ estado: 'no_existe', nombre: 3 }).conf),
+    { estado: 'no_existe' });
+  const f = falso({ estado: 'sin_campana' });
+  await consultarCodigo({ codigo: 'ana-k7p', telefono: 12345 }, true, f.conf);
+  assert.deepEqual(f.pedidos[0].cuerpo, { p_codigo: 'ANAK7P', p_telefono: '', p_prueba: true });
+});
+
+const handler = require('../recomendacion.js');
+const CAMPANA = { activa: true, porcentaje: 5, tope: 30, hasta: '2026-12-31' };
+const consultar = (req, { prueba = false, responder = () => respuestaHttp(CAMPANA) } = {}) => correrHandler(handler, req, {
+  env: { SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_x', MODO_PRUEBA: prueba ? '1' : undefined }, responder,
+});
+
 test('handler: GET sin cache en modo prueba, POST con error 400 para el cliente', async () => {
-  const handler = require('../recomendacion.js');
-  const antes = { ...process.env };
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'sb_secret_x';
-  process.env.MODO_PRUEBA = '1';
-  const fetchAntes = global.fetch;
-  global.fetch = async () => ({ ok: true, json: async () => ({ activa: true, porcentaje: 5, tope: 30, hasta: '2026-12-31' }) });
-  const respuesta = () => {
-    const r = { headers: {}, setHeader(k, v) { r.headers[k] = v; }, end(c) { r.cuerpo = JSON.parse(c); } };
-    return r;
-  };
-  try {
-    const r1 = respuesta();
-    await handler({ method: 'GET' }, r1);
-    assert.equal(r1.statusCode, 200);
-    assert.equal(r1.cuerpo.prueba, true);
-    assert.equal(r1.headers['Cache-Control'], 'no-store');
-    const r2 = respuesta();
-    await handler({ method: 'POST', body: { codigo: 'x' } }, r2);
-    assert.equal(r2.statusCode, 400);
-  } finally {
-    global.fetch = fetchAntes;
-    process.env = antes;
+  const r1 = await consultar({ method: 'GET' }, { prueba: true });
+  assert.equal(r1.res.statusCode, 200);
+  assert.equal(r1.cuerpo.prueba, true);
+  assert.equal(r1.res.headers['cache-control'], 'no-store');
+  const r2 = await consultar({ method: 'POST', body: { codigo: 'x' } }, { prueba: true });
+  assert.equal(r2.res.statusCode, 400);
+});
+
+test('handler: GET y HEAD reales se cachean en la CDN', async () => {
+  for (const method of ['GET', 'HEAD']) {
+    const { res, cuerpo } = await consultar({ method });
+    assert.equal(res.statusCode, 200);
+    assert.match(res.headers['cache-control'], /^public, .*s-maxage=300/);
+    assert.deepEqual(cuerpo, { ...CAMPANA, prueba: false });
   }
+});
+
+test('handler: POST con el código, JSON inválido, otro método y base caída', async () => {
+  let r = await consultar({ method: 'POST', body: { codigo: 'ANA-K7P' } },
+    { responder: () => respuestaHttp({ estado: 'recomendado', nombre: 'Ana' }) });
+  assert.equal(r.res.statusCode, 200);
+  assert.deepEqual(r.cuerpo, { estado: 'recomendado', nombre: 'Ana' });
+  assert.equal(r.res.headers['cache-control'], 'no-store');
+
+  r = await consultar({ method: 'POST', body: '{"codigo":' });
+  assert.equal(r.res.statusCode, 400);
+  assert.deepEqual(r.cuerpo, { error: 'Consulta inválida' });
+
+  r = await consultar({ method: 'POST', body: { codigo: 'ANAK7P', relleno: 'x'.repeat(1000) } });
+  assert.equal(r.res.statusCode, 400);
+
+  r = await consultar({ method: 'PUT' });
+  assert.equal(r.res.statusCode, 405);
+
+  r = await consultar({ method: 'GET' }, { responder: () => respuestaHttp(null, 500) });
+  assert.equal(r.res.statusCode, 502);
+  assert.equal(r.res.headers['cache-control'], 'no-store', 'un error no queda cacheado en la CDN');
 });

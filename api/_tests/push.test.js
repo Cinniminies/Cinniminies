@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { configuracionPush, armarAviso, armarAvisoCierre, avisarPedidoNuevo } = require('../_lib/push.js');
-const { mesAnterior } = require('../cierre-mes.js');
+const { sinLogs } = require('./_ayudas.js');
 
 const vapid = { publica: 'pub', privada: 'priv', sujeto: 'mailto:x@y.z' };
 const pedido = { nombre: 'Ana', modalidad: 'retiro' };
@@ -48,9 +48,37 @@ test('armarAvisoCierre: mes, vendido contra el mes anterior, ganancia y link al 
   assert.equal(armarAvisoCierre({ mes: '2026-05-01', actual: null, anterior: null }).cuerpo, 'Vendieron $0 · ganancia $0');
 });
 
-test('mesAnterior: el mes que terminó, también en enero', () => {
-  assert.equal(mesAnterior('2026-11-01'), '2026-10-01');
-  assert.equal(mesAnterior('2027-01-01'), '2026-12-01');
+test('armarAvisoCierre: baja, igual y decimal por debajo del 10 %; sin ventas el mes anterior no compara', () => {
+  const cuerpo = (vendido, anterior) => armarAvisoCierre({
+    mes: '2026-10-01', actual: { vendido, ganancia_bruta: 100 }, anterior: { mes: '2026-09-01', vendido: anterior },
+  }).cuerpo;
+  assert.equal(cuerpo(965, 1000), 'Vendieron $965 (baja 3,5 % vs septiembre) · ganancia $100');
+  assert.equal(cuerpo(500, 1000), 'Vendieron $500 (baja 50 % vs septiembre) · ganancia $100');
+  assert.equal(cuerpo(1000, 1000), 'Vendieron $1.000 (igual que septiembre) · ganancia $100');
+  assert.equal(cuerpo(500, 0), 'Vendieron $500 · ganancia $100');
+  assert.equal(armarAvisoCierre({ mes: '2026-12-01', actual: null, anterior: null }).titulo, 'Cierre de diciembre');
+});
+
+test('armarAviso: los centavos van con dos cifras, como en /admin', {
+  todo: 'pesos() de push.js usa toLocaleString y muestra "$1.234,5" donde /admin muestra "$1.234,50"',
+}, () => {
+  assert.equal(armarAviso(pedido, { ...guardado, total: 1234.5 }).cuerpo, 'Ana · $1.234,50');
+});
+
+test('armarAvisoCierre: justo por debajo del 10 % redondea a "10" y no a "10,0"', {
+  todo: 'igual que textoVariacion en admin/js/graficos.js: con 9,96 % muestra "10,0 %"',
+}, () => {
+  assert.match(armarAvisoCierre({ mes: '2026-10-01', actual: { vendido: 1099.6, ganancia_bruta: 0 },
+    anterior: { mes: '2026-09-01', vendido: 1000 } }).cuerpo, /\(sube 10 % vs septiembre\)/);
+});
+
+test('avisarPedidoNuevo: si la base no devolvió código, no avisa', async () => {
+  const { conf, llamadas } = base([]);
+  const webpush = { sendNotification: async () => assert.fail('no tenía que mandar') };
+  const nada = { enviados: 0, borrados: 0, fallidos: 0 };
+  assert.deepEqual(await avisarPedidoNuevo(pedido, { codigo: null }, conf, webpush, vapid), nada);
+  assert.deepEqual(await avisarPedidoNuevo(pedido, null, conf, webpush, vapid), nada);
+  assert.equal(llamadas.length, 0);
 });
 
 test('avisarPedidoNuevo: uno por endpoint, borra los vencidos (410/404) y anota otros errores', async () => {
@@ -88,13 +116,10 @@ test('avisarPedidoNuevo: sin VAPID o si falla Supabase, no hace nada ni tira err
   assert.deepEqual(await avisarPedidoNuevo(pedido, guardado, base([]).conf, webpush, null),
     { enviados: 0, borrados: 0, fallidos: 0 });
   const caida = { url: 'https://x', clave: 'eyJ', fetch: async () => ({ ok: false, status: 503 }) };
-  const error = console.error;
-  console.error = () => {};
-  try {
+  const logs = await sinLogs(async () => {
     assert.deepEqual(await avisarPedidoNuevo(pedido, guardado, caida, webpush, vapid), { enviados: 0, borrados: 0, fallidos: 0 });
-  } finally {
-    console.error = error;
-  }
+  });
+  assert.deepEqual(logs, ['Aviso push: Supabase respondió 503']);
 });
 
 test('avisarPedidoNuevo con la librería real: cifra y manda al endpoint', async () => {
