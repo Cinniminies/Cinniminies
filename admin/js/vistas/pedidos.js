@@ -6,6 +6,7 @@ import {
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes, guardarParametros } from '../catalogo.js';
 import { elegirCliente, pastilla, linkExterno } from '../componentes.js';
 import { irA } from '../app.js';
+import { textoPanel } from '../textos.js';
 
 // Pedidos que llegan desde la web (Etapa 6). Se confirman como venta (con los precios que vio el
 // cliente) o se rechazan. Las reglas están en la base: confirmar_pedido y rechazar_pedido.
@@ -33,9 +34,9 @@ function cierrePedidos(parametros, sinHorneado) {
   const horaCierre = h('input', { type: 'time', value: parametros.cierre_hora || '23:59', required: true });
   const guardar = h('button', { class: 'btn', type: 'button' }, 'Guardar el cierre');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!horaCierre.value) throw new Error('Elegí la hora del cierre');
+    if (!horaCierre.value) throw new Error(textoPanel('panel.pedidos.falta_hora_cierre', 'Elegí la hora del cierre'));
     await guardarParametros({ cierre_dia: diaCierre.value, cierre_hora: horaCierre.value });
-    toast('Cierre guardado. La web lo muestra en unos 5 minutos');
+    toast(textoPanel('panel.pedidos.cierre_guardado', 'Cierre guardado. La web lo muestra en unos 5 minutos'));
   });
 
   const sin = new Set(sinHorneado.map((s) => s.sabado));
@@ -43,8 +44,9 @@ function cierrePedidos(parametros, sinHorneado) {
     try {
       if (horneamos) await q(sb.from('sabados_sin_horneado').delete().eq('sabado', sabado));
       else await q(sb.from('sabados_sin_horneado').insert({ sabado }));
-      toast(horneamos ? `El ${diaMes(sabado)} se hornea`
-        : `El ${diaMes(sabado)} no se hornea: sus pedidos pasan al sábado siguiente`);
+      toast(horneamos ? textoPanel('panel.pedidos.se_hornea', 'El {fecha} se hornea', { fecha: diaMes(sabado) })
+        : textoPanel('panel.pedidos.no_se_hornea', 'El {fecha} no se hornea: sus pedidos pasan al sábado siguiente',
+          { fecha: diaMes(sabado) }));
     } catch (e) {
       mostrarError(e);
       irA('#/pedidos');
@@ -52,13 +54,13 @@ function cierrePedidos(parametros, sinHorneado) {
   };
 
   return h('details', { class: 'plegable' },
-    h('summary', {}, 'Cierre de pedidos y sábados sin horneado'),
-    h('p', { class: 'ayuda' }, 'Pasado el cierre, los pedidos de la web y los que se cargan a mano son para el sábado siguiente. '
-      + 'Si un sábado no se hornea, sus pedidos pasan al próximo.'),
+    h('summary', {}, textoPanel('panel.pedidos.cierre', 'Cierre de pedidos y sábados sin horneado')),
+    h('p', { class: 'ayuda' }, textoPanel('panel.pedidos.cierre_ayuda', 'Pasado el cierre, los pedidos de la web y los que se '
+      + 'cargan a mano son para el sábado siguiente. Si un sábado no se hornea, sus pedidos pasan al próximo.')),
     h('div', { class: 'fila-campos' }, campo('Día del cierre', diaCierre), campo('Hora', horaCierre)),
     h('div', { class: 'acciones' }, guardar),
-    h('h3', {}, 'Sábados de horneado'),
-    h('p', { class: 'ayuda' }, 'Tocá un sábado para marcar si se hornea o no.'),
+    h('h3', {}, textoPanel('panel.pedidos.sabados', 'Sábados de horneado')),
+    h('p', { class: 'ayuda' }, textoPanel('panel.pedidos.sabados_ayuda', 'Tocá un sábado para marcar si se hornea o no.')),
     calendarioSabados(sin, alternar));
 }
 
@@ -123,7 +125,7 @@ function bloqueCliente(p, lista, origenes) {
   function dibujar() {
     if (eligiendo) {
       vaciar(cont,
-        h('div', { class: 'linea-cab' }, h('strong', {}, '¿De quién es el pedido?'),
+        h('div', { class: 'linea-cab' }, h('strong', {}, textoPanel('panel.pedidos.de_quien', '¿De quién es el pedido?')),
           h('button', { type: 'button', class: 'link', onclick: () => { elegido = antes; eligiendo = false; dibujar(); } }, 'Cancelar')),
         elegirCliente(lista, null, (c) => {
           elegido = c;
@@ -143,14 +145,17 @@ function bloqueCliente(p, lista, origenes) {
         h('p', {}, 'Cliente: ', h('a', { href: `#/clientes/${elegido.id}` }, h('strong', {}, elegido.nombre)),
           ` · ${compras(elegido.compras)} `,
           h('button', { type: 'button', class: 'link', onclick: elegir }, 'Cambiar')),
-        ofrecerTel ? interruptor(`Guardarle el celular ${telLindo(p.telefono)}`, guardarTel, (v) => { guardarTel = v; },
-          'Así el próximo pedido se asocia solo.') : null);
+        ofrecerTel ? interruptor(
+          textoPanel('panel.pedidos.guardar_celular', 'Guardarle el celular {celular}', { celular: telLindo(p.telefono) }),
+          guardarTel, (v) => { guardarTel = v; },
+          textoPanel('panel.pedidos.guardar_celular_ayuda', 'Así el próximo pedido se asocia solo.')) : null);
     } else if (p.cliente_sugerido_id) {
       vaciar(cont, h('p', {}, 'Cliente: ', h('a', { href: `#/clientes/${p.cliente_sugerido_id}` }, h('strong', {}, p.cliente_sugerido)),
         ` · ${compras(p.compras_cliente)} `,
         h('button', { type: 'button', class: 'link', onclick: elegir }, 'Es otro cliente')));
     } else {
-      vaciar(cont, h('p', {}, h('strong', {}, 'Cliente nuevo'), `: se va a crear «${p.nombre}» `,
+      vaciar(cont, h('p', {}, h('strong', {}, textoPanel('panel.pedidos.cliente_nuevo', 'Cliente nuevo')),
+        `: ${textoPanel('panel.pedidos.cliente_nuevo_ayuda', 'se va a crear «{nombre}»', { nombre: p.nombre })} `,
         h('button', { type: 'button', class: 'link', onclick: elegir }, 'Elegir de la libreta')));
     }
   }
@@ -180,21 +185,32 @@ function bloqueCliente(p, lista, origenes) {
 // Promo del pedido (/admin → Promociones): ya restada del total
 function promoDelPedido(p) {
   if (!(Number(p.descuento_promo) > 0)) return null;
-  return h('p', {}, pastilla('ok', p.promo || 'Promo'), ` ${pesos(-p.descuento_promo)} (ya restado del total)`);
+  return h('p', {}, pastilla('ok', p.promo || 'Promo'), ' ',
+    textoPanel('panel.pedidos.promo', '{monto} (ya restado del total)', { monto: pesos(-p.descuento_promo) }));
 }
 
 // Código de recomendación del pedido: descuento propio ya restado del total, o de quién vino recomendado
 // (la recomendación se valida sola cuando la venta queda pagada).
 function recomendacion(p) {
   if (Number(p.descuento) > 0) {
-    return h('p', {}, pastilla('ok', 'Descuento por recomendaciones'),
-      ` ${numero(p.descuento_porcentaje, 0)} % en una box: ${pesos(-p.descuento)} (ya restado del total)`);
+    return h('p', {}, pastilla('ok', 'Descuento por recomendaciones'), ' ',
+      textoPanel('panel.pedidos.descuento', '{porcentaje} % en una box: {monto} (ya restado del total)',
+        { porcentaje: numero(p.descuento_porcentaje, 0), monto: pesos(-p.descuento) }));
   }
   if (p.recomendador) {
-    const significa = { pendiente: 'cuenta cuando se pague la venta', valida: 'ya sumó', anulada: `no cuenta: ${p.recomendacion_motivo || 'anulada'}` };
-    return h('p', { class: 'ayuda' }, `Vino con el código de ${p.recomendador}: ${significa[p.recomendacion_estado]}.`);
+    const significa = {
+      pendiente: () => textoPanel('panel.pedidos.recomendacion_pendiente', 'cuenta cuando se pague la venta'),
+      valida: () => textoPanel('panel.pedidos.recomendacion_valida', 'ya sumó'),
+      anulada: () => textoPanel('panel.pedidos.recomendacion_anulada', 'no cuenta: {motivo}',
+        { motivo: p.recomendacion_motivo || 'anulada' }),
+    };
+    return h('p', { class: 'ayuda' }, textoPanel('panel.pedidos.recomendado', 'Vino con el código de {recomendador}: {estado}.',
+      { recomendador: p.recomendador, estado: significa[p.recomendacion_estado]() }));
   }
-  if (p.codigo_recomendacion) return h('p', { class: 'ayuda' }, `Puso el código ${p.codigo_recomendacion}, pero no aplicó.`);
+  if (p.codigo_recomendacion) {
+    return h('p', { class: 'ayuda' },
+      textoPanel('panel.pedidos.codigo_no_aplico', 'Puso el código {codigo}, pero no aplicó.', { codigo: p.codigo_recomendacion }));
+  }
   return null;
 }
 
@@ -220,8 +236,10 @@ export async function mostrar(cont) {
     const cajas = [...p.pedido_cajas].sort((a, b) => a.orden - b.orden).map((c) =>
       h('li', {}, h('strong', {}, cat.formato(c.formato_id)?.nombre || 'Caja'), ` · ${pesos(c.precio)}`,
         h('div', { class: 'ayuda' }, c.sabores.map((s) => `${cat.sabor(s.sabor_id)?.nombre || 'Sabor'} ${s.unidades}`).join(' · '))));
-    const whatsapp = linkWhatsapp(p.telefono,
-      { texto: `¡Hola ${p.nombre.split(' ')[0]}! Te escribimos de Cinniminies por tu pedido ${p.codigo}.` });
+    const whatsapp = linkWhatsapp(p.telefono, {
+      texto: textoPanel('panel.pedidos.whatsapp', '¡Hola {nombre}! Te escribimos de Cinniminies por tu pedido {codigo}.',
+        { nombre: p.nombre.split(' ')[0], codigo: p.codigo }),
+    });
 
     const acciones = [];
     if (p.estado === 'nuevo') {
@@ -229,26 +247,33 @@ export async function mostrar(cont) {
       acciones.push(cliente.el);
       const confirmar = h('button', { class: 'btn ok', type: 'button' }, 'Confirmar como venta');
       confirmar.onclick = () => conBoton(confirmar, async () => {
-        if (!confirm(`¿Confirmar el pedido ${p.codigo} a nombre de ${cliente.nombre()} por ${pesos(p.total)}? Queda como venta pendiente de cobro.`)) return;
+        const pregunta = textoPanel('panel.pedidos.confirmar_pregunta',
+          '¿Confirmar el pedido {codigo} a nombre de {cliente} por {total}? Queda como venta pendiente de cobro.',
+          { codigo: p.codigo, cliente: cliente.nombre(), total: pesos(p.total) });
+        if (!confirm(pregunta)) return;
         const v = await rpc('confirmar_pedido', { p_pedido: p.id, p: cliente.datos() });
-        toast(`Pedido ${p.codigo} confirmado`, { accion: { texto: 'Ver venta', fn: () => irA(`#/ventas/${v.venta_id}`) } });
+        toast(textoPanel('panel.pedidos.confirmado', 'Pedido {codigo} confirmado', { codigo: p.codigo }),
+          { accion: { texto: 'Ver venta', fn: () => irA(`#/ventas/${v.venta_id}`) } });
         irA('#/pedidos');
       });
       const motivo = h('input', { placeholder: 'Opcional: sin stock, no respondió…' });
       const rechazar = h('button', { class: 'btn peligro chico', type: 'button' }, 'Rechazar');
       rechazar.onclick = () => conBoton(rechazar, async () => {
         await rpc('rechazar_pedido', { p_pedido: p.id, p_motivo: motivo.value });
-        toast(`Pedido ${p.codigo} rechazado`);
+        toast(textoPanel('panel.pedidos.rechazado', 'Pedido {codigo} rechazado', { codigo: p.codigo }));
         irA('#/pedidos');
       });
       acciones.push(h('div', { class: 'acciones' },
         whatsapp ? linkExterno(whatsapp, 'WhatsApp', { clase: 'btn' }) : null,
         confirmar),
-      h('details', { class: 'plegable' }, h('summary', {}, 'Rechazar el pedido'), campo('Motivo', motivo), rechazar));
+      h('details', { class: 'plegable' }, h('summary', {},
+        textoPanel('panel.pedidos.rechazar', 'Rechazar el pedido')), campo('Motivo', motivo), rechazar));
     } else if (p.venta_id) {
       acciones.push(h('div', { class: 'acciones' }, h('a', { class: 'btn', href: `#/ventas/${p.venta_id}` }, 'Ver la venta')));
     } else if (p.estado === 'rechazado') {
-      acciones.push(h('p', { class: 'ayuda' }, p.motivo_rechazo ? `Motivo: ${p.motivo_rechazo}` : 'Sin motivo'));
+      acciones.push(h('p', { class: 'ayuda' }, p.motivo_rechazo
+        ? textoPanel('panel.pedidos.motivo', 'Motivo: {motivo}', { motivo: p.motivo_rechazo })
+        : textoPanel('panel.pedidos.sin_motivo', 'Sin motivo')));
     }
 
     return h('article', { class: 'card pedido' },
@@ -267,18 +292,24 @@ export async function mostrar(cont) {
       p.comprobante
         ? h('p', {}, links[p.comprobante]
           ? linkExterno(links[p.comprobante], 'Ver comprobante', { clase: 'btn chico' })
-          : h('span', { class: 'ayuda' }, 'Tiene comprobante, pero no se pudo abrir el link'))
-        : p.medio_pago === 'transferencia' && p.estado === 'nuevo' ? h('p', { class: 'ayuda' }, 'Transferencia: todavía sin comprobante') : null,
+          : h('span', { class: 'ayuda' },
+            textoPanel('panel.pedidos.comprobante_error', 'Tiene comprobante, pero no se pudo abrir el link')))
+        : p.medio_pago === 'transferencia' && p.estado === 'nuevo'
+          ? h('p', { class: 'ayuda' }, textoPanel('panel.pedidos.sin_comprobante', 'Transferencia: todavía sin comprobante'))
+          : null,
       acciones);
   };
 
   vaciar(cont,
     chips(ESTADOS, estado, (v) => { estado = v; irA('#/pedidos'); }),
     estado === 'nuevo' && pedidos.length
-      ? h('p', { class: 'ayuda' }, `${plural(pedidos.length, 'pedido nuevo', 'pedidos nuevos')}. El total es sin envío `
-        + '(si es con entrega, la venta suma el envío al confirmarla).')
+      ? h('p', { class: 'ayuda' }, textoPanel('panel.pedidos.nuevos_ayuda',
+        '{pedidos}. El total es sin envío (si es con entrega, la venta suma el envío al confirmarla).',
+        { pedidos: plural(pedidos.length, 'pedido nuevo', 'pedidos nuevos') }))
       : null,
     pedidos.length ? pedidos.map(tarjeta)
-      : h('p', { class: 'vacio' }, estado === 'nuevo' ? 'No hay pedidos nuevos de la web.' : 'No hay pedidos acá.'),
+      : h('p', { class: 'vacio' }, estado === 'nuevo'
+        ? textoPanel('panel.pedidos.vacio_nuevos', 'No hay pedidos nuevos de la web.')
+        : textoPanel('panel.pedidos.vacio', 'No hay pedidos acá.')),
     cierrePedidos(cat.parametros, sinHorneado));
 }

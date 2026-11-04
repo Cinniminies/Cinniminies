@@ -82,15 +82,16 @@ async function resumen(cont, enfocar) {
   const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar lo contado');
   guardar.onclick = () => conBoton(guardar, async () => {
     const items = Object.entries(contado).map(([insumo_id, c]) => ({ insumo_id, cantidad: c }));
-    if (!items.length) throw new Error('Cargá al menos una cantidad en "Registro"');
+    if (!items.length) throw new Error(textoPanel('panel.stock.falta_cantidad', 'Cargá al menos una cantidad en "Registro"'));
     const r = await rpc('registrar_conteo', { p: { items } });
-    toast('Conteo guardado');
+    toast(textoPanel('panel.stock.conteo_guardado', 'Conteo guardado'));
     resultado(cont, r, Object.fromEntries(stock.map((s) => [s.insumo_id, s.unidad_base])));
   });
 
   vaciar(cont, h('div', { class: 'con-guardar' },
     subnavProduccion('stock'),
-    alertas ? h('p', { style: 'margin-top:0' }, pastilla('alerta', `${alertas} para reponer`)) : null,
+    alertas ? h('p', { style: 'margin-top:0' }, pastilla('alerta',
+      textoPanel('panel.stock.reponer', '{cantidad} para reponer', { cantidad: alertas }))) : null,
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
       h('a', { class: 'btn', href: '#/stock/perdida' }, 'Registrar pérdida'),
       // Deshacer es de vez en cuando y borra un conteo: queda más callado que las otras dos
@@ -98,9 +99,12 @@ async function resumen(cont, enfocar) {
     // La explicación de las columnas, plegada: la tabla es lo que se viene a ver
     h('details', { class: 'plegable', style: 'margin-top:.75rem' },
       h('summary', {}, textoPanel('panel.stock_columnas', '¿Qué es cada columna?')),
-      h('p', { class: 'ayuda', style: 'margin-top:0' }, 'En "Registro" cargá lo que contaste (lo vacío no cambia). "Hay" es lo del último conteo más lo que compraste y menos lo que se perdió después; ',
-        '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas y las pérdidas después. ',
-        'Lo que no se puede medir, como el papel manteca, no se cuenta: su "Hay" es lo que debería haber.')),
+      h('p', { class: 'ayuda', style: 'margin-top:0' }, textoPanel('panel.stock.columnas_ayuda',
+        'En "Registro" cargá lo que contaste (lo vacío no cambia). '
+        + '"Hay" es lo del último conteo más lo que compraste y menos lo que se perdió después; '
+        + '"Debería haber" parte del último conteo, suma lo comprado y resta lo que usaron las tandas, las cajas vendidas '
+        + 'y las pérdidas después. Lo que no se puede medir, como el papel manteca, no se cuenta: '
+        + 'su "Hay" es lo que debería haber.'))),
     tabla('ingrediente', 'Ingredientes'),
     tabla('packaging', 'Packaging')),
   h('div', { class: 'guardar' }, guardar));
@@ -111,10 +115,11 @@ async function resumen(cont, enfocar) {
 function botonDeshacer(ultimo, texto = `Deshacer el conteo del ${fechaCorta(ultimo.fecha)}`, clase = 'btn') {
   const b = h('button', { class: clase, type: 'button' }, texto);
   b.onclick = () => conBoton(b, async () => {
-    if (!confirm(`¿Deshacer el conteo del ${fechaCorta(ultimo.fecha)}? Se borran todas las cantidades que cargaste esa vez `
-      + 'y el stock vuelve a calcularse desde el conteo anterior.')) return;
+    if (!confirm(textoPanel('panel.stock.deshacer_confirmar', '¿Deshacer el conteo del {fecha}? Se borran todas las cantidades '
+      + 'que cargaste esa vez y el stock vuelve a calcularse desde el conteo anterior.',
+      { fecha: fechaCorta(ultimo.fecha) }))) return;
     const r = await rpc('deshacer_ultimo_conteo');
-    toast(`Conteo deshecho (${plural(r.insumos, 'insumo')})`);
+    toast(textoPanel('panel.stock.conteo_deshecho', 'Conteo deshecho ({insumos})', { insumos: plural(r.insumos, 'insumo') }));
     irA('#/stock');
   });
   return b;
@@ -122,8 +127,10 @@ function botonDeshacer(ultimo, texto = `Deshacer el conteo del ${fechaCorta(ulti
 
 function resultado(cont, r, unidad) {
   vaciar(cont, h('div', { class: 'card' },
-    h('h1', {}, 'Conteo guardado'),
-    h('p', { class: 'ayuda' }, `${r.length} insumos, ${fechaLarga(hoyISO())}. Desde ahora el stock teórico arranca de estas cantidades.`),
+    h('h1', {}, textoPanel('panel.stock.conteo_guardado', 'Conteo guardado')),
+    h('p', { class: 'ayuda' }, textoPanel('panel.stock.conteo_ayuda',
+      '{cantidad} insumos, {fecha}. Desde ahora el stock teórico arranca de estas cantidades.',
+      { cantidad: r.length, fecha: fechaLarga(hoyISO()) })),
     h('table', { class: 'tabla' },
       h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Debería haber'), h('th', { class: 'num-der' }, 'Hay'), h('th', { class: 'num-der' }, 'Desvío')),
       r.map((x) => h('tr', {}, h('td', {}, x.insumo),
@@ -131,7 +138,8 @@ function resultado(cont, r, unidad) {
         h('td', { class: 'num-der' }, cantidad(x.contado, unidad[x.insumo_id])),
         h('td', { class: 'num-der ' + claseDesvio(x.desvio) },
           Number(x.desvio) === 0 ? '—' : cantidad(x.desvio, unidad[x.insumo_id]))))),
-    h('p', { class: 'ayuda' }, 'Desvío = debería haber − hay. Positivo: hay menos de lo que debería (se usó más, se tiró o faltó cargar algo).'),
+    h('p', { class: 'ayuda' }, textoPanel('panel.stock.desvio_ayuda',
+      'Desvío = debería haber − hay. Positivo: hay menos de lo que debería (se usó más, se tiró o faltó cargar algo).')),
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock' }, 'Volver al stock'),
       h('a', { class: 'btn', href: '#/stock/desvios' }, 'Ver desvíos'),
       botonDeshacer({ fecha: hoyISO() }, 'Deshacer este conteo'))));
@@ -177,15 +185,20 @@ async function perdida(cont) {
   const guardar = h('button', { class: 'btn primario bloque', type: 'button' }, 'Guardar pérdida');
   guardar.onclick = () => conBoton(guardar, async () => {
     const i = insumo();
-    if (!i) throw new Error('Elegí qué se perdió');
-    if (!(Number(f.cantidad) > 0)) throw new Error('Poné cuánto se perdió');
+    if (!i) throw new Error(textoPanel('panel.stock.falta_perdida', 'Elegí qué se perdió'));
+    if (!(Number(f.cantidad) > 0)) throw new Error(textoPanel('panel.stock.falta_cuanto', 'Poné cuánto se perdió'));
     const r = await q(sb.from('perdidas').insert({
       fecha: f.fecha, insumo_id: i.id, cantidad: base(), motivo: f.motivo.trim() || null,
     }).select('id,costo').single());
-    toast(`Pérdida guardada: ${cantidad(base(), i.unidad_base)} de ${i.nombre.toLowerCase()} (${pesos(r.costo)})`, {
+    toast(textoPanel('panel.stock.perdida_guardada', 'Pérdida guardada: {cantidad} de {insumo} ({monto})',
+      { cantidad: cantidad(base(), i.unidad_base), insumo: i.nombre.toLowerCase(), monto: pesos(r.costo) }), {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from('perdidas').delete().eq('id', r.id)); toast('Pérdida deshecha'); refrescarSi('#/stock/perdida'); },
+        fn: async () => {
+          await q(sb.from('perdidas').delete().eq('id', r.id));
+          toast(textoPanel('panel.stock.perdida_deshecha', 'Pérdida deshecha'));
+          refrescarSi('#/stock/perdida');
+        },
       },
     });
     irA('#/stock/perdida');
@@ -194,8 +207,9 @@ async function perdida(cont) {
   vaciar(cont,
     subnavProduccion('stock'),
     h('div', { class: 'card' },
-      h('p', { class: 'ayuda' }, 'Se rompió una bolsa, se venció algo… Lo que cargues sale del stock teórico. '
-        + 'Lo que valía queda anotado, pero no se suma a gastos: esa plata ya se contó al cargar la compra.'),
+      h('p', { class: 'ayuda' }, textoPanel('panel.stock.perdida_ayuda', 'Se rompió una bolsa, se venció algo… '
+        + 'Lo que cargues sale del stock teórico. Lo que valía queda anotado, pero no se suma a gastos: '
+        + 'esa plata ya se contó al cargar la compra.')),
       campoFecha(f.fecha, (v) => { f.fecha = v; }),
       campo('Qué', selInsumo),
       h('div', { class: 'fila-campos' },
@@ -206,14 +220,17 @@ async function perdida(cont) {
       campo('Motivo', h('input', { placeholder: 'Se rompió la bolsa', oninput: (e) => { f.motivo = e.target.value; } })),
       guardar),
 
-    h('h2', {}, 'Últimas pérdidas'),
+    h('h2', {}, textoPanel('panel.stock.ultimas_perdidas', 'Últimas pérdidas')),
     ultimas.length
       ? h('ul', { class: 'lista' }, ultimas.map((p) => {
         const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
         borrar.onclick = () => conBoton(borrar, async () => {
-          if (!confirm(`¿Borrar la pérdida de ${p.insumos.nombre} del ${fechaCorta(p.fecha)}? Vuelve al stock.`)) return;
+          const pregunta = textoPanel('panel.stock.perdida_borrar_confirmar',
+            '¿Borrar la pérdida de {insumo} del {fecha}? Vuelve al stock.',
+            { insumo: p.insumos.nombre, fecha: fechaCorta(p.fecha) });
+          if (!confirm(pregunta)) return;
           await q(sb.from('perdidas').delete().eq('id', p.id));
-          toast('Borrada');
+          toast(textoPanel('panel.stock.perdida_borrada', 'Borrada'));
           irA('#/stock/perdida');
         });
         return filaLista({
@@ -222,7 +239,7 @@ async function perdida(cont) {
           derecha: [monto(pesos(p.costo)), borrar],
         });
       }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay pérdidas cargadas.'),
+      : h('p', { class: 'vacio' }, textoPanel('panel.stock.perdidas_vacio', 'Todavía no hay pérdidas cargadas.')),
     h('div', { class: 'acciones' }, h('a', { class: 'btn', href: '#/stock' }, 'Volver al stock')));
 }
 
@@ -242,7 +259,8 @@ async function desvios(cont) {
   const conteos = porConteo(historial);
   if (!todas.length) {
     vaciar(cont, subnavProduccion('stock'),
-      h('p', { class: 'vacio' }, 'Todavía no hay desvíos: hacen falta dos conteos de un mismo insumo (en Stock, columna "Registro").'));
+      h('p', { class: 'vacio' }, textoPanel('panel.stock.desvios_vacio',
+        'Todavía no hay desvíos: hacen falta dos conteos de un mismo insumo (en Stock, columna "Registro").')));
     return;
   }
 
@@ -283,14 +301,15 @@ async function desvios(cont) {
         chips([{ valor: 'plata', texto: 'Por $' }, { valor: 'pct', texto: 'Por %' }], verDesvios.orden,
           (v) => { verDesvios.orden = v; dibujarGrafico(); })),
       lista.length ? h('figure', { class: 'grafico div-grafico' },
-        h('figcaption', { class: 'graf-titulo' }, 'Lo que se usó contra lo previsto'),
+        h('figcaption', { class: 'graf-titulo' }, textoPanel('panel.stock.desvios_grafico', 'Lo que se usó contra lo previsto')),
         h('div', { class: 'div-ejes', 'aria-hidden': 'true' }, h('span'),
           h('span', { class: 'div-pista' }, h('span', { class: 'div-mitad izq' }, '← sobró'), h('span', { class: 'div-mitad der' }, 'de más →')),
           h('span')),
         lista.map(filaGrafico),
-        h('p', { class: 'graf-ayuda' }, 'Tocá un insumo para ver el detalle. Las barras claras tienen un solo conteo: tomalas con pinzas.'),
+        h('p', { class: 'graf-ayuda' }, textoPanel('panel.stock.desvios_grafico_ayuda',
+          'Tocá un insumo para ver el detalle. Las barras claras tienen un solo conteo: tomalas con pinzas.')),
         tablaComparar(lista))
-        : h('p', { class: 'vacio' }, 'No hay desvíos de este tipo todavía.'));
+        : h('p', { class: 'vacio' }, textoPanel('panel.stock.desvios_tipo_vacio', 'No hay desvíos de este tipo todavía.')));
   }
 
   // Detalle de un insumo: según recetas vs real, cada conteo y, para ingredientes, cómo quedarían las recetas.
@@ -300,9 +319,12 @@ async function desvios(cont) {
     const suyos = historial.filter((x) => x.insumo_id === f.insumo_id);
     const ajustar = h('button', { class: 'btn chico', type: 'button' }, `Ajustar recetas ${pct(f.rel)}`);
     ajustar.onclick = () => conBoton(ajustar, async () => {
-      if (!confirm(`¿Cambiar ${f.nombre} en ${deEste.length} receta(s) un ${pct(f.rel)}? El promedio de ${f.nombre} arranca de nuevo.`)) return;
+      const pregunta = textoPanel('panel.stock.ajustar_confirmar',
+        '¿Cambiar {insumo} en {recetas} receta(s) un {porcentaje}? El promedio de {insumo} arranca de nuevo.',
+        { insumo: f.nombre, recetas: deEste.length, porcentaje: pct(f.rel) });
+      if (!confirm(pregunta)) return;
       await rpc('ajustar_recetas_insumo', { p_insumo: f.insumo_id, p_factor: factor });
-      toast(`Recetas con ${f.nombre} ajustadas`);
+      toast(textoPanel('panel.stock.ajustadas', 'Recetas con {insumo} ajustadas', { insumo: f.nombre }));
       verDesvios.abierto = null;
       irA('#/stock/desvios');
     });
@@ -318,13 +340,14 @@ async function desvios(cont) {
           h('td', {}, etiquetaConteo(conteos.find((c) => c.filas.includes(x)) || x)),
           celdasDesvio(x)))),
       sugerir ? [
-        h('h3', { style: 'margin-top:.75rem' }, 'Si ajustás las recetas'),
+        h('h3', { style: 'margin-top:.75rem' }, textoPanel('panel.stock.si_ajustas', 'Si ajustás las recetas')),
         h('table', { class: 'tabla' },
           h('tr', {}, h('th', {}, 'Sabor (por tanda)'), h('th', { class: 'num-der' }, 'Hoy'), h('th', { class: 'num-der' }, 'Quedaría')),
           deEste.map((x) => h('tr', {}, h('td', {}, x.sabores.nombre),
             h('td', { class: 'num-der' }, cantidad(x.cantidad, f.unidad)),
             h('td', { class: 'num-der' }, h('strong', {}, cantidad(Math.round(x.cantidad * factor * 100) / 100, f.unidad)))))),
-        f.confiable ? null : h('p', { class: 'ayuda' }, 'Con un solo conteo el % puede ser casualidad: mejor esperar otro conteo.'),
+        f.confiable ? null : h('p', { class: 'ayuda' },
+          textoPanel('panel.stock.un_conteo', 'Con un solo conteo el % puede ser casualidad: mejor esperar otro conteo.')),
         h('div', { class: 'acciones' }, ajustar),
       ] : null);
   }
@@ -351,32 +374,42 @@ async function desvios(cont) {
     const sabores = propuesta(recetasSabor, todas, elegidos, costoDe);
     const lista = cambios(sabores);
     const signo = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${pesos(Math.abs(n))}`;
+    const conPorcentaje = (fs) => fs.map((f) => `${f.nombre} ${pct(f.rel)}`).join(', ');
 
     const aplicar = h('button', { class: 'btn primario', type: 'button', disabled: !lista.length },
       lista.length ? `Aplicar recetas propuestas (${plural(lista.length, 'cambio')})` : 'Elegí al menos un ingrediente');
     aplicar.onclick = () => conBoton(aplicar, async () => {
-      if (!confirm(`¿Cambiar ${plural(lista.length, 'cantidad', 'cantidades')} en las recetas? `
-        + 'El costo de las tandas nuevas sale de las recetas nuevas, y el promedio de desvíos de esos ingredientes arranca de nuevo.')) return;
+      const pregunta = textoPanel('panel.stock.propuestas_confirmar', '¿Cambiar {cantidades} en las recetas? '
+        + 'El costo de las tandas nuevas sale de las recetas nuevas, '
+        + 'y el promedio de desvíos de esos ingredientes arranca de nuevo.',
+        { cantidades: plural(lista.length, 'cantidad', 'cantidades') });
+      if (!confirm(pregunta)) return;
       await rpc('aplicar_recetas_propuestas', { p: { items: lista } });
-      toast('Recetas actualizadas');
+      toast(textoPanel('panel.stock.recetas_actualizadas', 'Recetas actualizadas'));
       verDesvios.abierto = null;
       irA('#/stock/desvios');
     });
 
     vaciar(contPropuesta,
-      h('h2', {}, 'Recetas propuestas'),
-      h('p', { class: 'ayuda' }, 'Cuánto se usa de verdad por tanda: la receta más el desvío de cada ingrediente '
+      h('h2', {}, textoPanel('panel.stock.propuestas', 'Recetas propuestas')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.stock.propuestas_ayuda',
+        'Cuánto se usa de verdad por tanda: la receta más el desvío de cada ingrediente '
         + '(lo que se usa de más o de menos se reparte en proporción entre los sabores que lo llevan). '
-        + `Se propone ajustar los que tienen 2 conteos o más y se desvían ±${Math.round(MINIMO_AJUSTE * 100)} % o más, redondeado.`),
+        + 'Se propone ajustar los que tienen 2 conteos o más y se desvían ±{minimo} % o más, redondeado.',
+        { minimo: Math.round(MINIMO_AJUSTE * 100) })),
       ajustables.length ? h('div', { class: 'card' },
-        h('h3', {}, 'Qué ingredientes ajustar'),
+        h('h3', {}, textoPanel('panel.stock.que_ajustar', 'Qué ingredientes ajustar')),
         ajustables.map((f) => interruptor(`${f.nombre} ${pct(f.rel)}`, elegidos.has(f.insumo_id), (si) => {
           if (si) elegidos.add(f.insumo_id); else elegidos.delete(f.insumo_id);
           dibujarPropuesta();
         }, `${f.conteos} conteos · ${f.rel > 0 ? 'se usa más' : 'se usa menos'} de lo que dice la receta`)),
-        pocos.length ? h('p', { class: 'ayuda' }, `Esperar otro conteo: ${pocos.map((f) => `${f.nombre} ${pct(f.rel)}`).join(', ')}.`) : null,
-        chicos.length ? h('p', { class: 'ayuda' }, `Sin cambios (menos de ±${Math.round(MINIMO_AJUSTE * 100)} %): ${chicos.map((f) => `${f.nombre} ${pct(f.rel)}`).join(', ')}.`) : null)
-        : h('p', { class: 'vacio' }, 'Todavía ningún ingrediente tiene datos suficientes para proponer un cambio.'),
+        pocos.length ? h('p', { class: 'ayuda' },
+          textoPanel('panel.stock.esperar_conteo', 'Esperar otro conteo: {insumos}.', { insumos: conPorcentaje(pocos) })) : null,
+        chicos.length ? h('p', { class: 'ayuda' },
+          textoPanel('panel.stock.sin_cambios', 'Sin cambios (menos de ±{minimo} %): {insumos}.',
+            { minimo: Math.round(MINIMO_AJUSTE * 100), insumos: conPorcentaje(chicos) })) : null)
+        : h('p', { class: 'vacio' },
+          textoPanel('panel.stock.propuestas_vacio', 'Todavía ningún ingrediente tiene datos suficientes para proponer un cambio.')),
       sabores.map((sab) => {
         const dif = sab.costoDespues - sab.costoAntes;
         return h('div', { class: 'card' },
@@ -396,7 +429,8 @@ async function desvios(cont) {
                   cambia ? h('strong', {}, cantidad(i.propuesta, i.unidad)) : 'igual'));
             })),
           h('p', { class: 'ayuda', style: 'margin:.4rem 0 0' },
-            `Costo de ingredientes por tanda: ${pesos(sab.costoAntes)}${Math.abs(dif) < 0.005 ? '' : ` → ${pesos(sab.costoDespues)}`}.`));
+            textoPanel('panel.stock.costo_tanda', 'Costo de ingredientes por tanda: {costo}.',
+              { costo: `${pesos(sab.costoAntes)}${Math.abs(dif) < 0.005 ? '' : ` → ${pesos(sab.costoDespues)}`}` })));
       }),
       ajustables.length ? h('div', { class: 'acciones' }, aplicar) : null);
   }
@@ -408,7 +442,7 @@ async function desvios(cont) {
     const c = conteos.find((x) => x.clave === verDesvios.conteo);
     const total = sumar(c.filas, (x) => x.valor);
     vaciar(contConteo,
-      h('h2', {}, 'Cada conteo'),
+      h('h2', {}, textoPanel('panel.stock.cada_conteo', 'Cada conteo')),
       chips(conteos.slice(0, 8).map((x) => ({ valor: x.clave, texto: etiquetaConteo(x) })), verDesvios.conteo,
         (v) => { verDesvios.conteo = v; dibujarConteo(); }),
       h('table', { class: 'tabla card', style: 'margin-top:.6rem' },
@@ -416,13 +450,14 @@ async function desvios(cont) {
         c.filas.map((x) => h('tr', {},
           h('td', {}, x.nombre, h('span', { class: 'sub' }, pesos(x.valor))),
           celdasDesvio(x)))),
-      h('p', { class: 'ayuda' }, `Ese día, en total: ${total >= 0 ? 'faltó' : 'sobró'} mercadería por ${pesos(Math.abs(total))}.`));
+      h('p', { class: 'ayuda' }, textoPanel('panel.stock.conteo_total', 'Ese día, en total: {resultado} mercadería por {monto}.',
+        { resultado: total >= 0 ? 'faltó' : 'sobró', monto: pesos(Math.abs(total)) })));
   }
 
   vaciar(cont,
     subnavProduccion('stock'),
-    h('p', { class: 'ayuda' }, 'Compara lo que dicen las recetas y las cajas con lo que se usó de verdad según los conteos, '
-      + 'desde el último ajuste de recetas de cada insumo.'),
+    h('p', { class: 'ayuda' }, textoPanel('panel.stock.desvios_ayuda', 'Compara lo que dicen las recetas y las cajas con lo que '
+      + 'se usó de verdad según los conteos, desde el último ajuste de recetas de cada insumo.')),
     h('div', { class: 'stats' },
       stat('Se usó de más', pesos(r.deMas), 'faltó en los conteos'),
       stat('Sobró', pesos(r.sobro), 'había más de lo debido'),

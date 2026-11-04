@@ -4,6 +4,7 @@ import { linea, puntos } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { stat, linkExterno } from '../componentes.js';
 import { tipoDe, puntaje, interaccion, tendencia, sugerencias, resumenTexto } from '../redes.js';
+import { textoPanel } from '../textos.js';
 
 // Redes: Instagram leído por la API una vez por día (api/instagram.js). Seguidores, vistas,
 // mejores publicaciones y sugerencias. Los números de cada publicación son los de la última lectura.
@@ -17,10 +18,11 @@ export async function mostrar(cont) {
 
   if (!estado) {
     vaciar(cont, h('div', { class: 'card' },
-      h('h2', {}, 'Instagram todavía no está conectado'),
-      h('p', {}, 'Hace falta un token de la API de Instagram en Vercel (variable INSTAGRAM_TOKEN). '
-        + 'Con eso, todos los días a las 7 se leen seguidores, vistas y los números de cada publicación.'),
-      h('p', { class: 'ayuda' }, 'Los pasos están en docs/instagram.md.')));
+      h('h2', {}, textoPanel('panel.redes.sin_conectar', 'Instagram todavía no está conectado')),
+      h('p', {}, textoPanel('panel.redes.sin_conectar_ayuda', 'Hace falta un token de la API de Instagram en Vercel '
+        + '(variable INSTAGRAM_TOKEN). Con eso, todos los días a las 7 se leen seguidores, vistas '
+        + 'y los números de cada publicación.')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.redes.pasos', 'Los pasos están en docs/instagram.md.'))));
     return;
   }
 
@@ -40,10 +42,12 @@ export async function mostrar(cont) {
     etiquetaEje: fechaCorta(d.fecha),
     publicaciones: d.publicaciones,
   })), {
-    titulo: 'Seguidores por día',
+    titulo: textoPanel('panel.redes.grafico_seguidores', 'Seguidores por día'),
     formato: (v) => numero(v, 0),
     columnasTabla: [['Día', (d) => d.etiqueta], ['Seguidores', (d) => numero(d.valor, 0)], ['Publicaciones', (d) => numero(d.publicaciones, 0)]],
-  }) : h('p', { class: 'ayuda' }, 'El gráfico de seguidores aparece cuando haya lecturas de al menos dos días.');
+  }) : h('p', { class: 'ayuda' },
+    textoPanel('panel.redes.grafico_seguidores_vacio',
+      'El gráfico de seguidores aparece cuando haya lecturas de al menos dos días.'));
 
   const porTipo = {};
   for (const p of ultimas30) {
@@ -63,7 +67,10 @@ export async function mostrar(cont) {
       h('div', { class: 'sub ayuda' }, p.vistas != null ? 'vistas' : 'alcance'))], { clase: 'fila' }));
 
   vaciar(cont,
-    estado.ultimo_error ? h('p', { class: 'mensaje-error' }, `La última lectura falló: ${estado.ultimo_error}`) : null,
+    estado.ultimo_error
+      ? h('p', { class: 'mensaje-error' },
+        textoPanel('panel.redes.error', 'La última lectura falló: {error}', { error: estado.ultimo_error }))
+      : null,
     h('p', { class: 'ayuda' }, `@${estado.usuario || '…'} · `, estado.ultima_lectura
       ? `actualizado ${new Date(estado.ultima_lectura).toLocaleString('es-UY', { dateStyle: 'short', timeStyle: 'short' })}`
       : 'sin lecturas todavía', ' · se actualiza solo todos los días'),
@@ -76,7 +83,7 @@ export async function mostrar(cont) {
         'reacciones sobre el alcance'),
       stat('Por publicación', ultimas30.length ? numero(vistas30 / ultimas30.length, 0) : '—', 'vistas en promedio')) : null,
 
-    h('h2', {}, 'Sugerencias'),
+    h('h2', {}, textoPanel('panel.redes.sugerencias', 'Sugerencias')),
     h('ul', { class: 'lista card' }, sugerencias(pubs, { sabores: cat.saboresActivos }).map((s) => h('li', {},
       h('div', { class: 'fila' }, h('div', { class: 'princ' }, h('div', { class: 't1', style: 'white-space:normal;font-weight:500' }, s.texto),
         s.enlace ? linkExterno(s.enlace, 'Ver en Instagram', { clase: 't2' }) : null))))),
@@ -84,10 +91,16 @@ export async function mostrar(cont) {
     h('div', { class: 'card' }, grafSeguidores),
     Object.keys(porTipo).length ? h('div', { class: 'card' }, puntos(
       Object.entries(porTipo).map(([etiqueta, pts]) => ({ etiqueta, puntos: pts })),
-      { titulo: 'Vistas de cada publicación por formato (últimos 30 días)', formato: (v) => numero(v, 0), vacio: '' })) : null,
+      {
+        titulo: textoPanel('panel.redes.grafico_formatos', 'Vistas de cada publicación por formato (últimos 30 días)'),
+        formato: (v) => numero(v, 0),
+        vacio: '',
+      })) : null,
 
-    h('h2', {}, 'Mejores publicaciones'),
-    mejores.length ? h('ul', { class: 'lista card' }, mejores.map(tarjeta)) : h('p', { class: 'vacio' }, 'Todavía no hay publicaciones con números.'),
-    h('h2', {}, 'Últimas publicaciones'),
-    pubs.length ? h('ul', { class: 'lista card' }, pubs.slice(0, 12).map(tarjeta)) : h('p', { class: 'vacio' }, 'Todavía no hay publicaciones.'));
+    h('h2', {}, textoPanel('panel.redes.mejores', 'Mejores publicaciones')),
+    mejores.length ? h('ul', { class: 'lista card' }, mejores.map(tarjeta))
+      : h('p', { class: 'vacio' }, textoPanel('panel.redes.mejores_vacio', 'Todavía no hay publicaciones con números.')),
+    h('h2', {}, textoPanel('panel.redes.ultimas', 'Últimas publicaciones')),
+    pubs.length ? h('ul', { class: 'lista card' }, pubs.slice(0, 12).map(tarjeta))
+      : h('p', { class: 'vacio' }, textoPanel('panel.redes.ultimas_vacio', 'Todavía no hay publicaciones.')));
 }

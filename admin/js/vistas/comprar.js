@@ -32,7 +32,8 @@ function mensajeCompras(comprar, total) {
     { viernes: diaMes(sumarDias(sabado, -1)), sabado: diaMes(sabado) });
   const lineas = comprar.map((f) => `• *${f.insumo}*: comprar ${f.paquetes ? paquetes(f) : cantidad(f.faltante, f.unidad)}\n`
     + `   se usan ${cantidad(f.necesario, f.unidad)} · tenés ${cantidad(f.stock, f.unidad)}`);
-  return [`*${titulo}*`, '', ...lineas, '', `Total estimado: ${pesos(total)}`].join('\n');
+  const pie = textoPanel('panel.comprar.total_whatsapp', 'Total estimado: {monto}', { monto: pesos(total) });
+  return [`*${titulo}*`, '', ...lineas, '', pie].join('\n');
 }
 
 export async function mostrar(cont) {
@@ -45,7 +46,8 @@ export async function mostrar(cont) {
     const este = ++pedido;
     const p = Object.fromEntries(Object.entries(plan).filter(([, t]) => t > 0));
     if (!Object.keys(p).length && !Object.keys(cajas).length) {
-      vaciar(resultado, h('p', { class: 'vacio' }, 'Elegí cuántas tandas vas a hacer de cada sabor.'));
+      vaciar(resultado, h('p', { class: 'vacio' },
+        textoPanel('panel.comprar.vacio', 'Elegí cuántas tandas vas a hacer de cada sabor.')));
       return;
     }
     try {
@@ -54,7 +56,9 @@ export async function mostrar(cont) {
       const comprar = filas.filter((f) => Number(f.faltante) > 0);
       const total = sumar(comprar, (f) => f.costo_estimado);
       vaciar(resultado,
-        h('h2', {}, comprar.length ? `Comprar · ${pesos(total)}` : 'Tenés todo'),
+        h('h2', {}, comprar.length
+          ? textoPanel('panel.comprar.titulo', 'Comprar · {monto}', { monto: pesos(total) })
+          : textoPanel('panel.comprar.nada', 'Tenés todo')),
         ...(comprar.length ? [
           h('div', { class: 'acciones' },
             linkExterno(compartirWhatsapp(mensajeCompras(comprar, total)), 'Mandar por WhatsApp', { clase: 'btn' })),
@@ -62,11 +66,12 @@ export async function mostrar(cont) {
             titulo: f.insumo,
             detalle: f.paquetes
               ? [paquetes(f), `faltan ${cantidad(f.faltante, f.unidad)}`]
-              : `faltan ${cantidad(f.faltante, f.unidad)} (sin compras anteriores: costo estimado)`,
+              : textoPanel('panel.comprar.sin_compras', 'faltan {cantidad} (sin compras anteriores: costo estimado)',
+                { cantidad: cantidad(f.faltante, f.unidad) }),
             derecha: monto(pesos(f.costo_estimado)),
           }))),
         ] : []),
-        h('h2', {}, 'Detalle'),
+        h('h2', {}, textoPanel('panel.comprar.detalle', 'Detalle')),
         h('table', { class: 'tabla card' },
           h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Necesitás'), h('th', { class: 'num-der' }, 'Tenés'),
             h('th', { class: 'num-der' }, 'Faltan')),
@@ -75,20 +80,22 @@ export async function mostrar(cont) {
             h('td', { class: 'num-der' }, cantidad(f.stock, f.unidad)),
             h('td', { class: 'num-der' }, Number(f.faltante) > 0
               ? pastilla('alerta', cantidad(f.faltante, f.unidad)) : '—')))),
-        h('p', { class: 'ayuda' }, '"Tenés" es el stock teórico (las cajas de los pedidos por hacer cuentan como disponibles). '
-          + 'Si hace mucho que no cuentan, cargá un conteo en Stock.'));
+        h('p', { class: 'ayuda' }, textoPanel('panel.comprar.tenes_ayuda',
+          '"Tenés" es el stock teórico (las cajas de los pedidos por hacer cuentan como disponibles). '
+          + 'Si hace mucho que no cuentan, cargá un conteo en Stock.')));
     } catch (e) {
       if (este === pedido) vaciar(resultado, h('p', { class: 'mensaje-error' }, e.message));
     }
   }, 250);
 
-  const notaCajas = Object.keys(cajas).length ? h('p', { class: 'ayuda' }, 'Incluye las cajas y el packaging de los pedidos del plan. ',
+  const notaCajas = Object.keys(cajas).length ? h('p', { class: 'ayuda' },
+    textoPanel('panel.comprar.cajas_ayuda', 'Incluye las cajas y el packaging de los pedidos del plan.'), ' ',
     h('button', { class: 'link', type: 'button', onclick: () => { cajas = {}; notaCajas.remove(); calcular(); } }, 'Quitarlas')) : null;
 
   vaciar(cont,
     subnavProduccion('comprar'),
     h('div', { class: 'card' },
-      h('h3', {}, 'Tandas que vas a hacer'),
+      h('h3', {}, textoPanel('panel.comprar.tandas', 'Tandas que vas a hacer')),
       desdePlan ? h('p', { class: 'ayuda' }, 'Cargadas desde el ', h('a', { href: '#/plan' }, 'plan de horneado'),
         '. Una tanda mezclada cuenta como una parte de la receta de cada sabor.') : null,
       notaCajas,

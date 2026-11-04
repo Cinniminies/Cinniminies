@@ -3,6 +3,7 @@ import { h, vaciar, campo, toast, conBoton } from '../util.js';
 import { srcFoto, subirFoto, borrarFotoDelBucket } from '../fotos.js';
 import { irA } from '../app.js';
 import { linkExterno } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 // Textos e imágenes de la web pública (Etapa 7). Cada fila de contenido_web es un lugar de
 // index.html; la web los toma de /api/catalogo (tarda hasta 5 minutos en verse).
@@ -13,10 +14,13 @@ const SECCIONES = ['Barra de arriba', 'Inicio', 'Menú', 'Dónde encontrarnos', 
 
 // Mismas reglas que los checks de la base, para avisar antes de guardar.
 const VALIDAR = {
-  texto: (v) => (v.trim() ? null : 'no puede quedar vacío'),
-  imagen: (v) => (/^(\/?img\/[\w./-]+|https:\/\/[^\s"'<>]+)$/.test(v) ? null : 'tiene que ser una ruta img/… o un link https'),
-  whatsapp: (v) => (/^598\d{8}$/.test(v) ? null : 'tiene que ser 598 y 8 números, sin el 0 (ej: 59898029462)'),
-  instagram: (v) => (/^[\w.]{1,30}$/.test(v) ? null : 'solo letras, números, punto y guion bajo, sin @'),
+  texto: (v) => (v.trim() ? null : textoPanel('panel.web.texto_vacio', 'no puede quedar vacío')),
+  imagen: (v) => (/^(\/?img\/[\w./-]+|https:\/\/[^\s"'<>]+)$/.test(v) ? null
+    : textoPanel('panel.web.imagen_invalida', 'tiene que ser una ruta img/… o un link https')),
+  whatsapp: (v) => (/^598\d{8}$/.test(v) ? null
+    : textoPanel('panel.web.whatsapp_invalido', 'tiene que ser 598 y 8 números, sin el 0 (ej: 59898029462)')),
+  instagram: (v) => (/^[\w.]{1,30}$/.test(v) ? null
+    : textoPanel('panel.web.instagram_invalido', 'solo letras, números, punto y guion bajo, sin @')),
 };
 
 export async function mostrar(cont) {
@@ -70,7 +74,7 @@ export async function mostrar(cont) {
         descartarSubida();
         actual = subidaSinGuardar = nueva;
         marcar(f, actual);
-        toast('Imagen subida: tocá Guardar para que quede');
+        toast(textoPanel('panel.web.imagen_subida', 'Imagen subida: tocá Guardar para que quede'));
       } finally {
         subir.textContent = 'Cambiar imagen';
         dibujar();
@@ -94,7 +98,7 @@ export async function mostrar(cont) {
       const f = porClave[clave];
       if (f.tipo === 'imagen') await borrarFotoDelBucket('web', f.valor);
     }
-    toast('Guardado. La web lo muestra en unos 5 minutos');
+    toast(textoPanel('panel.web.guardado', 'Guardado. La web lo muestra en unos 5 minutos'));
     irA('#/web');
   });
 

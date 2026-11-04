@@ -4,6 +4,9 @@ import { variacion, textoVariacion } from '../graficos.js';
 import { catalogo } from '../catalogo.js';
 import { irA } from '../app.js';
 import { stat, filaLista, monto, tituloSemana, partesPorSabor, linkExterno } from '../componentes.js';
+import { textoPanel } from '../textos.js';
+
+const tituloCierre = (mes) => textoPanel('panel.cierre.titulo', 'Cierre de {mes}', { mes: nombreMes(mes) });
 
 // Cierre de mes (idea 4.4): el resumen de un mes para guardarlo en PDF (imprimir) o mandárselo al socio por WhatsApp.
 // Los números los arma la base (cierre_mes); el día 1 llega un aviso push con el link al mes que terminó
@@ -33,7 +36,7 @@ export async function mostrar(cont, { id }) {
 
   vaciar(cont,
     h('div', { class: 'cierre-cab' }, elegir, h('div', { class: 'acciones' }, imprimir, whatsapp)),
-    h('h1', { class: 'cierre-titulo' }, `Cierre de ${nombreMes(mes)}`),
+    h('h1', { class: 'cierre-titulo' }, tituloCierre(mes)),
     h('div', { class: 'hero' },
       h('div', { class: 'etq' }, 'Vendido'),
       h('div', { class: 'hero-num' }, pesos(valor(actual, 'vendido'))),
@@ -48,12 +51,12 @@ export async function mostrar(cont, { id }) {
       stat('Gastado', pesos(valor(actual, 'total_gastado')), 'compras y gastos')),
     h('div', { class: 'graficos' },
       h('div', { class: 'card' }, partesPorSabor(cierre.sabores, cat)),
-      h('div', { class: 'card' }, h('h3', {}, 'Cada sábado'),
+      h('div', { class: 'card' }, h('h3', {}, textoPanel('panel.cierre.sabados', 'Cada sábado')),
         h('table', { class: 'tabla' }, cierre.semanas.map((s) => h('tr', {},
           h('td', {}, tituloSemana(s.sabado)),
           h('td', { class: 'num-der' }, Number(s.rolls) ? `${numero(s.rolls, 0)} rolls` : 'sin ventas'),
           h('td', { class: 'num-der' }, pesos(s.vendido))))))),
-    h('h2', { class: 'seccion-titulo' }, 'Los que más compraron'),
+    h('h2', { class: 'seccion-titulo' }, textoPanel('panel.cierre.clientes', 'Los que más compraron')),
     cierre.clientes.length
       ? h('ul', { class: 'lista' }, cierre.clientes.map((c) => filaLista({
         href: `#/clientes/${c.id}`,
@@ -61,7 +64,7 @@ export async function mostrar(cont, { id }) {
         detalle: [plural(c.compras, 'compra')],
         derecha: monto(pesos(c.total)),
       })))
-      : h('p', { class: 'vacio' }, 'No hubo ventas este mes.'));
+      : h('p', { class: 'vacio' }, textoPanel('panel.cierre.vacio', 'No hubo ventas este mes.')));
 }
 
 // El resumen para WhatsApp: los números del mes, el sabor que más salió y el mejor sábado. `comparar`: lo mismo
@@ -74,7 +77,7 @@ function mensaje(cierre, cat, { actual, anterior, contra, valor }) {
   const sabor = cierre.sabor_top;
   const mejor = cierre.mejor_sabado;
   return [
-    `*Cierre de ${nombreMes(cierre.mes)}*`,
+    `*${tituloCierre(cierre.mes)}*`,
     '',
     `Vendido: ${pesos(valor(actual, 'vendido'))}${vs('vendido')}`,
     `Ganancia bruta: ${pesos(valor(actual, 'ganancia_bruta'))}${vs('ganancia_bruta')}`,

@@ -5,6 +5,7 @@ import {
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 // Borrador de la venta: sobrevive si se sale de la pantalla y se vuelve.
 let estado = null;
@@ -63,7 +64,8 @@ function formulario(cont, cat, clientes, origenes) {
     p.lineas = editor.valor();
     const este = ++pedido;
     if (editor.vacio()) {
-      vaciar(resumen, h('p', { class: 'vacio', style: 'padding:0' }, 'Elegí el formato y los sabores.'));
+      vaciar(resumen, h('p', { class: 'vacio', style: 'padding:0' },
+        textoPanel('panel.venta.vacio', 'Elegí el formato y los sabores.')));
       guardar.textContent = 'Guardar venta';
       return;
     }
@@ -113,24 +115,26 @@ function formulario(cont, cat, clientes, origenes) {
     class: 'plegable', open: estado.abierto,
     ontoggle: (e) => { estado.abierto = e.target.open; editor.mostrarCajas(e.target.open); },
   },
-  h('summary', {}, 'Precio especial, propina, caja y notas'),
-  campo('Precio especial (lo que se cobró en total, sin envío)', campoPesos({
+  h('summary', {}, textoPanel('panel.venta.mas_opciones', 'Precio especial, propina, caja y notas')),
+  campo(textoPanel('panel.venta.precio_especial', 'Precio especial (lo que se cobró en total, sin envío)'), campoPesos({
     value: estado.precio_especial, placeholder: 'Precio de lista',
     oninput: (e) => { estado.precio_especial = e.target.value; recalcular(); },
   })),
   campo('Propina', campoPesos({
     value: estado.propina, placeholder: '0',
     oninput: (e) => { estado.propina = e.target.value; recalcular(); },
-  }), 'Aparte del precio: suma a lo cobrado y a la ganancia.'),
+  }), textoPanel('panel.propina_ayuda', 'Aparte del precio: suma a lo cobrado y a la ganancia.')),
   grupo('Tipo', chips(opciones(ETIQUETAS.tipo), estado.tipo, (v) => { estado.tipo = v; })),
   campo('Origen de esta venta', origen),
   campo('Notas', h('textarea', { value: estado.notas, oninput: (e) => { estado.notas = e.target.value; } })),
-  h('p', { class: 'ayuda' }, 'Con esto abierto, cada producto muestra qué caja se usó.'));
+  h('p', { class: 'ayuda' }, textoPanel('panel.venta.cajas_ayuda', 'Con esto abierto, cada producto muestra qué caja se usó.')));
   if (estado.abierto) editor.mostrarCajas(true);
 
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!estado.cliente || (estado.cliente.nuevo && !estado.cliente.nombre.trim())) throw new Error('Elegí o cargá el cliente');
-    if (!estado.medio_pago) throw new Error('Elegí el medio de pago');
+    if (!estado.cliente || (estado.cliente.nuevo && !estado.cliente.nombre.trim())) {
+      throw new Error(textoPanel('panel.venta.falta_cliente', 'Elegí o cargá el cliente'));
+    }
+    if (!estado.medio_pago) throw new Error(textoPanel('panel.venta.falta_medio_pago', 'Elegí el medio de pago'));
     const p = { ...payload(), fecha: sabadoDeEntrega() };
     p.lineas = editor.valor();
     const r = await rpc('registrar_venta', { p });
@@ -160,7 +164,7 @@ function formulario(cont, cat, clientes, origenes) {
       })),
     opcionesMas),
     h('div', { class: 'col-fija' },
-      h('h2', {}, 'Resumen'),
+      h('h2', {}, textoPanel('panel.venta.resumen', 'Resumen')),
       resumen))),
   h('div', { class: 'guardar' }, guardar));
   recalcular();
@@ -179,16 +183,17 @@ function confirmacion(cont, cat, r, guardado) {
     await q(sb.from('ventas').delete().eq('id', r.venta_id));
     if (cliente?.nuevo && r.cliente_id) await q(sb.from('clientes').delete().eq('id', r.cliente_id));
     estado = guardado;
-    toast('Venta deshecha: podés corregirla y guardarla de nuevo');
+    toast(textoPanel('panel.venta.deshecha', 'Venta deshecha: podés corregirla y guardarla de nuevo'));
     await mostrar(cont).catch(mostrarError);
   });
 
   vaciar(cont, h('div', { class: 'card hecho' },
     h('div', { class: 'tilde' }, '✓'),
-    h('h1', {}, 'Venta guardada'),
+    h('h1', {}, textoPanel('panel.venta.guardada', 'Venta guardada')),
     h('div', { class: 'monto-grande' }, pesos(total)),
     h('p', {}, h('strong', {}, cliente?.nombre || ''), ` · ${ETIQUETAS.estado_pago[guardado.estado_pago]}`,
-      ` · Sábado ${diaMes(r.fecha)}`, guardado.por_hacer ? ' · Por hacer (entra en el plan de horneado)' : ''),
+      ` · Sábado ${diaMes(r.fecha)}`,
+      guardado.por_hacer ? ` · ${textoPanel('panel.venta.guardada_por_hacer', 'Por hacer (entra en el plan de horneado)')}` : ''),
     h('p', { class: 'ayuda' }, detalle),
     h('div', { class: 'acciones', style: 'justify-content:center' }, otra, deshacer)));
   window.scrollTo(0, 0);

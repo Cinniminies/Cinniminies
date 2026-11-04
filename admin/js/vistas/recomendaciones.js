@@ -1,6 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import { h, vaciar, campo, pesos, numero, plural, fechaCorta, nombreMes, hoyISO, toast, conBoton } from '../util.js';
 import { irA, sesion } from '../app.js';
+import { textoPanel } from '../textos.js';
 import { stat, filaLista, pastilla, monto } from '../componentes.js';
 import { ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
 
@@ -27,7 +28,8 @@ export async function mostrar(cont) {
     const guardar = h('button', { class: 'btn primario', type: 'button' }, k ? 'Guardar cambios' : 'Crear campaña');
     guardar.onclick = () => conBoton(guardar, async () => {
       await rpc('guardar_campana', { p: f });
-      toast(k ? 'Campaña actualizada' : 'Campaña creada');
+      toast(k ? textoPanel('panel.recomendaciones.actualizada', 'Campaña actualizada')
+        : textoPanel('panel.recomendaciones.creada', 'Campaña creada'));
       irA('#/recomendaciones');
     });
     return h('div', {},
@@ -44,17 +46,22 @@ export async function mostrar(cont) {
   const generar = h('button', { class: 'btn', type: 'button' }, 'Dar código a los que ya compraron');
   generar.onclick = () => conBoton(generar, async () => {
     const n = await rpc('generar_codigos');
-    toast(n ? `${plural(n, 'código nuevo', 'códigos nuevos')}` : 'Todos los clientes con compras pagadas ya tenían código');
+    toast(n ? plural(n, 'código nuevo', 'códigos nuevos')
+      : textoPanel('panel.recomendaciones.sin_codigos', 'Todos los clientes con compras pagadas ya tenían código'));
   });
 
   // Solo el usuario de prueba: borra pedidos, ventas, clientes y campañas de prueba (y los comprobantes del bucket).
   const borrarPrueba = h('button', { class: 'btn peligro', type: 'button' }, 'Borrar datos de prueba');
   borrarPrueba.onclick = () => conBoton(borrarPrueba, async () => {
-    if (!confirm('¿Borrar todos los pedidos, ventas, clientes, campañas y promos de prueba? No se puede deshacer.')) return;
+    const pregunta = textoPanel('panel.recomendaciones.borrar_prueba_confirmar',
+      '¿Borrar todos los pedidos, ventas, clientes, campañas y promos de prueba? No se puede deshacer.');
+    if (!confirm(pregunta)) return;
     const conComprobante = await q(sb.from('pedidos').select('comprobante').not('comprobante', 'is', null));
     if (conComprobante.length) await sb.storage.from('comprobantes').remove(conComprobante.map((p) => p.comprobante));
     const r = await rpc('borrar_datos_prueba');
-    toast(`Borrados: ${plural(r.pedidos, 'pedido')}, ${plural(r.ventas, 'venta')}, ${plural(r.clientes, 'cliente')}, ${plural(r.campanas, 'campaña')}, ${plural(r.promos ?? 0, 'promo')}`);
+    const borrados = [plural(r.pedidos, 'pedido'), plural(r.ventas, 'venta'), plural(r.clientes, 'cliente'),
+      plural(r.campanas, 'campaña'), plural(r.promos ?? 0, 'promo')].join(', ');
+    toast(textoPanel('panel.recomendaciones.prueba_borrada', 'Borrados: {borrados}', { borrados }));
     irA('#/recomendaciones');
   });
 
@@ -67,18 +74,22 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     sesion.prueba ? h('div', { class: 'card' },
-      h('p', {}, h('strong', {}, 'Modo prueba. '),
+      h('p', {}, h('strong', {}, textoPanel('panel.prueba', 'Modo prueba.')), ' ', textoPanel('panel.recomendaciones.prueba',
         'Las campañas, pedidos y ventas que ves acá son de prueba: los dueños no los ven y no tocan los números reales. '
-        + 'Para probar: abrí la web en el servidor local (con el aviso rojo de modo prueba) y hacé pedidos con celulares inventados.'),
+        + 'Para probar: abrí la web en el servidor local (con el aviso rojo de modo prueba) '
+        + 'y hacé pedidos con celulares inventados.')),
       h('div', { class: 'acciones' }, borrarPrueba)) : null,
 
-    h('h2', {}, vigente ? 'Campaña en curso' : 'Sin campaña en curso'),
+    h('h2', {}, vigente ? textoPanel('panel.recomendaciones.en_curso', 'Campaña en curso')
+      : textoPanel('panel.recomendaciones.sin_campana', 'Sin campaña en curso')),
     elegida ? h('div', { class: 'card' },
       h('div', { class: 'seccion-cab' }, h('strong', {}, elegida.nombre),
         h('span', { class: `badge ${vigente ? 'ok' : 'neutro'}` }, vigente ? 'En curso' : (elegida.desde > hoy ? 'Programada' : 'Terminada'))),
-      h('p', { class: 'ayuda' }, `${rango(elegida)} · ${numero(elegida.porcentaje, 0)} % por recomendación, hasta ${numero(elegida.tope, 0)} % por mes. `
+      h('p', { class: 'ayuda' }, textoPanel('panel.recomendaciones.campana_ayuda',
+        '{rango} · {porcentaje} % por recomendación, hasta {tope} % por mes. '
         + 'Se usa en una Box de 6 o de 12 de la web; lo de cada mes vence a fin de mes. '
-        + `La primera Box de 12 de la web de cada cliente le da ${numero(elegida.porcentaje, 0)} % por 30 días.`),
+        + 'La primera Box de 12 de la web de cada cliente le da {porcentaje} % por 30 días.',
+        { rango: rango(elegida), porcentaje: numero(elegida.porcentaje, 0), tope: numero(elegida.tope, 0) })),
       h('div', { class: 'stats' },
         stat('Clientes nuevos con código', numero(resumen.validas, 0),
           `de ${plural(resumen.clientes_nuevos_total, 'cliente nuevo', 'clientes nuevos')} en esas fechas`),
@@ -90,24 +101,28 @@ export async function mostrar(cont) {
         stat('Descuento entregado', pesos(resumen.descuento_entregado), plural(resumen.canjes, 'canje')),
         stat('Costo por cliente nuevo', resumen.costo_por_cliente == null ? '—' : pesos(resumen.costo_por_cliente),
           'descuento entregado ÷ clientes nuevos')),
-      resumen.ranking.length ? [h('h3', {}, 'Quiénes más recomendaron'),
+      resumen.ranking.length ? [h('h3', {}, textoPanel('panel.recomendaciones.ranking', 'Quiénes más recomendaron')),
         h('ul', { class: 'lista' }, resumen.ranking.slice(0, 10).map((x) => filaLista({
           href: `#/clientes/${x.id}`, titulo: x.nombre, derecha: monto(plural(x.validas, 'recomendación', 'recomendaciones')),
         })))] : null,
-      h('details', { class: 'plegable' }, h('summary', {}, 'Editar la campaña'), formulario(elegida)),
+      h('details', { class: 'plegable' }, h('summary', {},
+        textoPanel('panel.recomendaciones.editar', 'Editar la campaña')), formulario(elegida)),
       h('div', { class: 'acciones' }, generar),
-      h('p', { class: 'ayuda' }, 'Cada cliente recibe su código cuando paga una compra durante la campaña. '
-        + 'Con el botón, también los que compraron antes: así pueden recomendar desde el primer día.'))
-      : h('p', { class: 'vacio' }, 'Todavía no hay campañas.'),
+      h('p', { class: 'ayuda' },
+        textoPanel('panel.recomendaciones.codigos_ayuda', 'Cada cliente recibe su código cuando paga una compra '
+          + 'durante la campaña. Con el botón, también los que compraron antes: así pueden recomendar desde el primer día.')))
+      : h('p', { class: 'vacio' }, textoPanel('panel.recomendaciones.vacio', 'Todavía no hay campañas.')),
 
-    h('details', { class: 'plegable' }, h('summary', {}, 'Nueva campaña'), formulario(null)),
+    h('details', { class: 'plegable' }, h('summary', {},
+      textoPanel('panel.recomendaciones.nueva', 'Nueva campaña')), formulario(null)),
 
-    campanas.length > 1 ? [h('h2', {}, 'Todas las campañas'),
+    campanas.length > 1 ? [h('h2', {}, textoPanel('panel.recomendaciones.todas', 'Todas las campañas')),
       h('ul', { class: 'lista' }, campanas.map((k) => filaLista({
         titulo: k.nombre, detalle: rango(k), derecha: monto(`${numero(k.porcentaje, 0)} % / ${numero(k.tope, 0)} %`),
       })))] : null,
 
-    h('h2', {}, 'Recomendaciones'),
+    h('h2', {}, textoPanel('panel.recomendaciones.lista', 'Recomendaciones')),
     recos.length ? h('ul', { class: 'lista' }, recos.map(reco))
-      : h('p', { class: 'vacio' }, 'Todavía nadie pidió con el código de otra persona.'));
+      : h('p', { class: 'vacio' },
+        textoPanel('panel.recomendaciones.lista_vacia', 'Todavía nadie pidió con el código de otra persona.')));
 }

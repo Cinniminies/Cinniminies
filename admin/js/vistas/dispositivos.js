@@ -3,6 +3,7 @@ import { h, vaciar, fechaCorta, plural, toast, conBoton } from '../util.js';
 import { pastilla } from '../componentes.js';
 import { icono } from '../iconos.js';
 import { irA } from '../app.js';
+import { textoPanel } from '../textos.js';
 
 // Dispositivos que pueden usar la app (ver la migración dispositivos_autorizados). Arriba, destacados, los que
 // esperan autorización: se aprueban comparando el código grande con el que le aparece al otro dispositivo.
@@ -16,11 +17,15 @@ export async function mostrar(cont) {
   function botonQuitar(d, texto) {
     const quitar = h('button', { class: 'btn chico peligro', type: 'button' }, texto);
     quitar.onclick = () => conBoton(quitar, async () => {
-      if (!confirm(d.este
-        ? 'Es este mismo dispositivo: si lo quitás, la app deja de funcionar acá hasta que lo autoricen de nuevo. ¿Seguir?'
-        : `¿Quitar ${d.nombre} (${d.usuario || 'sin usuario'})? Para volver a usar la app ahí van a tener que autorizarlo de nuevo.`)) return;
+      const pregunta = d.este
+        ? textoPanel('panel.dispositivos.quitar_este',
+          'Es este mismo dispositivo: si lo quitás, la app deja de funcionar acá hasta que lo autoricen de nuevo. ¿Seguir?')
+        : textoPanel('panel.dispositivos.quitar_confirmar',
+          '¿Quitar {dispositivo} ({usuario})? Para volver a usar la app ahí van a tener que autorizarlo de nuevo.',
+          { dispositivo: d.nombre, usuario: d.usuario || 'sin usuario' });
+      if (!confirm(pregunta)) return;
       await q(sb.from('dispositivos').delete().eq('id', d.id));
-      toast('Dispositivo quitado');
+      toast(textoPanel('panel.dispositivos.quitado', 'Dispositivo quitado'));
       if (d.este) location.reload(); else irA('#/dispositivos');
     });
     return quitar;
@@ -30,15 +35,16 @@ export async function mostrar(cont) {
     const autorizar = h('button', { class: 'btn primario', type: 'button' }, 'Autorizar');
     autorizar.onclick = () => conBoton(autorizar, async () => {
       await rpc('autorizar_dispositivo', { p_id: d.id });
-      toast(`${d.nombre} autorizado`);
+      toast(textoPanel('panel.dispositivos.autorizado', '{dispositivo} autorizado', { dispositivo: d.nombre }));
       irA('#/dispositivos');
     });
     return h('div', { class: 'disp-pendiente' },
-      h('div', { class: 'etq' }, 'Pide autorización'),
+      h('div', { class: 'etq' }, textoPanel('panel.dispositivos.pide', 'Pide autorización')),
       h('h3', {}, d.nombre),
       h('div', { class: 'ayuda' }, `${d.usuario || 'Sin usuario'} · pedido el ${fechaCorta(d.creado_en)}`),
       h('div', { class: 'disp-codigo', 'aria-label': `Código ${d.codigo}` }, [...d.codigo].map((c) => h('span', {}, c))),
-      h('p', { class: 'ayuda', style: 'margin:0 0 .75rem' }, 'Autorizalo solo si es el mismo código que ves en ese dispositivo.'),
+      h('p', { class: 'ayuda', style: 'margin:0 0 .75rem' },
+        textoPanel('panel.dispositivos.codigo_ayuda', 'Autorizalo solo si es el mismo código que ves en ese dispositivo.')),
       h('div', { class: 'acciones', style: 'margin:0' }, autorizar, botonQuitar(d, 'Rechazar')));
   };
 
@@ -53,11 +59,15 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     pendientes.length ? [
-      h('h2', { style: 'margin-top:0' }, plural(pendientes.length, 'dispositivo espera', 'dispositivos esperan'), ' autorización'),
+      h('h2', { style: 'margin-top:0' }, textoPanel('panel.dispositivos.esperan', '{dispositivos} autorización',
+        { dispositivos: plural(pendientes.length, 'dispositivo espera', 'dispositivos esperan') })),
       h('div', { class: 'disp-pendientes' }, pendientes.map(tarjetaPendiente)),
     ] : null,
-    h('h2', { style: pendientes.length ? null : 'margin-top:0' }, 'Autorizados'),
-    h('p', { class: 'ayuda' }, 'La app solo funciona en estos dispositivos, aunque alguien sepa la contraseña. '
-      + 'Si cambiás de celular, borrás los datos del navegador o usás otro navegador, hay que autorizarlo de nuevo.'),
-    autorizados.length ? h('div', { class: 'disps' }, autorizados.map(tarjeta)) : h('p', { class: 'vacio' }, 'No hay dispositivos.'));
+    h('h2', { style: pendientes.length ? null : 'margin-top:0' }, textoPanel('panel.dispositivos.autorizados', 'Autorizados')),
+    h('p', { class: 'ayuda' },
+      textoPanel('panel.dispositivos.ayuda', 'La app solo funciona en estos dispositivos, aunque alguien sepa '
+        + 'la contraseña. Si cambiás de celular, borrás los datos del navegador o usás otro navegador, '
+        + 'hay que autorizarlo de nuevo.')),
+    autorizados.length ? h('div', { class: 'disps' }, autorizados.map(tarjeta))
+      : h('p', { class: 'vacio' }, textoPanel('panel.dispositivos.vacio', 'No hay dispositivos.')));
 }

@@ -2,6 +2,7 @@ import { sb, q } from '../db.js';
 import { h, vaciar, campo, chips, interruptor, pesos, numero, fechaCorta, hoyISO, precioVigenteDe, toast, conBoton } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, sesion } from '../app.js';
+import { textoPanel } from '../textos.js';
 
 // Promos (docs/descuentos-admin.md): un % o un monto por caja, entre dos fechas, para las cajas y sabores
 // elegidos. La cuenta la hace la base (privado.promo_de_linea): la web y la venta nueva la descuentan solas.
@@ -77,23 +78,32 @@ export async function mostrar(cont) {
       vaciar(vista,
         filas.map((e) => h('div', { class: 'promo-ejemplo' }, h('span', {}, e.nombre),
           h('span', {}, h('s', {}, pesos(e.antes)), ' ', h('strong', {}, pesos(e.despues))))),
-        elegSabores.size ? h('p', { class: 'ayuda' }, 'Si la caja es mezclada, descuenta solo la parte de esos sabores.') : null);
+        elegSabores.size
+          ? h('p', { class: 'ayuda' },
+            textoPanel('panel.promos.mezclada', 'Si la caja es mezclada, descuenta solo la parte de esos sabores.'))
+          : null);
     };
     const entrada = (clave, attrs = {}) => h('input', {
       ...attrs, value: f[clave], oninput: (e) => { f[clave] = e.target.value; dibujarVista(); },
     });
     const guardar = h('button', { class: 'btn primario', type: 'button' }, p ? 'Guardar cambios' : 'Crear promo');
     guardar.onclick = () => conBoton(guardar, async () => {
-      if (!f.nombre.trim()) throw new Error('Ponele un nombre');
-      if (!(Number(f.valor) > 0)) throw new Error('El descuento tiene que ser mayor que cero');
-      if (f.tipo === 'porcentaje' && Number(f.valor) > 90) throw new Error('El porcentaje va hasta 90 %');
-      if (!f.desde || !f.hasta || f.hasta < f.desde) throw new Error('Revisá las fechas: "hasta" no puede ser antes de "desde"');
+      if (!f.nombre.trim()) throw new Error(textoPanel('panel.promos.falta_nombre', 'Ponele un nombre'));
+      if (!(Number(f.valor) > 0)) {
+        throw new Error(textoPanel('panel.promos.valor_cero', 'El descuento tiene que ser mayor que cero'));
+      }
+      if (f.tipo === 'porcentaje' && Number(f.valor) > 90) {
+        throw new Error(textoPanel('panel.promos.porcentaje_maximo', 'El porcentaje va hasta 90 %'));
+      }
+      if (!f.desde || !f.hasta || f.hasta < f.desde) {
+        throw new Error(textoPanel('panel.promos.fechas', 'Revisá las fechas: "hasta" no puede ser antes de "desde"'));
+      }
       const fila = {
         nombre: f.nombre.trim(), tipo: f.tipo, valor: Number(f.valor), desde: f.desde, hasta: f.hasta,
         formatos: [...elegFormatos], sabores: [...elegSabores], texto_web: f.texto_web.trim() || null, activa: f.activa,
       };
       await q(p ? sb.from('promos').update(fila).eq('id', p.id) : sb.from('promos').insert(fila));
-      toast(p ? 'Promo actualizada' : 'Promo creada');
+      toast(p ? textoPanel('panel.promos.actualizada', 'Promo actualizada') : textoPanel('panel.promos.creada', 'Promo creada'));
       irA('#/promos');
     });
     const cuanto = () => (f.tipo === 'porcentaje' ? 'Cuánto (%)' : 'Cuánto por caja ($)');
@@ -101,7 +111,7 @@ export async function mostrar(cont) {
     dibujarVista();
     return h('div', { class: 'promo-form' },
       campo('Nombre', entrada('nombre', { maxlength: 60, placeholder: sesion.prueba ? 'PRUEBA Halloween' : 'Halloween' }),
-        'Lo ve el cliente en el carrito y queda en la nota de la venta.'),
+        textoPanel('panel.promos.nombre_ayuda', 'Lo ve el cliente en el carrito y queda en la nota de la venta.')),
       grupoAyuda('Descuento', chips([{ valor: 'porcentaje', texto: 'Porcentaje' }, { valor: 'monto', texto: 'Monto fijo por caja' }],
         f.tipo, (v) => { f.tipo = v; unidad.textContent = cuanto(); dibujarVista(); })),
       h('label', { class: 'campo' }, unidad, entrada('valor', { type: 'number', inputmode: 'decimal', min: 0.01, step: 0.01 })),
@@ -109,12 +119,14 @@ export async function mostrar(cont) {
         campo('Desde', entrada('desde', { type: 'date', min: '2024-01-01', max: '2099-12-31' })),
         campo('Hasta (inclusive)', entrada('hasta', { type: 'date', min: '2024-01-01', max: '2099-12-31' }))),
       grupoAyuda('Cajas', chipsVarios(formatos.map((x) => ({ valor: x.id, texto: x.nombre })), elegFormatos, dibujarVista),
-        'Sin marcar ninguna: todas.'),
+        textoPanel('panel.promos.cajas_ayuda', 'Sin marcar ninguna: todas.')),
       grupoAyuda('Sabores', chipsVarios(cat.saboresActivos.map((x) => ({ valor: x.id, texto: x.nombre })), elegSabores, dibujarVista),
-        'Sin marcar ninguno: todos.'),
+        textoPanel('panel.promos.sabores_ayuda', 'Sin marcar ninguno: todos.')),
       campo('Texto para la web (opcional)', entrada('texto_web', { maxlength: 140, placeholder: 'Ej: Solo este sábado: 6,66 % en todas las Box 🎃' }),
-        'Sale en una cinta arriba de las cajas. Si lo dejás vacío, se arma con el nombre y el descuento.'),
-      interruptor('Prendida', f.activa, (v) => { f.activa = v; }, 'Apagada no descuenta aunque esté en fecha.'),
+        textoPanel('panel.promos.texto_web_ayuda',
+          'Sale en una cinta arriba de las cajas. Si lo dejás vacío, se arma con el nombre y el descuento.')),
+      interruptor('Prendida', f.activa, (v) => { f.activa = v; },
+        textoPanel('panel.promos.prendida_ayuda', 'Apagada no descuenta aunque esté en fecha.')),
       grupoAyuda('Así queda', vista),
       h('div', { class: 'acciones' }, guardar));
   }
@@ -124,14 +136,18 @@ export async function mostrar(cont) {
     const prender = h('button', { class: 'btn', type: 'button' }, p.activa ? 'Apagar' : 'Prender');
     prender.onclick = () => conBoton(prender, async () => {
       await q(sb.from('promos').update({ activa: !p.activa }).eq('id', p.id));
-      toast(p.activa ? 'Promo apagada' : 'Promo prendida');
+      toast(p.activa
+        ? textoPanel('panel.promos.apagada', 'Promo apagada') : textoPanel('panel.promos.prendida', 'Promo prendida'));
       irA('#/promos');
     });
     const borrar = h('button', { class: 'btn peligro', type: 'button' }, 'Borrar');
     borrar.onclick = () => conBoton(borrar, async () => {
-      if (!confirm(`¿Borrar la promo "${p.nombre}"? Las ventas y pedidos que ya la usaron no cambian.`)) return;
+      const pregunta = textoPanel('panel.promos.borrar_confirmar',
+        '¿Borrar la promo "{promo}"? Las ventas y pedidos que ya la usaron no cambian.',
+        { promo: p.nombre });
+      if (!confirm(pregunta)) return;
       await q(sb.from('promos').delete().eq('id', p.id));
-      toast('Promo borrada');
+      toast(textoPanel('panel.promos.borrada', 'Promo borrada'));
       irA('#/promos');
     });
     const filas = ejemplos(p, cajas);
@@ -155,15 +171,23 @@ export async function mostrar(cont) {
   const resto = promos.filter((p) => !vigentes.includes(p) && !programadas.includes(p));
 
   vaciar(cont,
-    sesion.prueba ? h('div', { class: 'card' }, h('p', { style: 'margin:0' }, h('strong', {}, 'Modo prueba. '),
-      'Las promos que cargues acá solo valen en los pedidos y ventas de prueba: la web de verdad no las ve. '
-      + 'Se borran con los demás datos de prueba (Recomendaciones → Borrar datos de prueba).')) : null,
-    h('p', { class: 'ayuda' }, 'Se aplican solas en la web y en la venta nueva. Si dos promos tocan la misma caja, o una promo y un código de '
-      + 'recomendación, vale la que más descuenta.'),
-    h('details', { class: 'plegable', open: !promos.length }, h('summary', {}, 'Nueva promo'), formulario(null)),
-    h('h2', {}, 'En curso'),
-    vigentes.length ? h('div', { class: 'promo-lista' }, vigentes.map(tarjeta)) : h('p', { class: 'vacio' }, 'Ninguna promo está corriendo hoy.'),
-    programadas.length ? [h('h2', {}, 'Programadas'), h('div', { class: 'promo-lista' }, programadas.map(tarjeta))] : null,
-    resto.length ? h('details', { class: 'plegable' }, h('summary', {}, `Terminadas y apagadas (${resto.length})`),
+    sesion.prueba ? h('div', { class: 'card' }, h('p', { style: 'margin:0' },
+      h('strong', {}, textoPanel('panel.prueba', 'Modo prueba.')), ' ',
+      textoPanel('panel.promos.prueba',
+        'Las promos que cargues acá solo valen en los pedidos y ventas de prueba: la web de verdad no las ve. '
+        + 'Se borran con los demás datos de prueba (Recomendaciones → Borrar datos de prueba).'))) : null,
+    h('p', { class: 'ayuda' }, textoPanel('panel.promos.ayuda', 'Se aplican solas en la web y en la venta nueva. '
+      + 'Si dos promos tocan la misma caja, o una promo y un código de recomendación, vale la que más descuenta.')),
+    h('details', { class: 'plegable', open: !promos.length }, h('summary', {},
+      textoPanel('panel.promos.nueva', 'Nueva promo')), formulario(null)),
+    h('h2', {}, textoPanel('panel.promos.en_curso', 'En curso')),
+    vigentes.length ? h('div', { class: 'promo-lista' }, vigentes.map(tarjeta))
+      : h('p', { class: 'vacio' }, textoPanel('panel.promos.vacio', 'Ninguna promo está corriendo hoy.')),
+    programadas.length ? [
+      h('h2', {}, textoPanel('panel.promos.programadas', 'Programadas')),
+      h('div', { class: 'promo-lista' }, programadas.map(tarjeta)),
+    ] : null,
+    resto.length ? h('details', { class: 'plegable' },
+      h('summary', {}, textoPanel('panel.promos.terminadas', 'Terminadas y apagadas ({cantidad})', { cantidad: resto.length })),
       h('div', { class: 'promo-lista' }, resto.map(tarjeta))) : null);
 }

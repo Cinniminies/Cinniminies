@@ -1,6 +1,7 @@
 import { sb, q } from '../db.js';
 import { h, vaciar, pesos, fechaLarga, hoyISO } from '../util.js';
 import { filaLista, pastilla, monto } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 // Resumen de todos los precios: el vigente de cada combinación y los programados. Se editan en la
 // ficha de cada formato (precio de caja y especiales) o sabor (precio por unidad).
@@ -47,8 +48,11 @@ export async function mostrar(cont) {
   };
 
   vaciar(cont,
-    h('p', { class: 'ayuda' }, 'Tocá un precio para cambiarlo o ver su historial. Las ventas ya cargadas conservan el precio con el que se guardaron.'),
-    seccion('caja', 'Cajas'),
-    seccion('unidad', 'Por unidad', 'Lo que vale cada roll en el personalizado y suelto.'),
-    seccion('especial', 'Especiales', 'Cajas de un solo sabor con precio distinto.'));
+    h('p', { class: 'ayuda' }, textoPanel('panel.precios.ayuda',
+      'Tocá un precio para cambiarlo o ver su historial. Las ventas ya cargadas conservan el precio con el que se guardaron.')),
+    seccion('caja', textoPanel('panel.precios.cajas', 'Cajas')),
+    seccion('unidad', textoPanel('panel.precios.unidad', 'Por unidad'),
+      textoPanel('panel.precios.unidad_ayuda', 'Lo que vale cada roll en el personalizado y suelto.')),
+    seccion('especial', textoPanel('panel.precios.especiales', 'Especiales'),
+      textoPanel('panel.precios.especiales_ayuda', 'Cajas de un solo sabor con precio distinto.')));
 }
