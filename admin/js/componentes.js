@@ -1,6 +1,6 @@
 import {
   h, vaciar, chips, stepper, campo, normalizar, pesos, numero, fechaLarga, fechaCorta, diaMes, hoyISO, proximoSabado, conBoton,
-  sumar, campoPesos, grupo,
+  sumar, campoPesos, grupo, toast,
 } from './util.js';
 import { partes } from './graficos.js';
 import { PRODUCCION } from './app.js';
@@ -207,6 +207,7 @@ export function seccionPrecios(filas, alGuardar, alBorrar, { sinPrecio = 'Sin pr
   guardar.onclick = () => conBoton(guardar, async () => {
     if (precio.value === '' || Number(precio.value) < 0) throw new Error('Poné el precio');
     await alGuardar(Number(precio.value), desde.value || hoy);
+    toast(textoPanel('panel.precio_guardado', 'Precio guardado'));
   });
 
   return h('div', {},
@@ -216,7 +217,9 @@ export function seccionPrecios(filas, alGuardar, alBorrar, { sinPrecio = 'Sin pr
     futuras.map((f) => {
       const borrar = h('button', { class: 'btn chico peligro', type: 'button' }, 'Borrar');
       borrar.onclick = () => conBoton(borrar, async () => {
-        if (confirm(`¿Borrar el precio de ${pesos(f.precio)} programado para el ${fechaLarga(f.vigente_desde)}?`)) await alBorrar(f.id);
+        if (!confirm(`¿Borrar el precio de ${pesos(f.precio)} programado para el ${fechaLarga(f.vigente_desde)}?`)) return;
+        await alBorrar(f.id);
+        toast(textoPanel('panel.precio_borrado', 'Precio borrado'));
       });
       return h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, pastilla('neutro', 'Programado'), ` ${pesos(f.precio)} desde el ${fechaLarga(f.vigente_desde)}`),

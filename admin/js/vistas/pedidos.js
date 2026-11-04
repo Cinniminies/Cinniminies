@@ -199,13 +199,13 @@ function recomendacion(p) {
   }
   if (p.recomendador) {
     const significa = {
-      pendiente: () => textoPanel('panel.pedidos.recomendacion_pendiente', 'cuenta cuando se pague la venta'),
-      valida: () => textoPanel('panel.pedidos.recomendacion_valida', 'ya sumó'),
-      anulada: () => textoPanel('panel.pedidos.recomendacion_anulada', 'no cuenta: {motivo}',
+      pendiente: textoPanel('panel.pedidos.recomendacion_pendiente', 'cuenta cuando se pague la venta'),
+      valida: textoPanel('panel.pedidos.recomendacion_valida', 'ya sumó'),
+      anulada: textoPanel('panel.pedidos.recomendacion_anulada', 'no cuenta: {motivo}',
         { motivo: p.recomendacion_motivo || 'anulada' }),
     };
     return h('p', { class: 'ayuda' }, textoPanel('panel.pedidos.recomendado', 'Vino con el código de {recomendador}: {estado}.',
-      { recomendador: p.recomendador, estado: significa[p.recomendacion_estado]() }));
+      { recomendador: p.recomendador, estado: significa[p.recomendacion_estado] }));
   }
   if (p.codigo_recomendacion) {
     return h('p', { class: 'ayuda' },
@@ -236,13 +236,12 @@ export async function mostrar(cont) {
     const cajas = [...p.pedido_cajas].sort((a, b) => a.orden - b.orden).map((c) =>
       h('li', {}, h('strong', {}, cat.formato(c.formato_id)?.nombre || 'Caja'), ` · ${pesos(c.precio)}`,
         h('div', { class: 'ayuda' }, c.sabores.map((s) => `${cat.sabor(s.sabor_id)?.nombre || 'Sabor'} ${s.unidades}`).join(' · '))));
-    const whatsapp = linkWhatsapp(p.telefono, {
-      texto: textoPanel('panel.pedidos.whatsapp', '¡Hola {nombre}! Te escribimos de Cinniminies por tu pedido {codigo}.',
-        { nombre: p.nombre.split(' ')[0], codigo: p.codigo }),
-    });
-
     const acciones = [];
     if (p.estado === 'nuevo') {
+      const whatsapp = linkWhatsapp(p.telefono, {
+        texto: textoPanel('panel.pedidos.whatsapp', '¡Hola {nombre}! Te escribimos de Cinniminies por tu pedido {codigo}.',
+          { nombre: p.nombre.split(' ')[0], codigo: p.codigo }),
+      });
       const cliente = bloqueCliente(p, lista, origenes);
       acciones.push(cliente.el);
       const confirmar = h('button', { class: 'btn ok', type: 'button' }, 'Confirmar como venta');

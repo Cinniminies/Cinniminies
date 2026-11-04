@@ -115,14 +115,9 @@ async function ficha(cont, id) {
   const refrescar = () => irA(`#/formatos/${id}`);
   const guardarPrecio = (sabor_id) => async (precio, desde) => {
     await rpc('fijar_precio', { p: { formato_id: id, sabor_id, precio, vigente_desde: desde } });
-    toast(textoPanel('panel.precio_guardado', 'Precio guardado'));
     refrescar();
   };
-  const borrarPrecio = async (pid) => {
-    await q(sb.from('precios').delete().eq('id', pid));
-    toast(textoPanel('panel.precio_borrado', 'Precio borrado'));
-    refrescar();
-  };
+  const borrarPrecio = async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); refrescar(); };
 
   // Precios especiales de esta caja para un solo sabor (p. ej. "Box de 6 Nutella" más cara)
   const conEspecial = [...new Set(precios.filter((p) => p.sabor_id).map((p) => p.sabor_id))];

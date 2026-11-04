@@ -89,16 +89,12 @@ export async function mostrar(cont) {
     const registrar = h('button', { class: 'btn primario', type: 'button' }, 'Registrar horneado');
     registrar.onclick = () => conBoton(registrar, async () => {
       const n = incluidas().length;
-      const pregunta = [
-        textoPanel('panel.plan.registrar_confirmar', '¿Registrar {tandas} con fecha {fecha}?',
-          { tandas: plural(plan.total_tandas, 'tanda'), fecha: fechaCorta(estado.fecha) }),
-        n ? ` ${textoPanel('panel.plan.registrar_pedidos', '{pedidos} a hecho.',
-          { pedidos: plural(n, 'pedido pasa', 'pedidos pasan') })}` : '',
-        estado.fecha > hoyISO()
-          ? `\n\n${textoPanel('panel.plan.registrar_futuro',
-            'Ojo: la fecha es posterior a hoy. Si ya horneaste, cambiá el día de horneado.')}`
-          : '',
-      ].join('');
+      const pregunta = textoPanel('panel.plan.registrar_confirmar', '¿Registrar {tandas} con fecha {fecha}?',
+        { tandas: plural(plan.total_tandas, 'tanda'), fecha: fechaCorta(estado.fecha) })
+        + (n ? ' ' + textoPanel('panel.plan.registrar_pedidos', '{pedidos} a hecho.',
+          { pedidos: plural(n, 'pedido pasa', 'pedidos pasan') }) : '')
+        + (estado.fecha > hoyISO() ? '\n\n' + textoPanel('panel.plan.registrar_futuro',
+          'Ojo: la fecha es posterior a hoy. Si ya horneaste, cambiá el día de horneado.') : '');
       if (!confirm(pregunta)) return;
       const r = await rpc('registrar_horneado', { p: { ...payload(), fecha: estado.fecha } });
       estado.excluidas.clear();

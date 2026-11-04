@@ -313,14 +313,9 @@ async function ficha(cont, id) {
       seccionPrecios(precios,
         async (precio, desde) => {
           await rpc('fijar_precio', { p: { sabor_id: id, precio, vigente_desde: desde } });
-          toast(textoPanel('panel.precio_guardado', 'Precio guardado'));
           irA(`#/sabores/${id}`);
         },
-        async (pid) => {
-          await q(sb.from('precios').delete().eq('id', pid));
-          toast(textoPanel('panel.precio_borrado', 'Precio borrado'));
-          irA(`#/sabores/${id}`);
-        }))
+        async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); irA(`#/sabores/${id}`); }))
       : h('p', { class: 'ayuda' },
         textoPanel('panel.sabores.precio_despues', 'El precio por unidad se carga después de crear el sabor.')),
 

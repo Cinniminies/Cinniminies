@@ -3,7 +3,7 @@ import { h, vaciar, campo, toast, conBoton } from '../util.js';
 import { srcFoto, subirFoto, borrarFotoDelBucket } from '../fotos.js';
 import { irA } from '../app.js';
 import { linkExterno } from '../componentes.js';
-import { textoPanel } from '../textos.js';
+import { cargarTextosPanel, textoPanel } from '../textos.js';
 
 // Textos e imágenes de la web pública (Etapa 7). Cada fila de contenido_web es un lugar de
 // index.html; la web los toma de /api/catalogo (tarda hasta 5 minutos en verse).
@@ -98,6 +98,8 @@ export async function mostrar(cont) {
       const f = porClave[clave];
       if (f.tipo === 'imagen') await borrarFotoDelBucket('web', f.valor);
     }
+    // Los textos del panel se leen al dibujar: recargarlos hace que se vean sin volver a entrar.
+    if (Object.keys(cambios).some((clave) => clave.startsWith('panel.'))) await cargarTextosPanel();
     toast(textoPanel('panel.web.guardado', 'Guardado. La web lo muestra en unos 5 minutos'));
     irA('#/web');
   });
