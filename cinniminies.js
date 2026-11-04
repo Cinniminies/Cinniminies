@@ -7,20 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Menú mobile ---------- */
   const toggle = document.querySelector('.menu-toggle');
   const mobileNav = document.getElementById('mobileNav');
+  // Abre o cierra el menú mobile; el ícono pasa a "X" mientras está abierto.
+  function mostrarMenuMobile(abierto) {
+    mobileNav.classList.toggle('is-open', abierto);
+    toggle.setAttribute('aria-expanded', abierto);
+    toggle.classList.toggle('is-active', abierto);
+  }
   if (toggle && mobileNav) {
-    toggle.addEventListener('click', () => {
-      const isOpen = mobileNav.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', isOpen);
-      toggle.classList.toggle('is-active', isOpen);
+    toggle.addEventListener('click', () => mostrarMenuMobile(!mobileNav.classList.contains('is-open')));
+    mobileNav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => mostrarMenuMobile(false)));
+    // Con teclado, Escape lo cierra y el foco vuelve al botón (si no, queda en un link que ya no se ve).
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !mobileNav.classList.contains('is-open')) return;
+      mostrarMenuMobile(false);
+      toggle.focus();
     });
-    mobileNav.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => {
-        mobileNav.classList.remove('is-open');
-        toggle.setAttribute('aria-expanded', 'false');
-        // Sin esto el ícono queda como "X" aunque el menú ya se cerró
-        toggle.classList.remove('is-active');
-      });
-    });
+  }
+
+  // Quien pidió menos movimiento en el sistema: sin desplazamientos suaves ni confeti.
+  function prefiereSinMovimiento() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  // Lleva la pantalla hasta `nodo`. El scroll-behavior del CSS no alcanza: un `behavior: 'smooth'` en JS lo pisa.
+  function desplazarA(nodo) {
+    nodo?.scrollIntoView({ behavior: prefiereSinMovimiento() ? 'auto' : 'smooth', block: 'start' });
   }
 
   /* ---------- Progress roll (indicador de scroll) ---------- */
@@ -510,6 +521,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Deja elegido el tamaño `boton`; aria-pressed le dice al lector de pantalla cuál es, que el color solo no alcanza.
+  function marcarCaja(boton) {
+    boxOptionsEl.querySelectorAll('.box-option').forEach(b => {
+      b.classList.toggle('is-active', b === boton);
+      b.setAttribute('aria-pressed', b === boton);
+    });
+  }
+
   function updateBoxPickerNote() {
     if (!boxPickerNote) return;
     boxPickerNote.textContent = getSelectedBoxSize() === 'custom'
@@ -520,12 +539,11 @@ document.addEventListener('DOMContentLoaded', () => {
   boxOptionsEl?.addEventListener('click', (e) => {
     const btn = e.target.closest('.box-option');
     if (!btn) return;
-    boxOptionsEl.querySelectorAll('.box-option').forEach(b => b.classList.remove('is-active'));
-    btn.classList.add('is-active');
+    marcarCaja(btn);
     updateBoxPickerNote();
     updateFlavorPrices();
     updateBoxProgress();
-    menuGrid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    desplazarA(menuGrid);
   });
   updateFlavorPrices();
   updateBoxProgress();
@@ -619,8 +637,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el('span', { class: 'box-cost' }, 'según sabor'), marcaPromo('custom')));
     }
     mostrarCintaPromo(sabores);
-    (opciones.find(b => b.dataset.qty === elegido) || opciones[0]).classList.add('is-active');
     boxOptionsEl.replaceChildren(...opciones);
+    marcarCaja(opciones.find(b => b.dataset.qty === elegido) || opciones[0]);
 
     menuGrid.replaceChildren(...sabores.map(tarjetaSabor));
 
@@ -829,18 +847,44 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepForm = document.getElementById('stepForm');
   const stepDone = document.getElementById('stepDone');
   const stepTransfer = document.getElementById('stepTransfer');
+  const cartPanel = cartModal?.querySelector('.cart-modal-panel');
+
+  // Diálogos (carrito y "caja completa"): mientras uno está abierto, lo de atrás queda inerte, así el teclado y el
+  // lector de pantalla no se escapan a la página tapada. Al cerrarlo, el foco vuelve a donde estaba.
+  let focoAntesDelDialogo = null;
+
+  function mostrarDialogo(modal) {
+    focoAntesDelDialogo = document.activeElement;
+    modal.classList.add('is-open');
+    for (const nodo of document.body.children) nodo.inert = nodo !== modal;
+  }
+  function ocultarDialogo(modal) {
+    modal.classList.remove('is-open');
+    for (const nodo of document.body.children) nodo.inert = false;
+    focoAntesDelDialogo?.focus({ preventScroll: true });
+  }
+
+  // El título del paso que se ve nombra al diálogo y recibe el foco: el botón que se tocó quedó en el paso anterior.
+  function enfocarPaso() {
+    const titulo = cartPanel?.querySelector('.cart-step:not(.is-hidden) h3');
+    if (!titulo || !cartModal.classList.contains('is-open')) return;
+    cartPanel.setAttribute('aria-labelledby', titulo.id);
+    titulo.focus();
+  }
 
   function openModal() {
-    cartModal.classList.add('is-open');
+    mostrarDialogo(cartModal);
     document.body.style.overflow = 'hidden';
+    enfocarPaso();
   }
   function closeModal() {
-    cartModal.classList.remove('is-open');
+    ocultarDialogo(cartModal);
     document.body.style.overflow = '';
   }
   function goToStep(step) {
     [stepCart, stepForm, stepTransfer, stepDone].forEach(s => s?.classList.add('is-hidden'));
     step.classList.remove('is-hidden');
+    enfocarPaso();
   }
 
   // El carrito se abre desde el botón flotante o desde el aviso de caja completa: las dos cuentan como paso "carrito".
@@ -865,16 +909,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!boxCompleteModal) return;
     if (boxCompleteText) boxCompleteText.textContent = message;
     if (boxCompleteTitulo) boxCompleteTitulo.textContent = titulo;
-    boxCompleteModal.classList.add('is-open');
+    mostrarDialogo(boxCompleteModal);
+    document.getElementById('boxCompleteCart')?.focus();
   }
   function closeBoxCompleteModal() {
-    boxCompleteModal?.classList.remove('is-open');
+    if (boxCompleteModal) ocultarDialogo(boxCompleteModal);
   }
 
   document.getElementById('boxCompleteBackdrop')?.addEventListener('click', closeBoxCompleteModal);
   document.getElementById('boxCompleteContinue')?.addEventListener('click', () => {
     closeBoxCompleteModal();
-    document.querySelector('.box-picker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    desplazarA(document.querySelector('.box-picker'));
   });
   document.getElementById('boxCompleteCart')?.addEventListener('click', () => {
     closeBoxCompleteModal();
@@ -1069,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Confeti en un canvas encima de todo; se borra solo. Sin animación si la persona la desactivó.
   function lanzarConfeti() {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (prefiereSinMovimiento()) return;
     const canvas = document.createElement('canvas');
     canvas.className = 'confeti';
     canvas.setAttribute('aria-hidden', 'true');

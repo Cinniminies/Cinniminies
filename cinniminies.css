@@ -31,7 +31,9 @@
    para poder tocar rápido "Agregar al pedido" sin que se agrande la pantalla */
 *{ touch-action: manipulation; }
 
-html{ scroll-behavior: smooth; }
+/* La barra de arriba es fija (67 px): sin este margen, lo que recibe foco al volver con Shift+Tab, o el
+   comienzo de una sección a la que se salta desde el menú, queda tapado por ella. */
+html{ scroll-behavior: smooth; scroll-padding-top: 67px; }
 
 body{
   margin: 0;
@@ -174,9 +176,17 @@ a:hover{ color: var(--canela-hover); }
   gap: 28px;
   padding: 0 40px;
   transform: translateX(100%);
-  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+  /* Cerrado queda fuera de la pantalla: visibility lo saca también del Tab y del lector de pantalla
+     (se oculta recién cuando termina de salir, para que se vea la animación). */
+  visibility: hidden;
+  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), visibility 0s 0.4s;
 }
-.mobile-nav.is-open{ transform: translateX(0); box-shadow: -20px 0 50px rgba(var(--cafe-rgb), 0.12); }
+.mobile-nav.is-open{
+  transform: translateX(0);
+  visibility: visible;
+  box-shadow: -20px 0 50px rgba(var(--cafe-rgb), 0.12);
+  transition-delay: 0s;
+}
 .mobile-nav a{
   text-decoration: none;
   color: var(--cafe);
@@ -363,7 +373,7 @@ a:hover{ color: var(--canela-hover); }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
-  scroll-margin-top: 100px;
+  scroll-margin-top: 33px; /* + los 67 px de scroll-padding-top: queda donde estaba */
 }
 
 .roll-card{
@@ -492,7 +502,7 @@ a:hover{ color: var(--canela-hover); }
   border-radius: 22px;
   padding: 36px 5vw;
   text-align: center;
-  scroll-margin-top: 100px;
+  scroll-margin-top: 33px;
 }
 .box-picker-label{
   font-family: var(--font-display);
@@ -769,8 +779,10 @@ a:hover{ color: var(--canela-hover); }
   transition: background 0.2s var(--ease), opacity 0.2s var(--ease);
   opacity: 0;
   pointer-events: none;
+  /* Con el carrito vacío no se ve: que tampoco lo encuentre el Tab */
+  visibility: hidden;
 }
-.cart-fab.is-visible{ opacity: 1; pointer-events: auto; }
+.cart-fab.is-visible{ opacity: 1; pointer-events: auto; visibility: visible; }
 .cart-fab:hover{ background: var(--canela-hover); }
 .cart-fab svg{ width: 24px; height: 24px; }
 .cart-fab-count{
@@ -839,6 +851,8 @@ a:hover{ color: var(--canela-hover); }
   margin: 0;
   color: var(--cafe);
 }
+/* El título recibe el foco al cambiar de paso (para el teclado y el lector de pantalla), pero no es un control */
+.cart-modal-head h3:focus{ outline: none; }
 .cart-close{
   background: none;
   border: none;
@@ -848,9 +862,12 @@ a:hover{ color: var(--canela-hover); }
   color: var(--cafe);
   opacity: 0.5;
   padding: 0;
+  position: relative;
   transition: opacity 0.2s var(--ease);
 }
 .cart-close:hover{ opacity: 1; }
+/* La × mide 16 px de ancho: un área invisible alrededor la hace fácil de tocar (mínimo de 24 px de WCAG 2.2) */
+.cart-close::after{ content: ''; position: absolute; inset: -8px -14px; }
 
 /* Para qué sábado es el pedido; invertido (café sobre crema) cuando no es el de esta semana: cierre o sin horneado */
 .cart-sabado{
