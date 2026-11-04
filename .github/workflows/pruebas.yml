@@ -1,0 +1,45 @@
+# Pruebas que no necesitan la base: sintaxis de todo el JS y las pruebas de /admin y de api/.
+# Las reglas de Postgres (supabase/tests/reglas.sql) se siguen corriendo a mano contra Supabase.
+name: Pruebas
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pruebas:
+    name: Sintaxis y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar el repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # admin/js/ son módulos ES y package.json no dice "type": "module", así que se revisan como módulo
+      # por la entrada estándar. El resto (api/, scripts/, cinniminies.js, sw.js) son scripts comunes.
+      - name: Revisar la sintaxis del JS
+        run: |
+          fallas=0
+          while read -r archivo; do
+            case "$archivo" in
+              admin/js/*) node --check --input-type=module < "$archivo" ;;
+              *) node --check "$archivo" ;;
+            esac || { echo "::error file=$archivo::No pasa node --check"; fallas=1; }
+          done < <(git ls-files '*.js' '*.mjs')
+          exit $fallas
+
+      - name: Pruebas de /admin
+        run: node --test admin/tests/*.test.mjs
+
+      - name: Instalar dependencias de api/
+        run: npm ci
+
+      - name: Pruebas de api/
+        run: node --test api/_tests/*.test.js

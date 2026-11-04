@@ -177,11 +177,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
+  // El tamaño de un botón del selector de cajas: 6, 12… o 'custom'.
+  function tamanoDeBoton(boton) {
+    return boton.dataset.qty === 'custom' ? 'custom' : Number(boton.dataset.qty);
+  }
+
   function getSelectedBoxSize() {
     const activeBtn = document.querySelector('.box-option.is-active');
-    if (!activeBtn) return 6;
-    const qty = activeBtn.dataset.qty;
-    return qty === 'custom' ? 'custom' : Number(qty);
+    return activeBtn ? tamanoDeBoton(activeBtn) : 6;
   }
 
   function removeFlavorFromBox(boxIndex, flavorId) {
@@ -288,6 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const esc = (x) => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
   function renderCart() {
+    guardarCarrito(); // renderCart corre después de cada cambio del carrito
     const rollCount = cartRollCount();
     if (cartFabCount) cartFabCount.textContent = rollCount;
     if (cartFab) cartFab.classList.toggle('is-visible', rollCount > 0);
@@ -372,6 +376,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // Al final: el contenido del carrito también decide si "Confirmar pedido"
     // puede tocarse, y así un error acá nunca impide dibujar el carrito.
     updateSubmitBtn();
+  }
+
+  /* ---------- Carrito guardado (idea 6.4) ---------- */
+  // Las reglas (vencimiento, qué cajas siguen valiendo) están en carrito-guardado.js. Se guarda recién después de
+  // restaurar: si no, el primer renderCart, con el carrito todavía vacío, borraría lo de la visita anterior.
+  const CLAVE_CARRITO = 'carrito';
+  let carritoRestaurado = false;
+
+  function guardarCarrito() {
+    if (!carritoRestaurado) return;
+    try {
+      if (cart.length) localStorage.setItem(CLAVE_CARRITO, JSON.stringify(carritoGuardado.armarGuardado(cart, { sabado: pedidosPara?.sabado })));
+      else localStorage.removeItem(CLAVE_CARRITO);
+    } catch { /* sin localStorage (navegación privada, lleno): el carrito vive solo en esta pestaña */ }
+  }
+
+  function leerCarritoGuardado() {
+    try {
+      return JSON.parse(localStorage.getItem(CLAVE_CARRITO));
+    } catch {
+      return null;
+    }
+  }
+
+  // Vuelve a armar el carrito de la visita anterior con las cajas que siguen valiendo en el menú que se ve (el del
+  // catálogo o, si no cargó, el de index.html). Si el cliente ya empezó otro mientras cargaba, queda el nuevo.
+  function restaurarCarrito() {
+    if (!cart.length) {
+      const nombres = Object.fromEntries([...document.querySelectorAll('.roll-add')].map(b => [b.dataset.id, b.dataset.name]));
+      const tamanos = [...document.querySelectorAll('.box-option')].map(tamanoDeBoton);
+      const menu = { tamanos, sabores: Object.keys(nombres), topeDe: boxCap };
+      cart = carritoGuardado.cajasVigentes(leerCarritoGuardado(), menu).map(caja => ({ ...caja, _flavorNames: { ...nombres } }));
+    }
+    carritoRestaurado = true;
+    renderCart();
   }
 
   // Eventos delegados: las tarjetas se pueden regenerar desde el catálogo.
@@ -702,6 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('No se pudo leer el catálogo, se usa el menú de respaldo:', e.message);
     } finally {
       clearTimeout(reloj);
+      restaurarCarrito(); // con el menú que haya quedado, el del catálogo o el de respaldo
     }
   })();
 

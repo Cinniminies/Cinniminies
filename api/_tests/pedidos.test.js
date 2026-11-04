@@ -15,7 +15,7 @@ const guardado = { codigo: 'CM-2026-ABCD', total: 250, cajas: [] };
 const LIMITE_IP = 'Demasiados pedidos seguidos. Probá de nuevo en unos minutos o escribinos por WhatsApp';
 // Sin push ni modo prueba, salvo que la prueba los pida.
 const ENTORNO = {
-  SUPABASE_SERVICE_ROLE_KEY: 'eyJx', MODO_PRUEBA: undefined,
+  SUPABASE_SERVICE_ROLE_KEY: 'eyJx', PEDIDOS_SAL: undefined, MODO_PRUEBA: undefined,
   VAPID_PUBLIC_KEY: undefined, VAPID_PRIVATE_KEY: undefined, VAPID_SUBJECT: undefined,
 };
 
@@ -120,7 +120,7 @@ test('handler: guarda con el hash de la IP y responde 201 con lo que devolvió l
   assert.deepEqual(r.cuerpo, guardado);
   assert.equal(r.llamadas.length, 1);
   assert.match(r.llamadas[0].url, /\/rest\/v1\/rpc\/crear_pedido_web$/);
-  assert.equal(r.llamadas[0].cuerpo.p_ip_hash, hashIp(req));
+  assert.equal(r.llamadas[0].cuerpo.p_ip_hash, hashIp(req, ENTORNO.SUPABASE_SERVICE_ROLE_KEY));
   assert.equal(r.llamadas[0].cuerpo.p.prueba, undefined, 'fuera del modo prueba no va la marca');
 });
 

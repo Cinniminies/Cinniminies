@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  VISTAS, TAMANO_PAGINA, claveValida, urlPagina, encabezados, leerVista, armarTabla, aCsv, autorizar,
+  VISTAS, TAMANO_PAGINA, urlPagina, encabezados, leerVista, armarTabla, aCsv, autorizar,
 } = require('../_lib/export.js');
 const { respuesta, respuestaHttp, conEntorno, correrHandler } = require('./_ayudas.js');
 const handler = require('../export/[vista].js');
@@ -12,14 +12,6 @@ test('las vistas del handoff están todas', () => {
     'compras', 'tandas', 'ingresos']) {
     assert.ok(VISTAS[v], v);
   }
-});
-
-test('claveValida', () => {
-  assert.equal(claveValida('abc', 'abc'), true);
-  assert.equal(claveValida('abd', 'abc'), false);
-  assert.equal(claveValida(undefined, 'abc'), false);
-  assert.equal(claveValida('', ''), false);
-  assert.equal(claveValida('abc', undefined), false);
 });
 
 test('urlPagina: columnas, orden y página', () => {

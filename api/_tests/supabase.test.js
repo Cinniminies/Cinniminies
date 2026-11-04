@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { Readable } = require('node:stream');
 const {
   URL_SUPABASE, configuracion, configuracionLista, responderJson, metodoPermitido, leerCuerpoJson, rpc,
-  cronAutorizado, fechaLocal, hashIp,
+  claveValida, cronAutorizado, fechaLocal, hashIp,
 } = require('../_lib/supabase.js');
 const { respuesta, respuestaHttp, supabaseFalso, conEntorno } = require('./_ayudas.js');
 
@@ -163,4 +163,26 @@ test('cronAutorizado: sin CRON_SECRET 500, con otra clave 401, con la buena sigu
     assert.equal(cronAutorizado({ headers: { authorization: 'Bearer secreto' } }, res), true);
     assert.equal(res.cuerpo, '');
   });
+});
+
+test('hashIp: sin sal no guarda nada', () => {
+  assert.equal(hashIp({ headers: { 'x-forwarded-for': '1.2.3.4' } }, ''), null);
+});
+
+test('hashIp: una IPv6 cuenta por su red /64', () => {
+  const de = (ip) => hashIp({ headers: { 'x-forwarded-for': ip } }, 's');
+  assert.equal(de('2001:db8:1:2:aaaa::1'), de('2001:db8:1:2:bbbb:cccc:dddd:eeee'));
+  assert.equal(de('2001:db8:1:2::'), de('2001:0db8:0001:0002::5'));
+  assert.equal(de('2001:db8::1'), de('2001:db8:0:0:1::'));
+  assert.notEqual(de('2001:db8:1:2::1'), de('2001:db8:1:3::1'));
+  assert.equal(de('::ffff:1.2.3.4'), de('1.2.3.4'));
+  assert.notEqual(de('1.2.3.4'), de('1.2.3.5'));
+});
+
+test('claveValida', () => {
+  assert.equal(claveValida('abc', 'abc'), true);
+  assert.equal(claveValida('abd', 'abc'), false);
+  assert.equal(claveValida(undefined, 'abc'), false);
+  assert.equal(claveValida('', ''), false);
+  assert.equal(claveValida('abc', undefined), false);
 });
