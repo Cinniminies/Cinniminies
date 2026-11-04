@@ -343,7 +343,7 @@ a:hover{ color: var(--canela-hover); }
   padding: 40px 5vw 100px;
 }
 .menu-head{ max-width: 600px; margin: 0 0 40px; }
-.section-title{
+.section-title, .faq-title{
   font-family: var(--font-display);
   font-weight: 500;
   font-size: clamp(1.7rem, 3.4vw, 2.6rem);
@@ -638,13 +638,6 @@ a:hover{ color: var(--canela-hover); }
   align-items: start;
 }
 .menu .eyebrow, .local .eyebrow, .faq .eyebrow{ color: var(--canela-tostada); }
-.faq-title{
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
-  line-height: 1.1;
-  margin: 0;
-}
 .faq-lista details{ border-top: 1px solid var(--linea); }
 .faq-lista{ border-bottom: 1px solid var(--linea); }
 .faq[hidden]{ display: none; }
@@ -1179,7 +1172,6 @@ a:hover{ color: var(--canela-hover); }
   margin: 10px 0 0;
   min-height: 16px;
 }
-.form-hint.is-missing{ color: #B2462E; }
 
 /* Confirmar pedido: gris e inclickeable hasta completar el formulario */
 .cart-submit:disabled{
