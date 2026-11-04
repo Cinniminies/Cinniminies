@@ -1,5 +1,5 @@
 import { sb, q } from './db.js';
-import { h, vaciar, campo, toast, conBoton } from './util.js';
+import { h, vaciar, campo, toast, conBoton, animar } from './util.js';
 import { icono } from './iconos.js';
 import { cargarTextosPanel, textoPanel } from './textos.js';
 
@@ -181,6 +181,9 @@ async function enrutar() {
     await modulo.mostrar(cont, { id: resto[0], accion: resto[1] });
     if (esta === navegacion) {
       vaciar(vista, cont);
+      // El contenido aparece en lugar de "Cargando…"; la barra y las pestañas quedan quietas. Solo se desvanece, sin
+      // correrse: un transform movería la barra fija de Guardar que va adentro.
+      animar(cont, [{ opacity: 0 }, { opacity: 1 }]);
       vista.focus({ preventScroll: true }); // los lectores de pantalla arrancan en el contenido nuevo
     }
   } catch (e) {

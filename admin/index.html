@@ -26,7 +26,13 @@
       raiz.dataset.tema = elegido === 'claro' || elegido === 'oscuro' ? elegido : oscuro.matches ? 'oscuro' : 'claro';
     };
     const pintarBarra = () => { barra.content = getComputedStyle(raiz).getPropertyValue('--bg').trim() || barra.content; };
-    const cambiar = () => { aplicar(); pintarBarra(); };
+    // Al cambiar de tema, las dos paletas se cruzan en un instante (::view-transition en app.css, que lo apaga con
+    // "reducir movimiento") en vez de saltar; sin View Transitions, cambia de golpe.
+    const cambiar = () => {
+      const pintar = () => { aplicar(); pintarBarra(); };
+      if (document.startViewTransition) document.startViewTransition(pintar);
+      else pintar();
+    };
     aplicar();
     addEventListener('DOMContentLoaded', pintarBarra);
     oscuro.addEventListener('change', cambiar);

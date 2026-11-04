@@ -37,6 +37,12 @@
   --radio: 14px;           /* contenedores */
   --radio-control: 8px;    /* campos, botones, chips */
   --sombra: none;
+  /* Movimiento: una sola curva (sale rápido y se asienta suave, sin rebote) y tres duraciones cortas.
+     Las lee también la Web Animations API (animar, en util.js). */
+  --mov-curva: cubic-bezier(.25, .8, .25, 1);
+  --mov-rapida: 150ms;
+  --mov-normal: 200ms;
+  --mov-lenta: 300ms;
   --display: 'Fraunces', Georgia, serif;
   --cuerpo: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   color-scheme: light;
@@ -691,7 +697,17 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .tabs a, .subnav a, a.fila, button.fila, summary.fila, .acceso, .tarea-link, .btn, .chip,
 .stepper button, .atras, .link, .ver-todo, .auto-lista li button, .graf-comp, .div-fila, .chev,
 .tabla a, .marca, .quitar, details.plegable > summary, .graf-tabla > summary, .semana-sabado {
-  transition: background-color .15s ease, border-color .15s ease, color .15s ease, filter .15s ease, opacity .15s ease;
+  transition-property: background-color, border-color, color, filter, opacity, scale;
+  transition-duration: var(--mov-rapida);
+  transition-timing-function: var(--mov-curva);
+}
+/* Al tocar, el chip o el botón del stepper se hunde apenas: la respuesta empieza con el dedo, antes del resultado. */
+.chip:active, .stepper button:active:not(:disabled) { scale: .95; }
+/* Las cifras que cambian en un número (rodarNumero) se mueven sueltas; al terminar vuelve a ser un solo texto. */
+.mov-cifra { display: inline-block; }
+/* Cambio de tema (script del <head>): un cruce corto entre las dos paletas en vez de un salto. */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: var(--mov-normal); animation-timing-function: var(--mov-curva);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -735,6 +751,8 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; }
+  .chip:active, .stepper button:active:not(:disabled) { scale: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 }
 
 /* ---------- Inicio en franjas ---------- */

@@ -1,13 +1,29 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton, sumar } from '../util.js';
+import {
+  h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton, sumar, animar,
+} from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
 import { subnavProduccion, pastilla } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 
+// Una fila nueva abre su lugar en la lista y empuja a las de abajo; el contenido aparece cuando ya hay lugar.
+// Se mide en el cuadro siguiente, cuando la fila ya está en la página.
+function abrirFila(el) {
+  requestAnimationFrame(() => {
+    if (!el.isConnected) return;
+    const alto = `${el.offsetHeight}px`;
+    const animacion = animar(el, [{ height: '0px', opacity: 0 }, { opacity: 0, offset: 0.4 }, { height: alto, opacity: 1 }],
+      { duracion: 'lenta' });
+    if (!animacion) return;
+    el.style.overflow = 'hidden';
+    animacion.onfinish = animacion.oncancel = () => { el.style.overflow = ''; };
+  });
+}
+
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
-// con la receta del día (snapshot en tanda_consumos).
-export async function mostrar(cont) {
+// con la receta del día (snapshot en tanda_consumos). `nueva`: la tanda recién guardada, que entra abriendo su lugar.
+export async function mostrar(cont, { nueva } = {}) {
   const [cat, historial, produccion, sobrantes] = await Promise.all([
     catalogo(),
     q(sb.from('tandas').select('id,fecha,cantidad,rolls,notas,sabores(nombre)')
@@ -33,7 +49,7 @@ export async function mostrar(cont) {
         fn: async () => { await q(sb.from('tandas').delete().eq('id', r.tanda_id)); toast('Tanda deshecha'); refrescarSi('#/tandas'); },
       },
     });
-    irA('#/tandas');
+    await mostrar(cont, { nueva: r.tanda_id });
   });
 
   const produccionPorSabor = produccion.filter((p) => Number(p.tandas) > 0);
@@ -76,6 +92,7 @@ export async function mostrar(cont) {
           irA('#/tandas');
         });
         const li = h('li');
+        if (t.id === nueva) abrirFila(li);
         const editar = h('button', { class: 'btn chico', type: 'button' }, 'Editar');
         let form = null;
         editar.onclick = () => {
