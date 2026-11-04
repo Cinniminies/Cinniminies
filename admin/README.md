@@ -65,6 +65,15 @@ sábados sin horneado se cambian abajo de todo en Pedidos web (`parametros.cierr
 `push_suscripciones` (`js/push.js`) y `sw.js` muestra el aviso; tocarlo abre Pedidos web. En iPhone solo
 funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari común la fila explica cómo.
 
+## Tema claro u oscuro (idea 7.5)
+
+**Más → Cuenta → Tema**: Automático (sigue al celular, el de siempre), Claro u Oscuro, por dispositivo (se guarda en
+`localStorage`, clave `cinniminies.tema`). Un script corto en el `<head>` de `index.html` lo aplica antes de pintar como
+`data-tema="claro"` u `"oscuro"` en `<html>` (en Automático, según el celular y cambiando con él) y pone el fondo del
+tema en `theme-color`. Los tokens oscuros de `app.css` están una sola vez, en `:root[data-tema="oscuro"]`; los
+gráficos usan esos tokens, así que siguen al tema solos, y el logo de la barra va en línea en `index.html` (no como
+`<img>`) por lo mismo.
+
 ## Cierre de mes (idea 4.4)
 
 **Más → Cierre de mes** (`#/cierre/AAAA-MM-01`; sin mes, el mes pasado): vendido, ganancia, resultado, ventas,

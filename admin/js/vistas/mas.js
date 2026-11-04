@@ -1,15 +1,24 @@
 import { sb } from '../db.js';
-import { h, vaciar, campo, toast, conBoton } from '../util.js';
+import { h, vaciar, campo, chips, toast, conBoton } from '../util.js';
+import { textoPanel } from '../textos.js';
 import { icono } from '../iconos.js';
 import { sesion } from '../app.js';
 import * as push from '../push.js';
+
+// Elección de tema de este dispositivo; el script del <head> de index.html lee la misma clave.
+const CLAVE_TEMA = 'cinniminies.tema';
+
+// Fila de la cuenta: ícono, título y detalle; `control` va a la derecha y `debajo`, abajo del texto.
+function filaCuenta(ico, titulo, detalle, { control = null, debajo = null } = {}) {
+  return h('li', {}, h('div', { class: 'fila' }, h('span', { class: 'fila-ico' }, icono(ico)),
+    h('div', { class: 'princ' }, h('div', { class: 't1' }, titulo), detalle, debajo), control));
+}
 
 // "Avisarme de pedidos nuevos" en este dispositivo. En iPhone solo funciona con la app agregada a la
 // pantalla de inicio (iOS 16.4+): en Safari común se muestra cómo instalarla.
 function filaAvisos() {
   const sub = h('div', { class: 't2', style: 'white-space: normal' }, 'En este celular o compu, cuando entra un pedido de la web');
-  const fila = (control) => h('li', {}, h('div', { class: 'fila' }, h('span', { class: 'fila-ico' }, icono('carrito')),
-    h('div', { class: 'princ' }, h('div', { class: 't1' }, 'Avisarme de pedidos nuevos'), sub), control));
+  const fila = (control) => filaCuenta('carrito', 'Avisarme de pedidos nuevos', sub, { control });
   const soporte = push.soporte();
   if (soporte !== 'ok') {
     sub.textContent = soporte === 'instalar'
@@ -33,6 +42,28 @@ function filaAvisos() {
     }
   };
   return fila(h('label', { class: 'interruptor solo' }, casilla));
+}
+
+// Tema de este dispositivo: Automático (sigue al celular), Claro u Oscuro. Lo aplica el script del <head> de
+// index.html; acá solo se guarda y se le avisa.
+function filaTema() {
+  let elegido = 'auto';
+  try { elegido = localStorage.getItem(CLAVE_TEMA) || 'auto'; } catch { /* sin almacenamiento: Automático */ }
+  const opciones = chips([
+    { valor: 'auto', texto: textoPanel('panel.tema.auto', 'Automático') },
+    { valor: 'claro', texto: textoPanel('panel.tema.claro', 'Claro') },
+    { valor: 'oscuro', texto: textoPanel('panel.tema.oscuro', 'Oscuro') },
+  ], elegido, (valor) => {
+    try {
+      if (valor === 'auto') localStorage.removeItem(CLAVE_TEMA); else localStorage.setItem(CLAVE_TEMA, valor);
+    } catch {
+      toast(textoPanel('panel.tema.sin-guardar', 'Este navegador no deja guardar el tema: queda en Automático'));
+    }
+    document.dispatchEvent(new Event('cambio-tema'));
+  });
+  opciones.classList.add('tema-opciones');
+  return filaCuenta('tema', textoPanel('panel.tema', 'Tema'),
+    h('div', { class: 't2' }, textoPanel('panel.tema.ayuda', 'Automático sigue al celular')), { debajo: opciones });
 }
 
 // Todo lo que no es de uso diario, agrupado. Cada destino está a un toque. En pantallas grandes
@@ -82,6 +113,7 @@ export async function mostrar(cont) {
     h('h2', { class: 'seccion-titulo' }, 'Cuenta'),
     h('ul', { class: 'lista' },
       filaAvisos(),
+      filaTema(),
       h('li', {}, h('a', { class: 'fila', href: '#/dispositivos' }, h('span', { class: 'fila-ico' }, icono('llave')),
         h('div', { class: 'princ' }, h('div', { class: 't1' }, 'Dispositivos'),
           h('div', { class: 't2' }, 'Celulares y compus que pueden usar la app')),
