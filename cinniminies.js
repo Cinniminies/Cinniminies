@@ -679,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const v = valor(img.dataset.contenidoImg);
       if (!v || !/^(\/?img\/[\w./-]+|https:\/\/[^\s"'<>]+)$/.test(v)) return;
       // Si es la misma foto que ya trae index.html, el <picture> queda con su AVIF: cambiarle el src la bajaría dos veces.
-      if (v.replace(/^\//, '') === img.getAttribute('src')) return;
+      if (new URL(v, location.href).href === img.src) return;
       img.closest('picture')?.querySelectorAll('source').forEach(src => src.remove());
       img.src = v;
     });
