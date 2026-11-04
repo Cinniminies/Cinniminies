@@ -93,10 +93,33 @@ async function rpc(nombre, args, { url, clave, fetch: pedir = fetch }, { ErrorCl
   throw new Error(`Supabase respondió ${r.status} a ${nombre}: ${JSON.stringify(cuerpo).slice(0, 300)}`);
 }
 
-// IP del cliente según Vercel. No se guarda: solo un hash, para limitar pedidos y visitas seguidos.
-function hashIp(req, sal = process.env.PEDIDOS_SAL || 'cinniminies') {
+// Red del cliente para el límite de pedidos: la IPv4 entera, o el prefijo /64 de una IPv6. Cada conexión IPv6 trae
+// 2^64 direcciones propias; contar cada una aparte dejaba saltear el límite cambiando de dirección en cada pedido.
+function redDeIp(ip) {
+  if (!ip.includes(':')) return ip;
+  const ipv4 = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (ipv4) return ipv4[1];
+  const [inicio, fin = ''] = ip.toLowerCase().split('::');
+  const izquierda = inicio ? inicio.split(':') : [];
+  const derecha = fin ? fin.split(':') : [];
+  const ceros = Array(Math.max(0, 8 - izquierda.length - derecha.length)).fill('0');
+  return [...izquierda, ...ceros, ...derecha].slice(0, 4).map((grupo) => grupo.replace(/^0+(?=.)/, '')).join(':') + '::/64';
+}
+
+// Hash de la red del cliente según Vercel. La IP no se guarda: solo el hash, para limitar pedidos y visitas seguidos.
+// Sin PEDIDOS_SAL usa la service_role (secreta) de clave: una sal escrita en el código dejaba revertir los hashes.
+function hashIp(req, sal = process.env.PEDIDOS_SAL || process.env.SUPABASE_SERVICE_ROLE_KEY) {
   const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
-  return ip ? crypto.createHash('sha256').update(`${sal}:${ip}`).digest('hex').slice(0, 32) : null;
+  if (!ip || !sal) return null;
+  return crypto.createHmac('sha256', sal).update(redDeIp(ip)).digest('hex').slice(0, 32);
+}
+
+// Compara la clave recibida con la esperada sin filtrar por tiempo cuántos caracteres coinciden.
+function claveValida(recibida, esperada) {
+  if (typeof recibida !== 'string' || !recibida || !esperada) return false;
+  const a = crypto.createHash('sha256').update(recibida).digest();
+  const b = crypto.createHash('sha256').update(esperada).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 // El día de hoy (o de `d`) en Uruguay, AAAA-MM-DD.
@@ -110,7 +133,7 @@ function cronAutorizado(req, res) {
     responderJson(res, 500, { error: 'Falta CRON_SECRET en Vercel' });
     return false;
   }
-  if (req.headers.authorization !== `Bearer ${secreto}`) {
+  if (!claveValida(req.headers.authorization, `Bearer ${secreto}`)) {
     responderJson(res, 401, { error: 'No autorizado' });
     return false;
   }
@@ -119,5 +142,5 @@ function cronAutorizado(req, res) {
 
 module.exports = {
   URL_SUPABASE, configuracion, configuracionLista, encabezados, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, rpc,
-  cronAutorizado, fechaLocal, hashIp,
+  claveValida, cronAutorizado, fechaLocal, hashIp,
 };

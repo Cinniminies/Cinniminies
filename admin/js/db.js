@@ -1,4 +1,6 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// Versión exacta a propósito: con @2 entraba sola cualquier versión nueva, aunque viniera comprometida, y corría con la
+// sesión de admin. Para actualizar, cambiar el número a mano después de revisar las notas de la versión.
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/+esm';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 // Clave de este dispositivo: se genera una vez y viaja en cada pedido (encabezado x-dispositivo). La base
