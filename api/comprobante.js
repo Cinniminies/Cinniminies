@@ -9,12 +9,11 @@ module.exports = async (req, res) => {
   const conf = configuracionLista(res);
   if (!conf) return;
   try {
-    let cuerpo;
-    try {
-      cuerpo = await leerCuerpoJson(req, { maximo: MAX_CUERPO, muyGrande: () => new ErrorComprobante('El archivo es muy grande (máximo 3 MB)') });
-    } catch (e) {
-      throw e instanceof ErrorComprobante ? e : new ErrorComprobante('Pedido inválido');
-    }
+    const cuerpo = await leerCuerpoJson(req, {
+      maximo: MAX_CUERPO,
+      muyGrande: () => new ErrorComprobante('El archivo es muy grande (máximo 3 MB)'),
+      invalido: () => new ErrorComprobante('Pedido inválido'),
+    });
     responderJson(res, 201, await guardarComprobante(armarComprobante(cuerpo), conf));
   } catch (e) {
     if (e instanceof ErrorComprobante) {

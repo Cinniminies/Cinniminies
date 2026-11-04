@@ -49,8 +49,23 @@ function configuracionLista(res) {
 }
 
 // Cuerpo JSON del pedido. Vercel ya lo parsea en req.body; en otros entornos se lee a mano.
-// Si pasa de `maximo` caracteres tira lo que devuelva `muyGrande()`; si no es JSON, un SyntaxError.
-async function leerCuerpoJson(req, { maximo, muyGrande }) {
+// Si pasa de `maximo` caracteres tira lo que devuelva `muyGrande()`. Si no se puede leer o no es JSON, tira lo que
+// devuelva `invalido()` o, sin él, el error tal cual (un SyntaxError si no es JSON).
+async function leerCuerpoJson(req, { maximo, muyGrande, invalido }) {
+  let grande = null;
+  const excedido = () => {
+    grande = muyGrande();
+    return grande;
+  };
+  try {
+    return await leerJson(req, maximo, excedido);
+  } catch (e) {
+    if (e === grande || !invalido) throw e;
+    throw invalido();
+  }
+}
+
+async function leerJson(req, maximo, muyGrande) {
   if (req.body !== undefined) {
     const texto = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     if (texto.length > maximo) throw muyGrande();

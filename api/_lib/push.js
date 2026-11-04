@@ -24,7 +24,8 @@ function armarAviso(pedido, guardado) {
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre',
   'noviembre', 'diciembre'];
-const nombreMes = (mes) => MESES[Number(mes.slice(5, 7)) - 1];
+// "octubre" (sin el año), como soloMes en admin/js/util.js.
+const soloMes = (mes) => MESES[Number(mes.slice(5, 7)) - 1];
 
 // "Cierre de octubre" · "Vendieron $6.790 (sube 49 % vs septiembre) · ganancia $4.120". `cierre`: lo que devuelve
 // la función cierre_mes de la base. El link abre /admin → Cierre de mes en ese mes.
@@ -36,9 +37,9 @@ function armarAvisoCierre(cierre) {
   const pct = Math.abs(cambio);
   const como = pct < 0.05 ? 'igual que'
     : `${cambio > 0 ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs`;
-  const comparacion = cambio == null ? '' : ` (${como} ${nombreMes(cierre.anterior.mes)})`;
+  const comparacion = cambio == null ? '' : ` (${como} ${soloMes(cierre.anterior.mes)})`;
   return {
-    titulo: `Cierre de ${nombreMes(cierre.mes)}`,
+    titulo: `Cierre de ${soloMes(cierre.mes)}`,
     cuerpo: `Vendieron ${pesos(actual.vendido)}${comparacion} · ganancia ${pesos(actual.ganancia_bruta)}`,
     url: `/admin/#/cierre/${cierre.mes}`,
     tag: `cierre-${cierre.mes}`,
