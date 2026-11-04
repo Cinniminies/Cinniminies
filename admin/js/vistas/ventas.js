@@ -74,7 +74,7 @@ async function lista(cont) {
             detalle: [v.formatos, v.sabores],
             derecha: monto(pesos(v.total)),
           })))])
-        : cajaVacia('No hay ventas con estos filtros.',
+        : cajaVacia(textoPanel('panel.ventas.vacio', 'No hay ventas con estos filtros.'),
           { href: '#/venta', texto: textoPanel('panel.vacio_ventas', 'Cargar una venta') }));
   }
 
@@ -107,7 +107,7 @@ async function leerVenta(id) {
       .select('id,formato_id,cantidad,caja_insumo_id,precio_lista,costo_caja,formatos(nombre,tipo),insumos(nombre),venta_linea_sabores(sabor_id,unidades,costo_unitario,sin_glaseado,sabores(nombre))')
       .eq('venta_id', id)),
   ]);
-  if (!v) throw new Error('La venta no existe (¿la borraron?)');
+  if (!v) throw new Error(textoPanel('panel.ventas.no_existe', 'La venta no existe (¿la borraron?)'));
   return { v, lineas };
 }
 
@@ -126,20 +126,23 @@ async function detalle(cont, id) {
   const cambiarEstado = h('button', { class: 'btn ' + (pagada ? '' : 'ok') }, pagada ? 'Marcar pendiente' : 'Marcar cobrada');
   cambiarEstado.onclick = () => conBoton(cambiarEstado, async () => {
     await rpc('actualizar_venta', { p_id: id, p: { estado_pago: pagada ? 'pendiente' : 'pagado' } });
-    toast(pagada ? 'Marcada como pendiente' : 'Marcada como cobrada');
+    toast(pagada ? textoPanel('panel.ventas.marcada_pendiente', 'Marcada como pendiente')
+      : textoPanel('panel.ventas.marcada_cobrada', 'Marcada como cobrada'));
     await detalle(cont, id);
   });
   const cambiarHecho = h('button', { class: 'btn' }, v.por_hacer ? 'Marcar hecho' : 'Marcar por hacer');
   cambiarHecho.onclick = () => conBoton(cambiarHecho, async () => {
     await rpc('actualizar_venta', { p_id: id, p: { por_hacer: !v.por_hacer } });
-    toast(v.por_hacer ? 'Marcado como hecho' : 'Marcado por hacer: entra en el plan de horneado');
+    toast(v.por_hacer ? textoPanel('panel.ventas.marcada_hecha', 'Marcado como hecho')
+      : textoPanel('panel.ventas.marcada_por_hacer', 'Marcado por hacer: entra en el plan de horneado'));
     await detalle(cont, id);
   });
   const borrar = h('button', { class: 'btn peligro' }, 'Borrar');
   borrar.onclick = () => conBoton(borrar, async () => {
-    if (!confirm(`¿Borrar la venta de ${v.cliente || 'sin cliente'} del ${fechaLarga(v.fecha)}? No se puede deshacer.`)) return;
+    if (!confirm(textoPanel('panel.ventas.borrar_confirmar', '¿Borrar la venta de {cliente} del {fecha}? No se puede deshacer.',
+      { cliente: v.cliente || 'sin cliente', fecha: fechaLarga(v.fecha) }))) return;
     await q(sb.from('ventas').delete().eq('id', id));
-    toast('Venta borrada');
+    toast(textoPanel('panel.ventas.borrada', 'Venta borrada'));
     irA('#/ventas');
   });
 
@@ -173,7 +176,8 @@ async function detalle(cont, id) {
       v.notas ? h('p', {}, h('strong', {}, 'Notas: '), v.notas) : null,
       codigo ? h('p', {}, h('strong', {}, 'Código para recomendar: '), codigo, ' ',
         waCodigo ? linkExterno(waCodigo, 'Mandárselo por WhatsApp', { clase: 'btn chico' })
-          : h('span', { class: 'ayuda' }, '(sin celular en el contacto: pasáselo a mano)')) : null,
+          : h('span', { class: 'ayuda' },
+            textoPanel('panel.ventas.codigo_sin_celular', '(sin celular en el contacto: pasáselo a mano)'))) : null,
       h('div', { class: 'acciones' },
         cambiarEstado,
         cambiarHecho,
@@ -217,8 +221,9 @@ async function editar(cont, id) {
   guardar.onclick = () => conBoton(guardar, async () => {
     const p = { ...cambios };
     if (productosTocados) {
-      if (!confirm('Cambiaste los productos: se recalculan precio de lista y costos con los valores del día del pedido ('
-        + `${fechaLarga(v.pedido_el)}). ¿Seguir?`)) return;
+      if (!confirm(textoPanel('panel.ventas.productos_confirmar',
+        'Cambiaste los productos: se recalculan precio de lista y costos con los valores del día del pedido ({fecha}). ¿Seguir?',
+        { fecha: fechaLarga(v.pedido_el) }))) return;
       p.lineas = editor.valor();
     }
     if (!Object.keys(p).length) { irA(`#/ventas/${id}`); return; }
@@ -227,14 +232,14 @@ async function editar(cont, id) {
       const c = p.cliente;
       delete p.cliente;
       if (c?.nuevo) {
-        if (!c.nombre.trim()) throw new Error('Falta el nombre del cliente nuevo');
+        if (!c.nombre.trim()) throw new Error(textoPanel('panel.ventas.falta_cliente_nuevo', 'Falta el nombre del cliente nuevo'));
         p.cliente = { nombre: c.nombre, contacto: c.contacto, origen: c.origen };
       } else {
         p.cliente_id = c?.id || null;
       }
     }
     await rpc('actualizar_venta', { p_id: id, p });
-    toast('Venta actualizada');
+    toast(textoPanel('panel.ventas.actualizada', 'Venta actualizada'));
     irA(`#/ventas/${id}`);
   });
 
@@ -256,15 +261,16 @@ async function editar(cont, id) {
     grupo('Pago', chips(opciones(ETIQUETAS.medio_pago), v.medio_pago, (m) => { cambios.medio_pago = m; })),
     grupo('Estado', chips(opciones(ETIQUETAS.estado_pago), v.estado_pago, (e) => { cambios.estado_pago = e; })),
     grupo('Tipo', chips(opciones(ETIQUETAS.tipo), v.tipo, (t) => { cambios.tipo = t; })),
-    campo('Precio cobrado (sin envío)', precio, `Precio de lista: ${pesos(v.precio_lista)}. Vacío = precio de lista.`),
-    campo('Propina', propina, 'Aparte del precio: suma a lo cobrado y a la ganancia.'),
+    campo('Precio cobrado (sin envío)', precio,
+      textoPanel('panel.ventas.precio_ayuda', 'Precio de lista: {precio}. Vacío = precio de lista.', { precio: pesos(v.precio_lista) })),
+    campo('Propina', propina, textoPanel('panel.propina_ayuda', 'Aparte del precio: suma a lo cobrado y a la ganancia.')),
     campo('Origen', origen),
     campo('Notas', h('textarea', { value: v.notas || '', oninput: (e) => { cambios.notas = e.target.value; } })),
     h('details', { class: 'plegable', ontoggle: (e) => editor.mostrarCajas(e.target.open) },
-      h('summary', {}, 'Cambiar productos'),
-      h('p', { class: 'ayuda' }, 'Si cambiás los productos se recalculan el precio de lista y los costos con los valores del día '
-        + 'del pedido '
-        + '(si tenía precio especial, se mantiene). Si no los tocás, la venta conserva los valores con los que se guardó.'),
+      h('summary', {}, textoPanel('panel.ventas.cambiar_productos', 'Cambiar productos')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.ventas.cambiar_productos_ayuda',
+        'Si cambiás los productos se recalculan el precio de lista y los costos con los valores del día del pedido '
+        + '(si tenía precio especial, se mantiene). Si no los tocás, la venta conserva los valores con los que se guardó.')),
       editor.el),
     h('p', { class: 'pie' }, h('a', { href: `#/ventas/${id}` }, 'Cancelar'))),
   h('div', { class: 'guardar' }, guardar));

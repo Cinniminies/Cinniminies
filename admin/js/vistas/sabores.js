@@ -3,6 +3,7 @@ import { h, vaciar, campo, interruptor, pesos, plural, toast, conBoton } from '.
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { seccionPrecios, filaLista, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
+import { textoPanel } from '../textos.js';
 import { srcFoto, subirFoto, borrarFotoDelBucket } from '../fotos.js';
 
 export async function mostrar(cont, { id }) {
@@ -22,12 +23,14 @@ async function lista(cont) {
       titulo: [s.nombre, s.activo ? null : pastilla('neutro', 'Inactivo'), s.visible_web ? pastilla('ok', 'En la web') : null],
       detalle: costoDe[s.id]?.costo_roll != null
         ? `Costo ${pesos(costoDe[s.id].costo_roll)} por roll · unidad ${pesos(costoDe[s.id].precio_unidad)}`
-        : 'Sin receta',
+        : textoPanel('panel.sabores.sin_receta', 'Sin receta'),
     }))),
     h('div', { class: 'acciones' }, h('a', { class: 'btn primario', href: '#/sabores/nuevo' }, '+ Nuevo sabor')),
     eliminados.length ? h('details', { class: 'plegable', style: 'margin-top:1.25rem' },
-      h('summary', {}, `Eliminados (${eliminados.length})`),
-      h('p', { class: 'ayuda' }, 'Tienen ventas o tandas, así que se guardan para el historial. Entrá para restaurarlos.'),
+      h('summary', {}, textoPanel('panel.sabores.eliminados', 'Eliminados ({cantidad})', { cantidad: eliminados.length })),
+      h('p', { class: 'ayuda' },
+        textoPanel('panel.sabores.eliminados_ayuda',
+          'Tienen ventas o tandas, así que se guardan para el historial. Entrá para restaurarlos.')),
       h('ul', { class: 'lista' }, eliminados.map((s) => filaLista({ href: `#/sabores/${s.id}`, titulo: s.nombre })))) : null);
 }
 
@@ -43,7 +46,7 @@ async function ficha(cont, id) {
     ]) : [0, 0],
   ]);
   const sabor = id ? cat.sabor(id) : null;
-  if (id && !sabor) throw new Error('El sabor no existe');
+  if (id && !sabor) throw new Error(textoPanel('panel.sabores.no_existe', 'El sabor no existe'));
   const datos = sabor
     ? { ...sabor }
     : { nombre: '', nombre_corto: '', slug: '', descripcion: '', etiqueta_web: '', foto: '', rolls_por_tanda: 12, masa_propia: false, activo: true, visible_web: false, orden: 10 };
@@ -71,9 +74,14 @@ async function ficha(cont, id) {
       else total += r.cantidad * costoDe[r.insumo_id];
     }
     const rolls = Number(datos.rolls_por_tanda) || 12;
+    const sinCosto = falta
+      ? ` ${textoPanel('panel.sabores.sin_costo',
+        '(hay ingredientes sin costo: cargales una compra o un costo de referencia)')}`
+      : '';
     costoReceta.textContent = receta.some((r) => r.insumo_id && r.cantidad)
-      ? `Costo por tanda ${pesos(total)} · por roll ${pesos(total / rolls)}${falta ? ' (hay ingredientes sin costo: cargales una compra o un costo de referencia)' : ''}`
-      : 'Sin receta: no se puede vender ni hacer tandas de este sabor.';
+      ? textoPanel('panel.sabores.costo', 'Costo por tanda {tanda} · por roll {roll}',
+        { tanda: pesos(total), roll: pesos(total / rolls) }) + sinCosto
+      : textoPanel('panel.sabores.receta_vacia', 'Sin receta: no se puede vender ni hacer tandas de este sabor.');
   }
 
   function dibujarReceta() {
@@ -129,16 +137,20 @@ async function ficha(cont, id) {
       receta.splice(0, receta.length, ...recetaDe(e.target.value));
       e.target.value = '';
       dibujarReceta();
-      toast('Receta copiada: ajustala y guardá');
+      toast(textoPanel('panel.sabores.receta_copiada', 'Receta copiada: ajustala y guardá'));
     },
   }, h('option', { value: '' }, 'Copiar receta de…'), conReceta.map((s) => h('option', { value: s.id }, s.nombre)));
 
   // ---- guardar
   const guardar = h('button', { class: 'btn primario', type: 'button' }, id ? 'Guardar' : 'Crear sabor');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!datos.nombre.trim()) throw new Error('Poné el nombre');
-    if (!(Number(datos.rolls_por_tanda) > 0)) throw new Error('Los rolls por tanda tienen que ser más de 0');
-    if (datos.eliminado && (datos.activo || datos.visible_web)) throw new Error('Primero restaurá el sabor (arriba)');
+    if (!datos.nombre.trim()) throw new Error(textoPanel('panel.falta_nombre', 'Poné el nombre'));
+    if (!(Number(datos.rolls_por_tanda) > 0)) {
+      throw new Error(textoPanel('panel.sabores.rolls_mayor', 'Los rolls por tanda tienen que ser más de 0'));
+    }
+    if (datos.eliminado && (datos.activo || datos.visible_web)) {
+      throw new Error(textoPanel('panel.sabores.restaurar_primero', 'Primero restaurá el sabor (arriba)'));
+    }
     const fila = {
       nombre: datos.nombre.trim(),
       nombre_corto: datos.nombre_corto?.trim() || null,
@@ -162,7 +174,7 @@ async function ficha(cont, id) {
     });
     if (sabor?.foto && sabor.foto !== fila.foto) await borrarFotoDelBucket('sabores', sabor.foto);
     invalidarCatalogo();
-    toast(id ? 'Sabor guardado' : 'Sabor creado');
+    toast(id ? textoPanel('panel.sabores.guardado', 'Sabor guardado') : textoPanel('panel.sabores.creado', 'Sabor creado'));
     irA(`#/sabores/${guardado.id}`);
   });
 
@@ -174,14 +186,18 @@ async function ficha(cont, id) {
     eliminar = h('button', { class: 'btn peligro', type: 'button' }, 'Eliminar sabor');
     eliminar.onclick = () => conBoton(eliminar, async () => {
       const aviso = usado
-        ? `¿Eliminar "${sabor.nombre}"? Tiene ${plural(vendidos, 'venta')} y ${plural(tandas, 'tanda')}: esas quedan en el historial, `
-          + 'pero el sabor desaparece de la lista, de la carga y de la web. Se puede restaurar.'
-        : `¿Eliminar "${sabor.nombre}" para siempre? Se borran también su receta y sus precios.`;
+        ? textoPanel('panel.sabores.eliminar_usado',
+          '¿Eliminar "{sabor}"? Tiene {ventas} y {tandas}: esas quedan en el historial, '
+          + 'pero el sabor desaparece de la lista, de la carga y de la web. Se puede restaurar.',
+          { sabor: sabor.nombre, ventas: plural(vendidos, 'venta'), tandas: plural(tandas, 'tanda') })
+        : textoPanel('panel.sabores.eliminar', '¿Eliminar "{sabor}" para siempre? Se borran también su receta y sus precios.',
+          { sabor: sabor.nombre });
       if (!confirm(aviso)) return;
       const r = await rpc('eliminar_sabor', { p_sabor: id });
       if (r === 'borrado') await borrarFotoDelBucket('sabores', sabor.foto);
       invalidarCatalogo();
-      toast(r === 'borrado' ? 'Sabor borrado' : 'Sabor eliminado (se puede restaurar)');
+      toast(r === 'borrado' ? textoPanel('panel.sabores.borrado', 'Sabor borrado')
+        : textoPanel('panel.sabores.eliminado_aviso', 'Sabor eliminado (se puede restaurar)'));
       irA('#/sabores');
     });
   }
@@ -191,12 +207,13 @@ async function ficha(cont, id) {
     restaurar.onclick = () => conBoton(restaurar, async () => {
       await q(sb.from('sabores').update({ eliminado: false }).eq('id', id));
       invalidarCatalogo();
-      toast('Sabor restaurado: quedó inactivo, activalo si lo vas a vender');
+      toast(textoPanel('panel.sabores.restaurado', 'Sabor restaurado: quedó inactivo, activalo si lo vas a vender'));
       irA(`#/sabores/${id}`);
     });
     avisoEliminado = h('div', { class: 'card' },
-      h('p', {}, h('strong', {}, 'Sabor eliminado. '),
-        'No aparece en la carga ni en la web; sus ventas y tandas siguen en el historial.'),
+      h('p', {}, h('strong', {}, textoPanel('panel.sabores.eliminado', 'Sabor eliminado.')), ' ',
+        textoPanel('panel.sabores.eliminado_ayuda',
+          'No aparece en la carga ni en la web; sus ventas y tandas siguen en el historial.')),
       restaurar);
   }
 
@@ -229,7 +246,7 @@ async function ficha(cont, id) {
       const nueva = await subirFoto('sabores', f, datos.slug || datos.nombre);
       descartarSubida();
       datos.foto = subidaSinGuardar = nueva;
-      toast('Foto subida: tocá Guardar para que quede');
+      toast(textoPanel('panel.sabores.foto_subida', 'Foto subida: tocá Guardar para que quede'));
     } finally {
       dibujarFoto();
     }
@@ -240,57 +257,72 @@ async function ficha(cont, id) {
   vaciar(cont,
     avisoEliminado,
     h('div', { class: 'card' },
-      h('h1', {}, sabor?.nombre || 'Nuevo sabor'),
+      h('h1', {}, sabor?.nombre || textoPanel('panel.sabores.nuevo', 'Nuevo sabor')),
       campo('Nombre', texto('nombre', { placeholder: 'Pistacho' })),
       h('div', { class: 'fila-campos' },
         campo('Nombre corto', texto('nombre_corto', { placeholder: 'Para listas: DDL' })),
         campo('Rolls por tanda', h('input', { type: 'number', inputmode: 'numeric', min: 1, value: datos.rolls_por_tanda,
           oninput: (e) => { datos.rolls_por_tanda = e.target.value; calcularCosto(); } }))),
       interruptor('Masa propia', datos.masa_propia, (v) => { datos.masa_propia = v; },
-        'Lleva una masa distinta (como Oreo) y no se puede mezclar con otros sabores en una misma tanda.'),
-      interruptor('Activo', datos.activo, (v) => { datos.activo = v; }, 'Se puede vender y hacer tandas. Desactivalo en vez de borrarlo.'),
-      interruptor('Visible en la web', datos.visible_web, (v) => { datos.visible_web = v; }, 'Aparece en la web (necesita el identificador web). La web se actualiza en unos 5 minutos.'),
-      h('details', { class: 'plegable' }, h('summary', {}, 'Textos para la web y orden'),
+        textoPanel('panel.sabores.masa_propia_ayuda',
+          'Lleva una masa distinta (como Oreo) y no se puede mezclar con otros sabores en una misma tanda.')),
+      interruptor('Activo', datos.activo, (v) => { datos.activo = v; },
+        textoPanel('panel.sabores.activo_ayuda', 'Se puede vender y hacer tandas. Desactivalo en vez de borrarlo.')),
+      interruptor('Visible en la web', datos.visible_web, (v) => { datos.visible_web = v; },
+        textoPanel('panel.sabores.visible_ayuda',
+          'Aparece en la web (necesita el identificador web). La web se actualiza en unos 5 minutos.')),
+      h('details', { class: 'plegable' }, h('summary', {}, textoPanel('panel.sabores.textos_web', 'Textos para la web y orden')),
         campo('Etiqueta', texto('etiqueta_web', { placeholder: 'Nuestro producto estrella' })),
         campo('Descripción', h('textarea', { value: datos.descripcion || '', oninput: (e) => { datos.descripcion = e.target.value; } })),
         h('div', { class: 'fila-campos' },
           campo('Identificador web', texto('slug', { placeholder: 'pistacho' })),
           campo('Orden', texto('orden', { type: 'number', inputmode: 'numeric' }))),
-        h('p', { class: 'ayuda' }, 'En la caja personalizada de la web el sabor se ofrece solo si tiene precio por unidad.'))),
+        h('p', { class: 'ayuda' }, textoPanel('panel.sabores.textos_web_ayuda',
+          'En la caja personalizada de la web el sabor se ofrece solo si tiene precio por unidad.')))),
 
     h('div', { class: 'card' },
-      h('h3', {}, 'Foto para la web'),
+      h('h3', {}, textoPanel('panel.sabores.foto', 'Foto para la web')),
       h('div', { class: 'foto-fila' }, vistaFoto,
         h('div', {},
           h('div', { class: 'acciones', style: 'margin-top:0' }, subir, quitar, archivo),
-          h('p', { class: 'ayuda' }, 'Se achica sola antes de subirla. Sin foto, la web muestra la inicial del sabor.'))),
-      h('details', { class: 'plegable' }, h('summary', {}, 'Usar una imagen del sitio o un link'),
+          h('p', { class: 'ayuda' },
+            textoPanel('panel.sabores.foto_ayuda',
+              'Se achica sola antes de subirla. Sin foto, la web muestra la inicial del sabor.')))),
+      h('details', { class: 'plegable' }, h('summary', {},
+        textoPanel('panel.sabores.foto_ruta', 'Usar una imagen del sitio o un link')),
         campo('Ruta o link', rutaFoto))),
 
     h('div', { class: 'card' },
-      h('div', { class: 'seccion-cab' }, h('h3', {}, 'Receta por tanda'), copiar),
+      h('div', { class: 'seccion-cab' }, h('h3', {}, textoPanel('panel.sabores.receta', 'Receta por tanda')), copiar),
       filasReceta,
       h('button', { type: 'button', class: 'btn chico', onclick: () => { receta.push({ insumo_id: '', cantidad: 0 }); dibujarReceta(); } }, '+ Ingrediente'),
       costoReceta),
 
     h('div', { class: 'card' },
-      h('h3', {}, 'Relleno'),
-      h('p', { class: 'ayuda' }, 'Cuánto de la receta va al relleno. Es lo único que se pesa por sabor en una tanda mezclada: '
-        + 'la masa es la misma para todos.'),
+      h('h3', {}, textoPanel('panel.sabores.relleno', 'Relleno')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.sabores.relleno_ayuda', 'Cuánto de la receta va al relleno. '
+        + 'Es lo único que se pesa por sabor en una tanda mezclada: la masa es la misma para todos.')),
       filasRelleno),
 
     h('div', { class: 'acciones' }, guardar, eliminar),
 
     id ? h('div', { class: 'card', style: 'margin-top:1rem' },
-      h('h3', {}, 'Precio por unidad'),
-      h('p', { class: 'ayuda' }, 'Lo que vale un roll suelto de este sabor (personalizado y unidad). Las cajas tienen su precio en Formatos.'),
+      h('h3', {}, textoPanel('panel.sabores.precio', 'Precio por unidad')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.sabores.precio_ayuda',
+        'Lo que vale un roll suelto de este sabor (personalizado y unidad). Las cajas tienen su precio en Formatos.')),
       seccionPrecios(precios,
-        async (precio, desde) => { await rpc('fijar_precio', { p: { sabor_id: id, precio, vigente_desde: desde } }); toast('Precio guardado'); irA(`#/sabores/${id}`); },
-        async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); toast('Precio borrado'); irA(`#/sabores/${id}`); }))
-      : h('p', { class: 'ayuda' }, 'El precio por unidad se carga después de crear el sabor.'),
+        async (precio, desde) => {
+          await rpc('fijar_precio', { p: { sabor_id: id, precio, vigente_desde: desde } });
+          irA(`#/sabores/${id}`);
+        },
+        async (pid) => { await q(sb.from('precios').delete().eq('id', pid)); irA(`#/sabores/${id}`); }))
+      : h('p', { class: 'ayuda' },
+        textoPanel('panel.sabores.precio_despues', 'El precio por unidad se carga después de crear el sabor.')),
 
-    usado && id && !sabor.eliminado ? h('p', { class: 'ayuda' }, `Se vendió en ${plural(vendidos, 'venta')} y tiene ${plural(tandas, 'tanda')}: `
-      + 'al eliminarlo se oculta de todo pero se conserva para el historial (se puede restaurar).') : null);
+    usado && id && !sabor.eliminado ? h('p', { class: 'ayuda' },
+      textoPanel('panel.sabores.usado', 'Se vendió en {ventas} y tiene {tandas}: '
+        + 'al eliminarlo se oculta de todo pero se conserva para el historial (se puede restaurar).',
+        { ventas: plural(vendidos, 'venta'), tandas: plural(tandas, 'tanda') })) : null);
   dibujarReceta();
   dibujarFoto();
 }

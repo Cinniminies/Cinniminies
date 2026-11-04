@@ -41,12 +41,17 @@ export async function mostrar(cont, { nueva } = {}) {
 
   const guardar = h('button', { class: 'btn primario bloque', type: 'button' }, 'Guardar tanda');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!f.sabor_id) throw new Error('Elegí el sabor');
+    if (!f.sabor_id) throw new Error(textoPanel('panel.tandas.falta_sabor', 'Elegí el sabor'));
     const r = await rpc('registrar_tanda', { p: { ...f, rolls: f.rolls === '' ? null : Number(f.rolls) } });
-    toast(`Tanda guardada: ${numero(r.cantidad)} × ${r.sabor} (${r.rolls} rolls)`, {
+    toast(textoPanel('panel.tandas.guardada', 'Tanda guardada: {cantidad} × {sabor} ({rolls} rolls)',
+      { cantidad: numero(r.cantidad), sabor: r.sabor, rolls: r.rolls }), {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from('tandas').delete().eq('id', r.tanda_id)); toast('Tanda deshecha'); refrescarSi('#/tandas'); },
+        fn: async () => {
+          await q(sb.from('tandas').delete().eq('id', r.tanda_id));
+          toast(textoPanel('panel.tandas.deshecha', 'Tanda deshecha'));
+          refrescarSi('#/tandas');
+        },
       },
     });
     await mostrar(cont, { nueva: r.tanda_id });
@@ -65,12 +70,12 @@ export async function mostrar(cont, { nueva } = {}) {
         (v) => { f.sabor_id = v; actualizarRolls(); })),
       h('div', { class: 'stepper-fila' }, h('div', { class: 'nombre' }, 'Tandas'),
         stepper(1, (v) => { f.cantidad = v; actualizarRolls(); }, { min: 1, max: 10 })),
-      campo('Rolls que salieron', rollsInput, 'Dejalo vacío si salieron los de siempre.'),
+      campo('Rolls que salieron', rollsInput, textoPanel('panel.tandas.rolls_ayuda', 'Dejalo vacío si salieron los de siempre.')),
       campo('Notas', h('input', { oninput: (e) => { f.notas = e.target.value; } })),
       guardar),
 
     produccionPorSabor.length ? [
-      h('h2', {}, 'Producción total'),
+      h('h2', {}, textoPanel('panel.tandas.produccion', 'Producción total')),
       h('table', { class: 'tabla card' },
         h('tr', {}, h('th', {}, 'Sabor'), h('th', { class: 'num-der' }, 'Tandas'), h('th', { class: 'num-der' }, 'Producidos'),
           h('th', { class: 'num-der' }, 'Vendidos')),
@@ -81,14 +86,16 @@ export async function mostrar(cont, { nueva } = {}) {
     h('div', {},
     seccionSobrantes(sobrantes, cat),
 
-    h('h2', {}, 'Últimas tandas'),
+    h('h2', {}, textoPanel('panel.tandas.ultimas', 'Últimas tandas')),
     historial.length
       ? h('ul', { class: 'lista en-grilla' }, historial.map((t) => {
         const borrar = h('button', { class: 'btn chico peligro' }, 'Borrar');
         borrar.onclick = () => conBoton(borrar, async () => {
-          if (!confirm(`¿Borrar la tanda de ${t.sabores.nombre} del ${fechaCorta(t.fecha)}?`)) return;
+          const pregunta = textoPanel('panel.tandas.borrar_confirmar', '¿Borrar la tanda de {sabor} del {fecha}?',
+            { sabor: t.sabores.nombre, fecha: fechaCorta(t.fecha) });
+          if (!confirm(pregunta)) return;
           await q(sb.from('tandas').delete().eq('id', t.id));
-          toast('Tanda borrada');
+          toast(textoPanel('panel.tandas.borrada', 'Tanda borrada'));
           irA('#/tandas');
         });
         const li = h('li');
@@ -106,7 +113,7 @@ export async function mostrar(cont, { nueva } = {}) {
             h('div', { class: 't2' }, `${fechaCorta(t.fecha)} · ${t.rolls} rolls${t.notas ? ' · ' + t.notas : ''}`)),
           editar, borrar));
       }))
-      : h('p', { class: 'vacio' }, 'Todavía no hay tandas.'))));
+      : h('p', { class: 'vacio' }, textoPanel('panel.tandas.vacio', 'Todavía no hay tandas.')))));
 }
 
 // Rolls que sobraron de cada horneado (v_sobrantes): producidos menos vendidos, regalados o comidos.
@@ -162,10 +169,12 @@ function seccionSobrantes(filas, cat) {
   if (verMas) verMas.onclick = () => { horneados.slice(6).forEach((fs) => visibles.append(tarjeta(fs))); verMas.remove(); };
 
   return [
-    h('h2', {}, 'Rolls que sobraron'),
+    h('h2', {}, textoPanel('panel.tandas.sobrantes', 'Rolls que sobraron')),
     h('div', { class: 'sobr-hero' },
       h('span', { class: 'hero-num' + (total ? '' : ' cero') }, pesos(total)),
-      h('span', { class: 'ayuda' }, total ? `perdidos desde septiembre en ${plural(perdidosTotal, 'roll')}` : 'perdido desde septiembre')),
+      h('span', { class: 'ayuda' }, total
+        ? textoPanel('panel.tandas.perdidos', 'perdidos desde septiembre en {rolls}', { rolls: plural(perdidosTotal, 'roll') })
+        : textoPanel('panel.tandas.sin_perdidos', 'perdido desde septiembre'))),
     h('div', { class: 'leyenda' },
       h('span', { class: 'vendido' }, h('i'), 'Vendido, regalado o comido'),
       h('span', { class: 'de-mas' }, h('i'), 'Salió de más (no es pérdida)'),
@@ -173,11 +182,12 @@ function seccionSobrantes(filas, cat) {
     visibles,
     verMas,
     h('details', { class: 'plegable', style: 'margin-top:.75rem' },
-      h('summary', {}, '¿Cómo se calcula?'),
-      h('p', { class: 'ayuda' }, 'Por horneado: lo que salió de las tandas menos lo vendido, regalado o comido ("3 de 12": vendidos de los hechos). '
+      h('summary', {}, textoPanel('panel.tandas.sobrantes_como', '¿Cómo se calcula?')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.tandas.sobrantes_ayuda',
+        'Por horneado: lo que salió de las tandas menos lo vendido, regalado o comido ("3 de 12": vendidos de los hechos). '
         + 'Los rolls sueltos que vendas en los días siguientes se descuentan del último horneado. '
         + 'Solo es pérdida lo que sobra dentro de lo que rinde la receta: si una tanda de 12 dio 13, el de más no cuenta. '
-        + 'No se suma a gastos porque esa plata ya salió en las compras.')),
+        + 'No se suma a gastos porque esa plata ya salió en las compras.'))),
   ];
 }
 
@@ -200,10 +210,12 @@ function formEditar(t, cerrar) {
   });
   const guardar = h('button', { class: 'btn primario chico', type: 'button' }, 'Guardar');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!(Number(f.cantidad) > 0)) throw new Error('Poné cuántas tandas se hicieron');
-    if (f.rolls === '' || Number(f.rolls) < 0) throw new Error('Poné cuántos rolls salieron');
+    if (!(Number(f.cantidad) > 0)) throw new Error(textoPanel('panel.tandas.falta_cantidad', 'Poné cuántas tandas se hicieron'));
+    if (f.rolls === '' || Number(f.rolls) < 0) {
+      throw new Error(textoPanel('panel.tandas.falta_rolls', 'Poné cuántos rolls salieron'));
+    }
     await rpc('actualizar_tanda', { p_id: t.id, p: { cantidad: Number(f.cantidad), rolls: Number(f.rolls), notas: f.notas } });
-    toast(`Tanda de ${t.sabores.nombre} corregida`);
+    toast(textoPanel('panel.tandas.corregida', 'Tanda de {sabor} corregida', { sabor: t.sabores.nombre }));
     irA('#/tandas');
   });
   return h('div', { class: 'card', style: 'margin:.5rem 0' },

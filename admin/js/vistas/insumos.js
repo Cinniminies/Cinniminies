@@ -59,7 +59,7 @@ async function ficha(cont, id) {
   ]);
   const costoDe = Object.fromEntries(costos.map((c) => [c.insumo_id, Number(c.costo_unitario) || 0]));
   const insumo = id ? cat.insumo(id) : null;
-  if (id && !insumo) throw new Error('El insumo no existe');
+  if (id && !insumo) throw new Error(textoPanel('panel.insumos.no_existe', 'El insumo no existe'));
   const [compras, enRecetas] = usos;
   const enUso = usos.some((n) => n > 0);
   const datos = insumo
@@ -78,8 +78,10 @@ async function ficha(cont, id) {
       .map((x) => ({ nombre: cat.insumo(x.insumo_id)?.nombre || '', costo: x.cantidad * (costoDe[x.insumo_id] || 0) }));
     const caja = id ? costoDe[id] || 0 : 0;
     const total = caja + partes.reduce((s, p) => s + p.costo, 0);
-    totalCaja.textContent = `Costo por caja: ${[`caja ${pesos(caja)}`, ...partes.map((p) => `${p.nombre.toLowerCase()} ${pesos(p.costo)}`)].join(' + ')}`
-      + ` = ${pesos(total)}`;
+    totalCaja.textContent = textoPanel('panel.insumos.costo_caja', 'Costo por caja: {partes} = {total}', {
+      partes: [`caja ${pesos(caja)}`, ...partes.map((p) => `${p.nombre.toLowerCase()} ${pesos(p.costo)}`)].join(' + '),
+      total: pesos(total),
+    });
   }
   function dibujarExtra() {
     vaciar(filasExtra, extra.map((x, i) => {
@@ -100,8 +102,9 @@ async function ficha(cont, id) {
   }
   const esCaja = () => datos.tipo === 'packaging' && /^caja/i.test(datos.nombre || '');
   const seccionCaja = h('div', { class: 'card' },
-    h('h3', {}, 'Lo que lleva cada caja'),
-    h('p', { class: 'ayuda' }, 'Cada caja usada en una venta descuenta esto del stock y lo suma al costo de caja.'),
+    h('h3', {}, textoPanel('panel.insumos.caja', 'Lo que lleva cada caja')),
+    h('p', { class: 'ayuda' },
+      textoPanel('panel.insumos.caja_ayuda', 'Cada caja usada en una venta descuenta esto del stock y lo suma al costo de caja.')),
     filasExtra,
     totalCaja,
     h('button', { type: 'button', class: 'btn chico', onclick: () => { extra.push({ insumo_id: '', cantidad: 1 }); dibujarExtra(); } }, '+ Packaging'));
@@ -109,7 +112,7 @@ async function ficha(cont, id) {
 
   const guardar = h('button', { class: 'btn primario', type: 'button' }, id ? 'Guardar' : 'Crear insumo');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!datos.nombre.trim()) throw new Error('Poné el nombre');
+    if (!datos.nombre.trim()) throw new Error(textoPanel('panel.falta_nombre', 'Poné el nombre'));
     const ref = datos.costo_referencia === '' || datos.costo_referencia == null ? null : Number(datos.costo_referencia);
     const fila = {
       nombre: datos.nombre.trim(), tipo: datos.tipo, unidad_base: datos.unidad_base,
@@ -127,7 +130,7 @@ async function ficha(cont, id) {
       });
     }
     invalidarCatalogo();
-    toast(id ? 'Insumo guardado' : 'Insumo creado');
+    toast(id ? textoPanel('panel.insumos.guardado', 'Insumo guardado') : textoPanel('panel.insumos.creado', 'Insumo creado'));
     irA(`#/insumos/${guardado.id}`);
   });
 
@@ -135,10 +138,10 @@ async function ficha(cont, id) {
   if (id && !enUso) {
     borrar = h('button', { class: 'btn peligro', type: 'button' }, 'Borrar insumo');
     borrar.onclick = () => conBoton(borrar, async () => {
-      if (!confirm(`¿Borrar "${insumo.nombre}"?`)) return;
+      if (!confirm(textoPanel('panel.insumos.borrar_confirmar', '¿Borrar "{insumo}"?', { insumo: insumo.nombre }))) return;
       await q(sb.from('insumos').delete().eq('id', id));
       invalidarCatalogo();
-      toast('Insumo borrado');
+      toast(textoPanel('panel.insumos.borrado', 'Insumo borrado'));
       irA('#/insumos');
     });
   }
@@ -146,40 +149,55 @@ async function ficha(cont, id) {
   const unidadTxt = () => datos.unidad_base;
   const ayudaRef = h('div', { class: 'ayuda' });
   const actualizarAyudaRef = () => {
-    ayudaRef.textContent = `Por ${unidadTxt()}. Se usa solo si todavía no hay compras con cantidad. `
-      + (datos.unidad_base === 'g' ? 'Ej.: harina a $210 los 5 kg → 0,042.'
-        : datos.unidad_base === 'cm' ? 'Ej.: rollo de 7,5 m a $75 → 0,1.' : '');
+    const ejemplo = datos.unidad_base === 'g'
+      ? textoPanel('panel.insumos.referencia_ejemplo_g', 'Ej.: harina a $210 los 5 kg → 0,042.')
+      : datos.unidad_base === 'cm' ? textoPanel('panel.insumos.referencia_ejemplo_cm', 'Ej.: rollo de 7,5 m a $75 → 0,1.') : '';
+    const ayuda = textoPanel('panel.insumos.referencia_ayuda', 'Por {unidad}. Se usa solo si todavía no hay compras con cantidad.',
+      { unidad: unidadTxt() });
+    ayudaRef.textContent = `${ayuda} ${ejemplo}`;
   };
   actualizarAyudaRef();
 
   vaciar(cont,
     h('div', { class: 'card' },
-      h('h1', {}, insumo?.nombre || 'Nuevo insumo'),
+      h('h1', {}, insumo?.nombre || textoPanel('panel.insumos.nuevo', 'Nuevo insumo')),
       costo?.costo_unitario != null
-        ? h('p', { class: 'ayuda' }, `Costo actual ${porPresentacion(Number(costo.costo_unitario), datos.unidad_base)}`,
+        ? h('p', { class: 'ayuda' },
+          textoPanel('panel.insumos.costo_actual', 'Costo actual {costo}',
+            { costo: porPresentacion(Number(costo.costo_unitario), datos.unidad_base) }),
+          ' · ',
           costo.fuente === 'compra'
-            ? ` · última compra ${fechaLarga(costo.ultima_compra)}: ${cantidad(costo.presentacion, datos.unidad_base)} por ${pesos(costo.precio_presentacion)}`
-            : ' · costo de referencia (todavía sin compras)')
+            ? textoPanel('panel.insumos.ultima_compra', 'última compra {fecha}: {cantidad} por {precio}', {
+              fecha: fechaLarga(costo.ultima_compra),
+              cantidad: cantidad(costo.presentacion, datos.unidad_base),
+              precio: pesos(costo.precio_presentacion),
+            })
+            : textoPanel('panel.insumos.costo_referencia', 'costo de referencia (todavía sin compras)'))
         : null,
       campo('Nombre', h('input', { value: datos.nombre, oninput: (e) => { datos.nombre = e.target.value; actualizarCaja(); } })),
       enUso
-        ? h('p', { class: 'ayuda' }, `Tipo y unidad no se pueden cambiar: ya se usó (${plural(compras, 'compra')}, ${plural(enRecetas, 'receta')}). `
-          + 'Si cambió la presentación no hace falta: la cantidad se carga en cada compra.')
+        ? h('p', { class: 'ayuda' },
+          textoPanel('panel.insumos.en_uso', 'Tipo y unidad no se pueden cambiar: ya se usó ({compras}, {recetas}). '
+            + 'Si cambió la presentación no hace falta: la cantidad se carga en cada compra.',
+          { compras: plural(compras, 'compra'), recetas: plural(enRecetas, 'receta') }))
         : [
           grupo('Tipo', chips(TIPOS, datos.tipo, (v) => { datos.tipo = v; actualizarCaja(); })),
           grupo('Unidad base', chips(UNIDADES, datos.unidad_base, (v) => { datos.unidad_base = v; actualizarAyudaRef(); })),
         ],
       h('div', { class: 'fila-campos' },
         campo('Stock mínimo', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: datos.stock_minimo,
-          oninput: (e) => { datos.stock_minimo = e.target.value; } }), 'En la unidad base. Avisa cuando queda menos.'),
+          oninput: (e) => { datos.stock_minimo = e.target.value; } }),
+        textoPanel('panel.insumos.minimo_ayuda', 'En la unidad base. Avisa cuando queda menos.')),
         campo('Costo de referencia', h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: datos.costo_referencia ?? '',
           oninput: (e) => { datos.costo_referencia = e.target.value; } }), ayudaRef)),
       datos.tipo === 'ingrediente' ? interruptor('Va en el glaseado', !!datos.es_glaseado, (v) => { datos.es_glaseado = v; },
-        'Los rolls que se piden sin glaseado no lo gastan ni lo cuentan en el costo.') : null,
+        textoPanel('panel.insumos.glaseado_ayuda',
+          'Los rolls que se piden sin glaseado no lo gastan ni lo cuentan en el costo.')) : null,
       interruptor('Se descuenta solo', !!datos.se_descuenta_solo, (v) => { datos.se_descuenta_solo = v; },
         textoPanel('panel.stock_solo_ayuda', 'Para lo que no se puede medir después de usarlo, como el papel manteca. '
           + 'No se cuenta: su stock baja solo con cada caja hecha y cada tanda.')),
-      interruptor('Activo', datos.activo, (v) => { datos.activo = v; }, 'Los inactivos no aparecen para comprar, contar ni en recetas nuevas.')),
+      interruptor('Activo', datos.activo, (v) => { datos.activo = v; },
+        textoPanel('panel.insumos.activo_ayuda', 'Los inactivos no aparecen para comprar, contar ni en recetas nuevas.'))),
     historial ? seccionHistorial(historial, insumo, cat) : null,
     seccionCaja,
     h('div', { class: 'acciones' }, guardar, borrar));
@@ -203,27 +221,32 @@ function seccionHistorial({ compras, recetas, costos, enCajas }, insumo, cat) {
   const escala = ['g', 'ml'].includes(insumo.unidad_base) ? 1000 : insumo.unidad_base === 'cm' ? 100 : 1;
   const unidad = { g: 'kg', ml: 'L', cm: 'm' }[insumo.unidad_base] || insumo.unidad_base;
   const pts = puntos(compras);
-  const titulo = h('h3', {}, 'Historial de precios');
+  const titulo = h('h3', {}, textoPanel('panel.insumos.historial', 'Historial de precios'));
   if (pts.length < 2) {
     return h('div', { class: 'card' }, titulo, h('p', { class: 'ayuda' }, pts.length
-      ? `Hay una sola compra (${fechaLarga(pts[0].fecha)}, ${pesos(pts[0].precio * escala)}/${unidad}). Con la próxima se ve cómo cambia.`
-      : 'Todavía no hay compras con cantidad.'));
+      ? textoPanel('panel.insumos.una_compra', 'Hay una sola compra ({fecha}, {precio}). Con la próxima se ve cómo cambia.',
+        { fecha: fechaLarga(pts[0].fecha), precio: `${pesos(pts[0].precio * escala)}/${unidad}` })
+      : textoPanel('panel.insumos.sin_compras', 'Todavía no hay compras con cantidad.')));
   }
   const c = cambio(pts);
   const pct = c.relativo == null ? '' : `${Math.round(Math.abs(c.relativo) * 100)} %`;
   const precios = pts.map((p) => p.precio * escala);
   const [min, max] = [Math.min(...precios), Math.max(...precios)];
   const resumen = (Math.abs(c.diferencia) < 1e-9
-    ? `La última compra salió igual que la primera (${fechaLarga(c.desde.fecha)}): ${pesos(c.hasta.precio * escala)}/${unidad}.`
-    : `Desde la primera compra (${fechaLarga(c.desde.fecha)}) ${c.diferencia > 0 ? 'subió' : 'bajó'} ${pct}: `
-      + `de ${pesos(c.desde.precio * escala)} a ${pesos(c.hasta.precio * escala)}/${unidad}.`)
-    + (max - min > 1e-9 ? ` En ${pts.length} compras estuvo entre ${pesos(min)} y ${pesos(max)}.` : '');
+    ? textoPanel('panel.insumos.precio_igual', 'La última compra salió igual que la primera ({fecha}): {precio}.',
+      { fecha: fechaLarga(c.desde.fecha), precio: `${pesos(c.hasta.precio * escala)}/${unidad}` })
+    : textoPanel('panel.insumos.precio_cambio', 'Desde la primera compra ({fecha}) {cambio} {porcentaje}: de {desde} a {hasta}.', {
+      fecha: fechaLarga(c.desde.fecha), cambio: c.diferencia > 0 ? 'subió' : 'bajó', porcentaje: pct,
+      desde: pesos(c.desde.precio * escala), hasta: `${pesos(c.hasta.precio * escala)}/${unidad}`,
+    }))
+    + (max - min > 1e-9 ? ` ${textoPanel('panel.insumos.precio_rango', 'En {compras} compras estuvo entre {min} y {max}.',
+      { compras: pts.length, min: pesos(min), max: pesos(max) })}` : '');
 
   const grafico = linea(pts.map((p) => ({
     x: p.fecha, valor: p.precio * escala, etiqueta: fechaLarga(p.fecha), etiquetaEje: fechaLarga(p.fecha),
   })), {
     formato: pesos,
-    titulo: `Precio por ${unidad} en cada compra`,
+    titulo: textoPanel('panel.insumos.grafico', 'Precio por {unidad} en cada compra', { unidad }),
     columnasTabla: [['Compra', (d) => d.etiqueta], [`Por ${unidad}`, (d) => pesos(d.valor)]],
   });
 
@@ -240,7 +263,8 @@ function seccionHistorial({ compras, recetas, costos, enCajas }, insumo, cat) {
     if (porRoll.length || porCaja.length) {
       impacto = [
         h('p', { class: 'ayuda', style: 'margin:.75rem 0 .35rem' },
-          `Con las ${porRoll.length ? 'recetas' : 'cajas'} de hoy, esa diferencia ${c.diferencia > 0 ? 'suma' : 'resta'}:`),
+          textoPanel('panel.insumos.impacto', 'Con las {base} de hoy, esa diferencia {efecto}:',
+            { base: porRoll.length ? 'recetas' : 'cajas', efecto: c.diferencia > 0 ? 'suma' : 'resta' })),
         h('table', { class: 'tabla' },
           porRoll.map((r) => h('tr', {}, h('td', {}, r.sabor),
             h('td', { class: 'num-der' }, `${signo(r.porRoll)} por roll`,

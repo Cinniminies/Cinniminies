@@ -58,7 +58,9 @@ export async function mostrar(cont) {
     const cant = Number(f.cantidad);
     const total = Number(f.total);
     if (f.insumo === '__otro') {
-      vaciar(vistaPrevia, 'Si es algo para trabajar mejor (palote, moldes…), cargalo en Gastos → Mejoras del negocio.');
+      vaciar(vistaPrevia,
+        textoPanel('panel.compras.otro_ayuda',
+          'Si es algo para trabajar mejor (palote, moldes…), cargalo en Gastos → Mejoras del negocio.'));
       return;
     }
     if (!i || !cant || !total) { vaciar(vistaPrevia); return; }
@@ -85,23 +87,27 @@ export async function mostrar(cont) {
 
   const guardar = h('button', { class: 'btn primario bloque', type: 'button' }, 'Guardar compra');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!f.insumo) throw new Error('Elegí qué compraste');
+    if (!f.insumo) throw new Error(textoPanel('panel.compras.falta_insumo', 'Elegí qué compraste'));
     const p = {
       fecha: f.fecha, proveedor: f.proveedor, descripcion: f.descripcion, notas: f.notas,
       total: f.total === '' ? null : Number(f.total),
     };
     if (f.insumo.startsWith('__')) {
       p.categoria = f.insumo.slice(2);
-      if (!f.descripcion.trim()) throw new Error('Poné una descripción');
+      if (!f.descripcion.trim()) throw new Error(textoPanel('panel.falta_descripcion', 'Poné una descripción'));
     } else {
       Object.assign(p, { insumo_id: f.insumo, cantidad: f.cantidad === '' ? null : Number(f.cantidad), unidad: f.unidad });
     }
     const r = await rpc('registrar_compra', { p });
     Object.assign(recordar, { fecha: f.fecha, proveedor: f.proveedor });
-    toast(`Compra guardada: ${pesos(p.total)}`, {
+    toast(textoPanel('panel.compras.guardada', 'Compra guardada: {monto}', { monto: pesos(p.total) }), {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from('compras').delete().eq('id', r.compra_id)); toast('Compra deshecha'); refrescarSi('#/compras'); },
+        fn: async () => {
+          await q(sb.from('compras').delete().eq('id', r.compra_id));
+          toast(textoPanel('panel.compras.deshecha', 'Compra deshecha'));
+          refrescarSi('#/compras');
+        },
       },
     });
     irA('#/compras');
@@ -129,13 +135,15 @@ export async function mostrar(cont) {
       guardar)),
 
     h('div', {},
-    h('h2', {}, 'Últimas compras'),
+    h('h2', {}, textoPanel('panel.compras.ultimas', 'Últimas compras')),
     libroCaja(historial.map((c) => {
       const borrar = h('button', { class: 'btn chico peligro', 'aria-label': `Borrar la compra ${c.descripcion || c.insumos?.nombre || c.categoria}` }, 'Borrar');
       borrar.onclick = () => conBoton(borrar, async () => {
-        if (!confirm(`¿Borrar la compra "${c.descripcion || c.insumos?.nombre}" del ${fechaCorta(c.fecha)}?`)) return;
+        const pregunta = textoPanel('panel.compras.borrar_confirmar', '¿Borrar la compra "{compra}" del {fecha}?',
+          { compra: c.descripcion || c.insumos?.nombre, fecha: fechaCorta(c.fecha) });
+        if (!confirm(pregunta)) return;
         await q(sb.from('compras').delete().eq('id', c.id));
-        toast('Compra borrada');
+        toast(textoPanel('panel.compras.borrada', 'Compra borrada'));
         irA('#/compras');
       });
       return {
@@ -145,5 +153,5 @@ export async function mostrar(cont) {
         monto: c.total,
         accion: borrar,
       };
-    }), 'Todavía no hay compras.', { cortada: historial.length >= 30 }))));
+    }), textoPanel('panel.compras.vacio', 'Todavía no hay compras.'), { cortada: historial.length >= 30 }))));
 }

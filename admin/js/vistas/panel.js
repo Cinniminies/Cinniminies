@@ -29,7 +29,8 @@ function tiraSemana(sabado, ventasSemana, rollsPorHacer) {
   return h('section', { class: 'semana', 'aria-labelledby': 'semana-titulo' },
     h('div', { class: 'semana-cab' },
       h('h2', { id: 'semana-titulo' }, tituloSemana(sabado)),
-      h('p', { class: 'ayuda' }, textoPanel('panel.semana_ayuda', 'Pedidos cargados cada día. Todo se hornea y se entrega el sábado.'))),
+      h('p', { class: 'ayuda' },
+        textoPanel('panel.semana_ayuda', 'Pedidos cargados cada día. Todo se hornea y se entrega el sábado.'))),
     h('ol', { class: 'semana-dias' },
       dias.map((dia) => {
         const n = cuantos(dia);
@@ -42,7 +43,8 @@ function tiraSemana(sabado, ventasSemana, rollsPorHacer) {
         h('a', { class: 'semana-dia semana-sabado' + (sabado === hoy ? ' hoy' : ''), href: '#/plan' },
           h('span', { class: 'dia' }, `sábado ${Number(sabado.slice(8, 10))}`),
           h('span', { class: 'cuantos' }, numero(rollsPorHacer, 0)),
-          h('span', { class: 'que' }, textoPanel('panel.sabado', '{rolls} para hornear', { rolls: rollsPorHacer === 1 ? 'roll' : 'rolls' }))))));
+          h('span', { class: 'que' },
+            textoPanel('panel.sabado', '{rolls} para hornear', { rolls: rollsPorHacer === 1 ? 'roll' : 'rolls' }))))));
 }
 
 export async function mostrar(cont) {
@@ -84,27 +86,32 @@ export async function mostrar(cont) {
   if (pedidosNuevos.length) {
     tareas.push(h('a', { class: 'card tarea tarea-link', href: '#/pedidos' },
       h('div', { class: 'tarea-cab' }, icono('carrito'),
-        h('div', {}, h('strong', {}, `${plural(pedidosNuevos.length, 'pedido nuevo', 'pedidos nuevos')} de la web`),
+        h('div', {}, h('strong', {}, textoPanel('panel.inicio.pedidos_web', '{pedidos} de la web',
+          { pedidos: plural(pedidosNuevos.length, 'pedido nuevo', 'pedidos nuevos') })),
           h('div', { class: 'ayuda' }, pedidosNuevos.map((p) => `${p.nombre} ${pesos(p.total)}`).join(' · ')))),
       icono('derecha', 'icono chev')));
   }
   if (porHacer.length) {
     tareas.push(h('a', { class: 'card tarea tarea-link', href: '#/plan' },
       h('div', { class: 'tarea-cab' }, icono('roll'),
-        h('div', {}, h('strong', {}, `${plural(porHacer.length, 'pedido', 'pedidos')} por hacer`),
-          h('div', { class: 'ayuda' }, `${plural(sumar(porHacer, (v) => v.rolls), 'roll')} · ver el plan de horneado`))),
+        h('div', {}, h('strong', {},
+          textoPanel('panel.inicio.por_hacer', '{pedidos} por hacer', { pedidos: plural(porHacer.length, 'pedido') })),
+          h('div', { class: 'ayuda' }, textoPanel('panel.inicio.por_hacer_ayuda', '{rolls} · ver el plan de horneado',
+            { rolls: plural(sumar(porHacer, (v) => v.rolls), 'roll') })))),
       icono('derecha', 'icono chev')));
   }
   if (pendientes.length) {
     tareas.push(h('div', { class: 'card tarea' },
       h('div', { class: 'tarea-cab' }, icono('reloj'),
-        h('div', {}, h('strong', {}, `${plural(pendientes.length, 'venta pendiente', 'ventas pendientes')} de cobro`),
+        h('div', {}, h('strong', {}, textoPanel('panel.inicio.pendientes', '{ventas} de cobro',
+          { ventas: plural(pendientes.length, 'venta pendiente', 'ventas pendientes') })),
           h('div', { class: 'ayuda' }, pesos(sumar(pendientes, (v) => v.total))))),
       h('ul', { class: 'lista plana' }, pendientes.map((v) => {
         const boton = h('button', { class: 'btn chico ok', type: 'button', 'aria-label': `Marcar cobrada la venta de ${v.cliente || 'sin cliente'}` }, 'Cobrada');
         boton.onclick = () => conBoton(boton, async () => {
           await rpc('actualizar_venta', { p_id: v.id, p: { estado_pago: 'pagado' } });
-          toast(`Venta de ${v.cliente || 'sin cliente'} marcada como cobrada`);
+          toast(textoPanel('panel.inicio.cobrada', 'Venta de {cliente} marcada como cobrada',
+            { cliente: v.cliente || 'sin cliente' }));
           irA('#/panel');
         });
         return h('li', { class: 'fila' },
@@ -118,7 +125,8 @@ export async function mostrar(cont) {
   if (alertas.length) {
     tareas.push(h('a', { class: 'card tarea tarea-link', href: '#/stock' },
       h('div', { class: 'tarea-cab' }, icono('alerta'),
-        h('div', {}, h('strong', {}, `${plural(alertas.length, 'insumo', 'insumos')} para reponer`),
+        h('div', {}, h('strong', {},
+          textoPanel('panel.inicio.reponer', '{insumos} para reponer', { insumos: plural(alertas.length, 'insumo') })),
           h('div', { class: 'ayuda' }, alertas.map((a) => a.nombre).join(', ')))),
       icono('derecha', 'icono chev')));
   }
@@ -163,14 +171,14 @@ export async function mostrar(cont) {
       ventas: Number(r.ventas),
       destacado: r.mes === (mesSel || actual),
     })), {
-      titulo: 'Vendido y ganancia por mes',
+      titulo: textoPanel('panel.inicio.grafico_titulo', 'Vendido y ganancia por mes'),
       series: [
         { clave: 'vendido', nombre: 'Vendido', color: 'var(--graf-acento)' },
         { clave: 'ganancia', nombre: 'Ganancia bruta', color: 'var(--serie-3)' },
       ],
       formato: (v) => (v >= 10000 ? `$${numero(v / 1000, 1)} mil` : pesos(v)),
       alElegir: (d) => elegirMes(d.mes),
-      ayudaElegir: 'Tocá un mes para ver su resumen.',
+      ayudaElegir: textoPanel('panel.inicio.grafico_ayuda', 'Tocá un mes para ver su resumen.'),
       vacio: textoPanel('panel.grafico_vacio', 'Todavía no hubo ventas en estos seis meses.'),
       columnasTabla: [
         ['Mes', (d) => d.etiquetaLarga],
@@ -180,7 +188,8 @@ export async function mostrar(cont) {
       ],
     });
 
-    const porSabor = h('div', {}, h('p', { class: 'ayuda' }, 'Cargando rolls por sabor…'));
+    const porSabor = h('div', {}, h('p', { class: 'ayuda' },
+      textoPanel('panel.inicio.cargando_sabores', 'Cargando rolls por sabor…')));
     let consulta = sb.from('v_ventas_sabores').select('sabor,unidades');
     if (mesSel) consulta = consulta.eq('mes', mesSel);
     Promise.all([q(consulta), catalogo()]).then(([filas, cat]) => {
@@ -194,7 +203,9 @@ export async function mostrar(cont) {
     const antes = [...cifras()].map((el) => el.textContent);
     vaciar(contPeriodo,
       h('div', { class: 'hero' },
-        h('div', { class: 'etq' }, mesSel ? `Vendido en ${nombreMes(mesSel)}` : 'Vendido desde el principio'),
+        h('div', { class: 'etq' }, mesSel
+          ? textoPanel('panel.inicio.vendido_mes', 'Vendido en {mes}', { mes: nombreMes(mesSel) })
+          : textoPanel('panel.inicio.vendido_todo', 'Vendido desde el principio')),
         h('div', { class: 'hero-num' }, pesos(vendido)),
         previo ? variacion(vendido, Number(previo.vendido), contra) : null),
       h('div', { class: 'stats' },
@@ -215,8 +226,9 @@ export async function mostrar(cont) {
     const otros = Number(d.otros_ingresos || 0);
     if (!aportes && !otros) return null;
     const origenes = [aportes ? `aportes de socios ${pesos(aportes)}` : null, otros ? `otros ingresos ${pesos(otros)}` : null];
-    return h('p', { class: 'ayuda' }, `Además entraron ${pesos(aportes + otros)} que no son ventas: `,
-      origenes.filter(Boolean).join(' · '), '.');
+    return h('p', { class: 'ayuda' },
+      textoPanel('panel.inicio.entro_aparte', 'Además entraron {monto} que no son ventas: {origenes}.',
+        { monto: pesos(aportes + otros), origenes: origenes.filter(Boolean).join(' · ') }));
   }
 
   const plata = (etiqueta, valor, ayuda) => h('div', { class: 'dato' },
@@ -229,7 +241,8 @@ export async function mostrar(cont) {
     tiraSemana(proximoSabado(), ventasSemana, sumar(porHacer, (v) => v.rolls)),
 
     h('div', { class: 'inicio-hacer' },
-      tareas.length ? h('section', {}, h('h2', { class: 'seccion-titulo' }, 'Para hacer'), tareas) : null,
+      tareas.length ? h('section', {}, h('h2', { class: 'seccion-titulo' },
+        textoPanel('panel.inicio.para_hacer', 'Para hacer')), tareas) : null,
       h('section', {},
         h('h2', { class: 'seccion-titulo solo-lateral' }, textoPanel('panel.cargar', 'Cargar')),
         h('nav', { class: 'accesos', 'aria-label': 'Cargar' },
@@ -240,12 +253,14 @@ export async function mostrar(cont) {
           acceso('#/stock/conteo', 'conteo', 'Conteo')))),
 
     h('section', {},
-      h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Resumen'), contChips),
+      h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' },
+        textoPanel('panel.inicio.resumen', 'Resumen')), contChips),
       contPeriodo),
 
     h('div', { class: 'inicio-pie' },
       h('section', { class: 'inicio-bloque' },
-        h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'La plata, acumulado')),
+        h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' },
+          textoPanel('panel.inicio.plata', 'La plata, acumulado'))),
         h('dl', { class: 'card datos' },
           plata('Caja teórica', pesos(total.caja_teorica), 'lo que debería haber'),
           plata('Pendiente de cobro', pesos(total.pendiente)),
@@ -256,7 +271,8 @@ export async function mostrar(cont) {
           Number(total.otros_ingresos) ? plata('Otros ingresos', pesos(total.otros_ingresos), 'que no son ventas') : null,
           plata('Tandas hechas', `${numero(total.tandas, 1)} · ${numero(total.rolls_producidos, 0)} rolls`))),
       h('section', { class: 'inicio-bloque' },
-        h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' }, 'Últimas ventas'),
+        h('div', { class: 'seccion-cab' }, h('h2', { class: 'seccion-titulo' },
+          textoPanel('panel.inicio.ultimas', 'Últimas ventas')),
           ultimas.length ? h('a', { href: '#/ventas', class: 'ver-todo' }, 'Ver todas') : null),
         ultimas.length
           ? h('ul', { class: 'lista' }, ultimas.map((v) => filaLista({
@@ -265,7 +281,7 @@ export async function mostrar(cont) {
             detalle: [fechaCorta(v.fecha), v.formatos, v.sabores],
             derecha: monto(pesos(v.total)),
           })))
-          : cajaVacia('Todavía no hay ventas.',
+          : cajaVacia(textoPanel('panel.inicio.vacio', 'Todavía no hay ventas.'),
             { href: '#/venta', texto: textoPanel('panel.vacio_ventas', 'Cargar una venta') })))));
   dibujarPeriodo();
 }

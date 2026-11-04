@@ -3,6 +3,7 @@ import { h, vaciar, chips, numero, fechaCorta, hoyISO, mesISO, sumarDias } from 
 import { areas, partes, embudo, variacion } from '../graficos.js';
 import { irA } from '../app.js';
 import { stat } from '../componentes.js';
+import { textoPanel } from '../textos.js';
 
 // Visitas a la web (idea 6.2): cuántos entran, de dónde vienen y cuántos llegan a pedir. Las registra la web en
 // /api/visita (sin cookies ni datos personales) y las resume la base (resumen_visitas).
@@ -25,7 +26,7 @@ export async function mostrar(cont) {
   const desde = periodo === 'mes' ? mesISO(hasta) : sumarDias(hasta, 1 - periodo);
   const r = await rpc('resumen_visitas', { p_desde: desde, p_hasta: hasta });
   const contra = 'el período anterior';
-  const sinVisitas = 'Todavía no hay visitas en este período.';
+  const sinVisitas = textoPanel('panel.visitas.vacio', 'Todavía no hay visitas en este período.');
   const pct = (n) => (r.sesiones ? `${Math.round((100 * n) / r.sesiones)} %` : '—');
 
   // En 30 días no entran todas las fechas abajo: se rotula una por semana (y la primera y la última).
@@ -51,14 +52,14 @@ export async function mostrar(cont) {
         { etiqueta: 'Abrieron el carrito', valor: r.embudo.carrito },
         { etiqueta: 'Tocaron "Pedir ahora"', valor: r.embudo.formulario },
         { etiqueta: 'Mandaron el pedido', valor: r.embudo.pedido },
-      ], { titulo: 'Hasta dónde llegan', vacio: sinVisitas })),
+      ], { titulo: textoPanel('panel.visitas.embudo', 'Hasta dónde llegan'), vacio: sinVisitas })),
       h('div', { class: 'card' }, partes(r.origenes.map((o) => ({
         etiqueta: ORIGENES[o.origen][0], valor: o.sesiones, color: ORIGENES[o.origen][1],
-      })), { titulo: 'De dónde vienen', formato: (v) => numero(v, 0), vacio: sinVisitas }),
+      })), { titulo: textoPanel('panel.visitas.origenes', 'De dónde vienen'), formato: (v) => numero(v, 0), vacio: sinVisitas }),
       r.origenes.some((o) => o.pedidos) ? h('p', { class: 'ayuda' }, 'Pidieron: ',
         r.origenes.filter((o) => o.pedidos).map((o) => `${ORIGENES[o.origen][0]} ${o.pedidos}`).join(' · ')) : null),
       h('div', { class: 'card' }, areas(dias, {
-        titulo: 'Visitas por día',
+        titulo: textoPanel('panel.visitas.por_dia', 'Visitas por día'),
         series: [
           { clave: 'sesiones', nombre: 'Visitas', color: 'var(--graf-acento)' },
           { clave: 'pedidos', nombre: 'Pidieron', color: 'var(--serie-3)' },
@@ -70,6 +71,6 @@ export async function mostrar(cont) {
           ['Pidieron', (d) => numero(d.valores.pedidos, 0)],
         ],
       }))),
-    h('p', { class: 'ayuda' }, 'Se cuentan desde el 30/10/2026, sin cookies ni datos de las personas: cada pestaña del '
-      + 'navegador es una visita. No cuentan los buscadores ni las pruebas en el servidor local.'));
+    h('p', { class: 'ayuda' }, textoPanel('panel.visitas.ayuda', 'Se cuentan desde el 30/10/2026, sin cookies ni datos de las '
+      + 'personas: cada pestaña del navegador es una visita. No cuentan los buscadores ni las pruebas en el servidor local.')));
 }

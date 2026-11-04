@@ -73,7 +73,7 @@ export async function mostrar(cont) {
       plan = null;
       vaciar(resultado,
         h('h2', {}, textoPanel('panel.plan_nada', 'Nada para hornear el {fecha}', { fecha: fechaCorta(estado.fecha) })),
-        cajaVacia('Elegí al menos un pedido o sumá rolls extra para vender.'));
+        cajaVacia(textoPanel('panel.plan.vacio', 'Elegí al menos un pedido o sumá rolls extra para vender.')));
       dibujarTiempo();
       return;
     }
@@ -89,19 +89,24 @@ export async function mostrar(cont) {
     const registrar = h('button', { class: 'btn primario', type: 'button' }, 'Registrar horneado');
     registrar.onclick = () => conBoton(registrar, async () => {
       const n = incluidas().length;
-      if (!confirm(`¿Registrar ${plural(plan.total_tandas, 'tanda')} con fecha ${fechaCorta(estado.fecha)}?`
-        + (n ? ` ${plural(n, 'pedido pasa', 'pedidos pasan')} a hecho.` : '')
-        + (estado.fecha > hoyISO() ? '\n\nOjo: la fecha es posterior a hoy. Si ya horneaste, cambiá el día de horneado.' : ''))) return;
+      const pregunta = textoPanel('panel.plan.registrar_confirmar', '¿Registrar {tandas} con fecha {fecha}?',
+        { tandas: plural(plan.total_tandas, 'tanda'), fecha: fechaCorta(estado.fecha) })
+        + (n ? ' ' + textoPanel('panel.plan.registrar_pedidos', '{pedidos} a hecho.',
+          { pedidos: plural(n, 'pedido pasa', 'pedidos pasan') }) : '')
+        + (estado.fecha > hoyISO() ? '\n\n' + textoPanel('panel.plan.registrar_futuro',
+          'Ojo: la fecha es posterior a hoy. Si ya horneaste, cambiá el día de horneado.') : '');
+      if (!confirm(pregunta)) return;
       const r = await rpc('registrar_horneado', { p: { ...payload(), fecha: estado.fecha } });
       estado.excluidas.clear();
       estado.extra = {};
-      toast(`Horneado registrado: ${plural(r.total_tandas, 'tanda')}`
+      toast(textoPanel('panel.plan.registrado', 'Horneado registrado: {tandas}', { tandas: plural(r.total_tandas, 'tanda') })
         + (r.ventas_hechas ? ` · ${plural(r.ventas_hechas, 'pedido hecho', 'pedidos hechos')}` : ''));
       irA('#/tandas');
     });
 
     vaciar(resultado,
-      h('h2', {}, `${plural(plan.total_tandas, 'tanda')} para el ${fechaCorta(estado.fecha)}`),
+      h('h2', {}, textoPanel('panel.plan.titulo', '{tandas} para el {fecha}',
+        { tandas: plural(plan.total_tandas, 'tanda'), fecha: fechaCorta(estado.fecha) })),
       // Una tanda "mezclada" que quedó de un solo sabor se muestra como una tanda de ese sabor.
       h('ul', { class: 'lista' }, plan.tandas.map((t) => h('li', {}, h('div', { class: 'fila' },
         h('div', { class: 'princ' },
@@ -113,10 +118,12 @@ export async function mostrar(cont) {
             : t.sabores.map((s) => `${s.nombre} ${s.rolls}`).join(' · ')))),
         t.sabores.length > 1 ? desglose(t) : null))),
       hayMezcla && compartidos.length > 1 ? h('div', { class: 'card' },
-        h('div', { class: 'campo' }, h('span', { class: 'etq-grupo' }, 'Completar la tanda mezclada con'),
+        h('div', { class: 'campo' }, h('span', { class: 'etq-grupo' },
+          textoPanel('panel.plan.completar', 'Completar la tanda mezclada con')),
           chips(compartidos.map((s) => ({ valor: s.id, texto: s.nombre })), plan.completar,
             (v) => { estado.completar = v; calcular(); })),
-        h('p', { class: 'ayuda', style: 'margin:0' }, 'La masa rinde la tanda entera: los lugares libres van para vender.')) : null,
+        h('p', { class: 'ayuda', style: 'margin:0' },
+          textoPanel('panel.plan.completar_ayuda', 'La masa rinde la tanda entera: los lugares libres van para vender.'))) : null,
       h('table', { class: 'tabla card' },
         h('tr', {}, h('th', {}, 'Sabor'), h('th', { class: 'num-der' }, 'Pedidos'), h('th', { class: 'num-der' }, 'Hacés'),
           h('th', { class: 'num-der' }, 'Para vender'), h('th', { class: 'num-der' }, 'Receta')),
@@ -126,10 +133,11 @@ export async function mostrar(cont) {
             sinGlaseado[s.sabor_id] ? h('div', { class: 'ayuda' }, `${sinGlaseado[s.sabor_id]} sin glaseado`) : null),
           h('td', { class: 'num-der' }, s.para_vender || '—'),
           h('td', { class: 'num-der' }, `× ${numero(s.tandas)}`)))),
-      h('p', { class: 'ayuda' }, '"Receta" es cuántas veces la receta de ese sabor se usa (una tanda mezclada usa una parte de cada una). '
-        + 'Con eso se calcula qué comprar y se descuenta el stock al registrar.'),
+      h('p', { class: 'ayuda' }, textoPanel('panel.plan.receta_ayuda',
+        '"Receta" es cuántas veces la receta de ese sabor se usa (una tanda mezclada usa una parte de cada una). '
+        + 'Con eso se calcula qué comprar y se descuenta el stock al registrar.')),
       cajas.length ? [
-        h('h2', {}, 'Cajas de los pedidos'),
+        h('h2', {}, textoPanel('panel.plan.cajas', 'Cajas de los pedidos')),
         h('table', { class: 'tabla card' },
           h('tr', {}, h('th', {}, 'Caja y packaging'), h('th', { class: 'num-der' }, 'Necesitás'), h('th', { class: 'num-der' }, 'Tenés'),
             h('th', { class: 'num-der' }, 'Faltan')),
@@ -138,8 +146,8 @@ export async function mostrar(cont) {
             h('td', { class: 'num-der' }, cantidad(c.stock, c.unidad)),
             h('td', { class: 'num-der' }, Number(c.faltante) > 0
               ? pastilla('alerta', cantidad(c.faltante, c.unidad)) : '—')))),
-        h('p', { class: 'ayuda' }, 'Las cajas que eligieron en cada pedido. "Tenés" es el stock teórico, contando como disponibles '
-          + 'las cajas de los pedidos que todavía no se hicieron.'),
+        h('p', { class: 'ayuda' }, textoPanel('panel.plan.cajas_ayuda', 'Las cajas que eligieron en cada pedido. '
+          + '"Tenés" es el stock teórico, contando como disponibles las cajas de los pedidos que todavía no se hicieron.')),
       ] : null,
       h('div', { class: 'acciones' }, verComprar, registrar));
     dibujarTiempo();
@@ -163,7 +171,7 @@ export async function mostrar(cont) {
     const lista = [...filas.values()].filter((f) => f.insumo).sort((a, b) => a.insumo.nombre.localeCompare(b.insumo.nombre));
     const redondo = (n, u) => cantidad(u === 'un' || u === 'paq' ? Math.round(n * 10) / 10 : Math.round(n), u);
     return h('details', { class: 'plegable', style: 'margin-top:.5rem' },
-      h('summary', {}, 'Relleno para pesar'),
+      h('summary', {}, textoPanel('panel.plan.relleno', 'Relleno para pesar')),
       h('div', { class: 'leyenda' }, partes.map((p) => h('span', { style: `--c:${p.color}` }, h('i'), `${p.nombre} · ${p.rolls} rolls`))),
       lista.length ? [h('ul', { class: 'pesar' }, lista.map((f) => {
         const u = f.insumo.unidad_base;
@@ -178,8 +186,9 @@ export async function mostrar(cont) {
             ? aportes.map((p) => `${p.corto} ${redondo(f.por[p.sabor_id], u)}`).join(' · ')
             : `Solo ${aportes[0].nombre}`));
       })), h('p', { class: 'ayuda', style: 'margin:.5rem 0 0' },
-        'La masa es la de siempre. Cada sabor pone su relleno en proporción a sus rolls.')]
-        : h('p', { class: 'ayuda' }, 'Ningún sabor tiene marcado su relleno: se marca en Sabores y recetas.'));
+        textoPanel('panel.plan.relleno_ayuda', 'La masa es la de siempre. Cada sabor pone su relleno en proporción a sus rolls.'))]
+        : h('p', { class: 'ayuda' },
+          textoPanel('panel.plan.relleno_vacio', 'Ningún sabor tiene marcado su relleno: se marca en Sabores y recetas.')));
   }
 
   // Calculadora de tiempo: arranca con las tandas del plan (se pueden cambiar) y los tiempos guardados.
@@ -201,27 +210,33 @@ export async function mostrar(cont) {
     ];
     const guardar = h('button', { class: 'btn chico', type: 'button' }, 'Guardar tiempos');
     guardar.onclick = () => conBoton(guardar, async () => {
-      if (Object.values(valores).some((v) => !(Number(v) > 0))) throw new Error('Los tiempos tienen que ser mayores a 0');
+      if (Object.values(valores).some((v) => !(Number(v) > 0))) {
+        throw new Error(textoPanel('panel.plan.tiempos_mayores', 'Los tiempos tienen que ser mayores a 0'));
+      }
       const enteros = ['masas_por_preparacion', 'horno_tandas'];
-      if (enteros.some((k) => !Number.isInteger(Number(valores[k])))) throw new Error('Masas y tandas por horneada van sin decimales');
+      if (enteros.some((k) => !Number.isInteger(Number(valores[k])))) {
+        throw new Error(textoPanel('panel.plan.tiempos_enteros', 'Masas y tandas por horneada van sin decimales'));
+      }
       await guardarParametros(Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, Number(v)])));
-      toast('Tiempos guardados');
+      toast(textoPanel('panel.plan.tiempos_guardados', 'Tiempos guardados'));
       dibujarTiempo();
     });
 
     vaciar(tiempo, h('div', { class: 'card' },
-      h('h3', {}, '¿Cuánto lleva?'),
+      h('h3', {}, textoPanel('panel.plan.tiempo', '¿Cuánto lleva?')),
       h('div', { class: 'stepper-fila' }, h('div', { class: 'nombre' }, 'Tandas'),
         stepper(n, (v) => { estado.tandas = v; dibujarTiempo(); }, { min: 1, max: 20 })),
       campo('Empezás a las', inicio),
       h('p', { style: 'margin:.25rem 0' }, h('strong', { style: 'font-size:1.25rem' }, duracion(r.total)),
-        ` · terminás a las ${hora(r.total)}`),
-      h('p', { class: 'ayuda' }, `Una persona prepara las masas de a ${t.masas_por_preparacion} y estira de a una; `
-        + 'cuando una tanda terminó de leudar se estira antes de seguir preparando. '
-        + `El horno lleva ${plural(t.horno_tandas, 'tanda')} por vez.`),
+        ` · ${textoPanel('panel.plan.termina', 'terminás a las {hora}', { hora: hora(r.total) })}`),
+      h('p', { class: 'ayuda' }, textoPanel('panel.plan.tiempo_ayuda',
+        'Una persona prepara las masas de a {masas} y estira de a una; '
+        + 'cuando una tanda terminó de leudar se estira antes de seguir preparando. El horno lleva {tandas} por vez.',
+        { masas: t.masas_por_preparacion, tandas: plural(t.horno_tandas, 'tanda') })),
       estado.tandas != null && plan ? h('p', { class: 'ayuda' }, h('a', {
         href: '#/plan', onclick: (e) => { e.preventDefault(); estado.tandas = null; dibujarTiempo(); },
-      }, `Volver a las ${plural(Math.ceil(Number(plan.total_tandas)), 'tanda')} del plan`)) : null,
+      }, textoPanel('panel.plan.volver_tandas', 'Volver a las {tandas} del plan',
+        { tandas: plural(Math.ceil(Number(plan.total_tandas)), 'tanda') }))) : null,
       h('table', { class: 'tabla' },
         h('tr', {}, h('th', {}, 'Tanda'), h('th', { class: 'num-der' }, 'Preparar'), h('th', { class: 'num-der' }, 'Estirar'),
           h('th', { class: 'num-der' }, 'Horno')),
@@ -230,7 +245,7 @@ export async function mostrar(cont) {
           h('td', { class: 'num-der' }, hora(x.estirado[0])),
           h('td', { class: 'num-der' }, `${hora(x.horno[0])}–${hora(x.horno[1])}`)))),
       h('details', { class: 'plegable', style: 'margin-top:.75rem' },
-        h('summary', {}, 'Tiempos (iguales para todos los sabores)'),
+        h('summary', {}, textoPanel('panel.plan.tiempos', 'Tiempos (iguales para todos los sabores)')),
         ETIQUETAS_TIEMPO.map(([k, texto, unidad]) => h('div', { class: 'receta-fila', style: 'grid-template-columns:1fr 7rem' },
           h('span', {}, texto),
           h('div', { class: 'unidad' }, h('input', {
@@ -261,9 +276,11 @@ export async function mostrar(cont) {
           v.estado_pago === 'pagado' ? 'Cobrado' : 'Sin cobrar'),
         sinGlaseadoPorVenta[v.id] ? [' ', pastilla('alerta', `${sinGlaseadoPorVenta[v.id]} sin glaseado`)] : null,
         h('small', {}, `${v.sabores || ''} · `, h('a', { href: `#/ventas/${v.id}` }, 'ver venta')))))
-      : h('p', { class: 'vacio', style: 'padding:0' }, 'No hay ventas por hacer para este sábado. Al cargar una venta, '
-        + 'elegí "Por hacer"; los pedidos web confirmados entran solos.'),
-    despues ? h('p', { class: 'ayuda' }, `${plural(despues, 'pedido es', 'pedidos son')} para sábados siguientes.`) : null);
+      : h('p', { class: 'vacio', style: 'padding:0' }, textoPanel('panel.plan.sin_pedidos',
+        'No hay ventas por hacer para este sábado. '
+        + 'Al cargar una venta, elegí "Por hacer"; los pedidos web confirmados entran solos.')),
+    despues ? h('p', { class: 'ayuda' }, textoPanel('panel.plan.despues', '{pedidos} para sábados siguientes.',
+      { pedidos: plural(despues, 'pedido es', 'pedidos son') })) : null);
   };
   dibujarPedidos();
 
@@ -275,19 +292,22 @@ export async function mostrar(cont) {
     h('div', { class: 'card' },
       campo('Día de horneado', fecha),
       pedidosNuevos.length ? h('p', { class: 'ayuda' }, h('a', { href: '#/pedidos' },
-        `${plural(pedidosNuevos.length, 'pedido web', 'pedidos web')} sin confirmar`), ': confirmalos para que entren al plan.') : null),
+        textoPanel('panel.plan.pedidos_web', '{pedidos} sin confirmar',
+          { pedidos: plural(pedidosNuevos.length, 'pedido web', 'pedidos web') })),
+      `: ${textoPanel('panel.plan.pedidos_web_ayuda', 'confirmalos para que entren al plan.')}`) : null),
     h('div', { class: 'card' },
-      h('h3', {}, 'Pedidos por hacer'),
-      h('p', { class: 'ayuda' }, 'Destildá los que no vas a hacer esta vez (por ejemplo, si todavía no pagaron).'),
+      h('h3', {}, textoPanel('panel.plan.pedidos', 'Pedidos por hacer')),
+      h('p', { class: 'ayuda' },
+        textoPanel('panel.plan.pedidos_ayuda', 'Destildá los que no vas a hacer esta vez (por ejemplo, si todavía no pagaron).')),
       listaPedidos),
     // Por ahora trabajan solo por pedido (se vende lo que sobra de cada tanda): los extra quedan plegados.
     h('details', { class: 'plegable', open: Object.values(estado.extra).some((n) => n > 0) },
-      h('summary', {}, 'Rolls extra para vender (opcional)'),
+      h('summary', {}, textoPanel('panel.plan.extra', 'Rolls extra para vender (opcional)')),
       sabores.map((s) => h('div', { class: 'stepper-fila' },
         h('div', { class: 'nombre' }, s.nombre, s.masa_propia ? h('div', { class: 'ayuda' }, 'Masa propia') : null),
         stepper(estado.extra[s.id] || 0, (v) => { estado.extra[s.id] = v; calcular(); }, { min: 0, max: 48, paso: 6 })))),
 ),
     h('div', {}, resultado, tiempo)));
-  vaciar(resultado, h('p', { class: 'cargando' }, 'Calculando…'));
+  vaciar(resultado, h('p', { class: 'cargando' }, textoPanel('panel.plan.calculando', 'Calculando…')));
   calcular();
 }

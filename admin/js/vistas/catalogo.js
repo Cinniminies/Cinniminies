@@ -1,6 +1,7 @@
 import { sb, q } from '../db.js';
 import { h, vaciar, pesos, numero } from '../util.js';
 import { pesas, composicion } from '../graficos.js';
+import { textoPanel } from '../textos.js';
 
 // Costos y márgenes vigentes (salen de las vistas de la base).
 export async function mostrar(cont) {
@@ -16,7 +17,7 @@ export async function mostrar(cont) {
   const grafRoll = conPrecio.length ? h('div', { class: 'card' }, pesas(conPrecio.map((c) => ({
     etiqueta: c.nombre, href: `#/sabores/${c.sabor_id}`, desde: Number(c.costo_roll), hasta: Number(c.precio_unidad),
   })), {
-    titulo: 'De cada roll suelto, cuánto queda',
+    titulo: textoPanel('panel.catalogo.grafico_roll', 'De cada roll suelto, cuánto queda'),
     nombres: ['Costo', 'Precio'],
     formato: (v) => pesos(v >= 100 ? Math.round(v) : Math.round(v * 10) / 10),
     nota: (d) => ({ valor: pesos(Math.round(d.hasta - d.desde)), sub: `${porc(d.hasta - d.desde, d.hasta)} queda` }),
@@ -33,7 +34,7 @@ export async function mostrar(cont) {
   }
   const grafCajas = porFormato.size ? h('div', { class: 'card' }, composicion(
     [...porFormato].map(([titulo, filas]) => ({ titulo, filas })), {
-      titulo: 'En qué se va el precio de cada caja',
+      titulo: textoPanel('panel.catalogo.grafico_cajas', 'En qué se va el precio de cada caja'),
       partes: [
         { clave: 'rolls', nombre: 'Rolls', color: 'var(--serie-1)' },
         { clave: 'empaque', nombre: 'Caja y empaque', color: 'var(--serie-2)' },
@@ -44,7 +45,7 @@ export async function mostrar(cont) {
 
   vaciar(cont,
     h('div', { class: 'graficos' }, grafRoll, grafCajas),
-    h('h2', { class: 'seccion-titulo' }, 'Costo por sabor'),
+    h('h2', { class: 'seccion-titulo' }, textoPanel('panel.catalogo.costo_sabor', 'Costo por sabor')),
     h('table', { class: 'tabla card' },
       h('tr', {}, h('th', {}, 'Sabor'), h('th', { class: 'num-der' }, 'Tanda'), h('th', { class: 'num-der' }, 'Roll'),
         h('th', { class: 'num-der' }, 'Unidad'), h('th', { class: 'num-der' }, 'Margen')),
@@ -54,9 +55,11 @@ export async function mostrar(cont) {
         h('td', { class: 'num-der' }, pesos(c.costo_roll)),
         h('td', { class: 'num-der' }, pesos(c.precio_unidad)),
         h('td', { class: 'num-der' }, margen(c.margen_unidad))))),
-    h('p', { class: 'ayuda' }, 'Con los precios de la última compra de cada insumo. "Unidad" es el precio de un roll suelto.'),
+    h('p', { class: 'ayuda' },
+      textoPanel('panel.catalogo.costo_sabor_ayuda',
+        'Con los precios de la última compra de cada insumo. "Unidad" es el precio de un roll suelto.')),
 
-    h('h2', { class: 'seccion-titulo' }, 'Margen por caja'),
+    h('h2', { class: 'seccion-titulo' }, textoPanel('panel.catalogo.margen_caja', 'Margen por caja')),
     h('table', { class: 'tabla card' },
       h('tr', {}, h('th', {}, 'Caja'), h('th', { class: 'num-der' }, 'Precio'), h('th', { class: 'num-der' }, 'Costo'),
         h('th', { class: 'num-der' }, 'Margen')),
@@ -66,5 +69,5 @@ export async function mostrar(cont) {
         h('td', { class: 'num-der' }, pesos(Number(m.costo_rolls) + Number(m.costo_caja))),
         h('td', { class: 'num-der' }, h('strong', {}, margen(m.margen), m.precio > 0 && m.margen != null
           ? h('span', { class: 'sub' }, `${numero(100 * m.margen / m.precio, 0)}%`) : null))))),
-    h('p', { class: 'ayuda' }, 'Costo = rolls + caja + papel manteca + sticker.'));
+    h('p', { class: 'ayuda' }, textoPanel('panel.catalogo.margen_caja_ayuda', 'Costo = rolls + caja + papel manteca + sticker.')));
 }

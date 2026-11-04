@@ -117,6 +117,11 @@ Los rolls extra quedan en una sección plegada: por ahora trabajan solo por pedi
 Instagram, texto de pedido recibido) y la foto de fondo del inicio. Cada campo es una fila de
 `contenido_web`; "Volver al original" restaura el valor de fábrica. La web lo muestra en unos 5 minutos.
 
+En la misma pantalla, **Panel de gestión** tiene los textos del propio panel (filas `panel.*`): títulos, ayudas,
+vacíos y avisos de cada vista, agrupados por pantalla (la etiqueta empieza con su nombre). En el código se leen con
+`textoPanel('panel.<vista>.<clave>', 'texto por defecto', vars)` (`js/textos.js`); el defecto es el mismo texto de la
+fila, así que si la fila falta el panel se ve igual. Al guardar un `panel.*` se recargan y se ven en la próxima pantalla.
+
 ## Navegación
 
 - **Celular:** pestañas abajo: Inicio · Ventas · **+ Venta** · Producción · Más.

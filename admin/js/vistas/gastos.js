@@ -4,19 +4,27 @@ import { irA, refrescarSi } from '../app.js';
 import { libroCaja } from '../componentes.js';
 import { textoPanel } from '../textos.js';
 
+// La ayuda de cada tipo, debajo de los chips (se lee al elegirlo, ya con los textos del panel cargados).
 const AYUDA = {
-  merma: 'Rolls quemados, muestras regaladas… Si se perdió un ingrediente (bolsa rota), cargalo en Producción → Stock → Registrar pérdida.',
-  tanda_descartada: 'Una tanda que salió mal. Cargá también la tanda en Tandas para que descuente los insumos.',
-  gasto_operativo: 'Bolsas, transporte, cosas chicas del negocio.',
-  mejora: 'Cosas para trabajar mejor: un palote de amasar, moldes, la balanza… Cuenta como gasto del mes.',
-  comision: 'Comisiones del banco o por ventas.',
-  retiro_socios: 'Plata que sacan ustedes (salidas, comida…). No cuenta como gasto del negocio, pero sale de la caja.',
-  ajuste_caja: 'Para que la caja teórica coincida con la real. No cuenta como gasto.',
-  otro: '',
+  merma: () => textoPanel('panel.gastos.ayuda_merma',
+    'Rolls quemados, muestras regaladas… Si se perdió un ingrediente (bolsa rota), '
+    + 'cargalo en Producción → Stock → Registrar pérdida.'),
+  tanda_descartada: () => textoPanel('panel.gastos.ayuda_tanda_descartada',
+    'Una tanda que salió mal. Cargá también la tanda en Tandas para que descuente los insumos.'),
+  gasto_operativo: () => textoPanel('panel.gastos.ayuda_gasto_operativo', 'Bolsas, transporte, cosas chicas del negocio.'),
+  mejora: () => textoPanel('panel.gastos.ayuda_mejora',
+    'Cosas para trabajar mejor: un palote de amasar, moldes, la balanza… Cuenta como gasto del mes.'),
+  comision: () => textoPanel('panel.gastos.ayuda_comision', 'Comisiones del banco o por ventas.'),
+  retiro_socios: () => textoPanel('panel.gastos.ayuda_retiro_socios',
+    'Plata que sacan ustedes (salidas, comida…). No cuenta como gasto del negocio, pero sale de la caja.'),
+  ajuste_caja: () => textoPanel('panel.gastos.ayuda_ajuste_caja',
+    'Para que la caja teórica coincida con la real. No cuenta como gasto.'),
 };
 const AYUDA_INGRESO = {
-  aporte_socios: 'Plata que ponen ustedes en el negocio. Entra a la caja, pero no cuenta como ganancia.',
-  otro: 'Plata que entra por algo que no es una venta (las ventas se cargan en + Venta). Cuenta como ingreso del negocio.',
+  aporte_socios: () => textoPanel('panel.gastos.ayuda_aporte_socios',
+    'Plata que ponen ustedes en el negocio. Entra a la caja, pero no cuenta como ganancia.'),
+  otro: () => textoPanel('panel.gastos.ayuda_otro_ingreso',
+    'Plata que entra por algo que no es una venta (las ventas se cargan en + Venta). Cuenta como ingreso del negocio.'),
 };
 
 // Gastos (sale plata) e ingresos (entra plata) comparten pantalla; cada uno va a su tabla.
@@ -43,7 +51,7 @@ export async function mostrar(cont, { id } = {}) {
     campoRolls.hidden = true;
     vaciar(contTipo, grupo('Tipo', chips(opciones(entra ? ETIQUETAS.ingreso : ETIQUETAS.gasto), null, (t) => {
       f.tipo = t;
-      ayuda.textContent = (entra ? AYUDA_INGRESO : AYUDA)[t] || '';
+      ayuda.textContent = (entra ? AYUDA_INGRESO : AYUDA)[t]?.() || '';
       campoRolls.hidden = entra || !['merma', 'tanda_descartada'].includes(t);
     })));
   }
@@ -51,19 +59,23 @@ export async function mostrar(cont, { id } = {}) {
 
   const guardar = h('button', { class: 'btn primario bloque', type: 'button' }, 'Guardar');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!f.tipo) throw new Error('Elegí el tipo');
-    if (!f.descripcion.trim()) throw new Error('Poné una descripción');
-    if (!(Number(f.monto) > 0)) throw new Error('Poné el monto');
+    if (!f.tipo) throw new Error(textoPanel('panel.gastos.falta_tipo', 'Elegí el tipo'));
+    if (!f.descripcion.trim()) throw new Error(textoPanel('panel.falta_descripcion', 'Poné una descripción'));
+    if (!(Number(f.monto) > 0)) throw new Error(textoPanel('panel.gastos.falta_monto', 'Poné el monto'));
     const tabla = entra ? 'ingresos' : 'gastos';
     const aca = entra ? '#/gastos/ingreso' : '#/gastos';
     const fila = { fecha: f.fecha, tipo: f.tipo, descripcion: f.descripcion.trim(), monto: Number(f.monto), notas: f.notas.trim() || null };
     if (!entra) fila.rolls = f.rolls === '' || campoRolls.hidden ? null : Number(f.rolls);
     const r = await q(sb.from(tabla).insert(fila).select('id').single());
     const etiqueta = entra ? (f.tipo === 'otro' ? 'Ingreso' : ETIQUETAS.ingreso[f.tipo]) : ETIQUETAS.gasto[f.tipo];
-    toast(`${etiqueta} guardado: ${pesos(f.monto)}`, {
+    toast(textoPanel('panel.gastos.guardado', '{tipo} guardado: {monto}', { tipo: etiqueta, monto: pesos(f.monto) }), {
       accion: {
         texto: 'Deshacer',
-        fn: async () => { await q(sb.from(tabla).delete().eq('id', r.id)); toast('Deshecho'); refrescarSi(aca); },
+        fn: async () => {
+          await q(sb.from(tabla).delete().eq('id', r.id));
+          toast(textoPanel('panel.gastos.deshecho', 'Deshecho'));
+          refrescarSi(aca);
+        },
       },
     });
     irA(aca);
@@ -88,14 +100,16 @@ export async function mostrar(cont, { id } = {}) {
       guardar)),
 
     h('div', {},
-    h('h2', {}, 'Últimos movimientos'),
+    h('h2', {}, textoPanel('panel.gastos.ultimos', 'Últimos movimientos')),
     libroCaja(historial.map((g) => {
       const esIngreso = g.tabla === 'ingresos';
       const borrar = h('button', { class: 'btn chico peligro', 'aria-label': `Borrar ${g.descripcion}` }, 'Borrar');
       borrar.onclick = () => conBoton(borrar, async () => {
-        if (!confirm(`¿Borrar "${g.descripcion}" del ${fechaCorta(g.fecha)}?`)) return;
+        const pregunta = textoPanel('panel.gastos.borrar_confirmar', '¿Borrar "{descripcion}" del {fecha}?',
+          { descripcion: g.descripcion, fecha: fechaCorta(g.fecha) });
+        if (!confirm(pregunta)) return;
         await q(sb.from(g.tabla).delete().eq('id', g.id));
-        toast('Borrado');
+        toast(textoPanel('panel.gastos.borrado', 'Borrado'));
         irA(entra ? '#/gastos/ingreso' : '#/gastos');
       });
       const tipo = esIngreso ? ETIQUETAS.ingreso[g.tipo] : ETIQUETAS.gasto[g.tipo];
@@ -107,5 +121,5 @@ export async function mostrar(cont, { id } = {}) {
         entra: esIngreso,
         accion: borrar,
       };
-    }), 'Todavía no hay gastos ni ingresos.', { cortada: historial.length >= 30 }))));
+    }), textoPanel('panel.gastos.vacio', 'Todavía no hay gastos ni ingresos.'), { cortada: historial.length >= 30 }))));
 }

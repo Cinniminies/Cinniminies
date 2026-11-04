@@ -3,6 +3,7 @@ import { h, vaciar, campo, pesos, numero, fechaCorta, diaMes, toast, conBoton, l
 import { filaLista, pastilla, monto, linkExterno } from '../componentes.js';
 import { clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { irA } from '../app.js';
+import { textoPanel } from '../textos.js';
 import { campanaVigente, codigoDe, bonoDe, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
 
 let busqueda = '';
@@ -26,7 +27,7 @@ async function lista(cont) {
   };
   vaciar(cont,
     campo('Buscar', h('input', { type: 'search', value: busqueda, placeholder: 'Nombre o contacto', oninput: (e) => { busqueda = e.target.value; dibujar(); } })),
-    h('p', { class: 'ayuda' }, `${todos.length} clientes`),
+    h('p', { class: 'ayuda' }, textoPanel('panel.clientes.cuantos', '{clientes}', { clientes: plural(todos.length, 'cliente') })),
     resultados);
   dibujar();
 }
@@ -43,7 +44,7 @@ async function ficha(cont, id) {
     bonoDe(id),
   ]);
   const c = todos.find((x) => x.id === id);
-  if (!c) throw new Error('El cliente no existe (¿lo fusionaron o borraron?)');
+  if (!c) throw new Error(textoPanel('panel.clientes.no_existe', 'El cliente no existe (¿lo fusionaron o borraron?)'));
   const waCodigo = codigo ? linkCodigo(c.contacto, c.nombre, codigo, campana, bono) : null;
   const datos = { nombre: c.nombre, contacto: c.contacto || '', origen: c.origen || '', notas: c.notas || '' };
   const entrada = (clave, attrs = {}) => h('input', { ...attrs, value: datos[clave], oninput: (e) => { datos[clave] = e.target.value; } });
@@ -51,12 +52,12 @@ async function ficha(cont, id) {
 
   const guardar = h('button', { class: 'btn primario', type: 'button' }, 'Guardar');
   guardar.onclick = () => conBoton(guardar, async () => {
-    if (!datos.nombre.trim()) throw new Error('El nombre no puede quedar vacío');
+    if (!datos.nombre.trim()) throw new Error(textoPanel('panel.clientes.falta_nombre', 'El nombre no puede quedar vacío'));
     await q(sb.from('clientes').update({
       nombre: datos.nombre.trim(), contacto: datos.contacto.trim() || null,
       origen: datos.origen.trim() || null, notas: datos.notas.trim() || null,
     }).eq('id', id));
-    toast('Cliente actualizado');
+    toast(textoPanel('panel.clientes.actualizado', 'Cliente actualizado'));
     irA(`#/clientes/${id}`);
   });
 
@@ -68,18 +69,21 @@ async function ficha(cont, id) {
   const fusionar = h('button', { class: 'btn', type: 'button' }, 'Fusionar');
   fusionar.onclick = () => conBoton(fusionar, async () => {
     const dup = todos.find((x) => x.id === otro.value);
-    if (!dup) throw new Error('Elegí el cliente duplicado');
-    if (!confirm(`Las ${dup.compras} ventas de "${dup.nombre}" pasan a "${c.nombre}" y "${dup.nombre}" se borra. ¿Seguir?`)) return;
+    if (!dup) throw new Error(textoPanel('panel.clientes.falta_duplicado', 'Elegí el cliente duplicado'));
+    const pregunta = textoPanel('panel.clientes.fusionar_confirmar',
+      'Las {compras} ventas de "{duplicado}" pasan a "{cliente}" y "{duplicado}" se borra. ¿Seguir?',
+      { compras: dup.compras, duplicado: dup.nombre, cliente: c.nombre });
+    if (!confirm(pregunta)) return;
     await rpc('fusionar_clientes', { p_quedar: id, p_borrar: dup.id });
-    toast('Clientes fusionados');
+    toast(textoPanel('panel.clientes.fusionados', 'Clientes fusionados'));
     irA(`#/clientes/${id}`);
   });
 
   const borrar = h('button', { class: 'btn peligro', type: 'button' }, 'Borrar cliente');
   borrar.onclick = () => conBoton(borrar, async () => {
-    if (!confirm(`¿Borrar a "${c.nombre}"?`)) return;
+    if (!confirm(textoPanel('panel.clientes.borrar_confirmar', '¿Borrar a "{cliente}"?', { cliente: c.nombre }))) return;
     await q(sb.from('clientes').delete().eq('id', id));
-    toast('Cliente borrado');
+    toast(textoPanel('panel.clientes.borrado', 'Cliente borrado'));
     irA('#/clientes');
   });
 
@@ -100,18 +104,21 @@ async function ficha(cont, id) {
       h('div', { class: 'seccion-cab' }, h('strong', {}, `Código para recomendar: ${codigo}`),
         waCodigo ? linkExterno(waCodigo, 'Mandar por WhatsApp', { clase: 'btn chico' }) : null),
       h('p', { class: 'ayuda' }, campana || bono
-        ? `Hoy tiene ${numero(saldo, 0)} % de descuento en una box de cada pedido que haga en la web con su código.`
-        : 'No hay una campaña en curso.'),
-      bono ? h('p', { class: 'ayuda' },
-        `Incluye ${numero(bono.porcentaje, 0)} % por su primera Box de 12 de la web (desde el ${diaMes(bono.desde)}, vale hasta el ${diaMes(bono.hasta)}).`) : null,
+        ? textoPanel('panel.clientes.descuento',
+          'Hoy tiene {porcentaje} % de descuento en una box de cada pedido que haga en la web con su código.',
+          { porcentaje: numero(saldo, 0) })
+        : textoPanel('panel.clientes.sin_campana', 'No hay una campaña en curso.')),
+      bono ? h('p', { class: 'ayuda' }, textoPanel('panel.clientes.bono',
+        'Incluye {porcentaje} % por su primera Box de 12 de la web (desde el {desde}, vale hasta el {hasta}).',
+        { porcentaje: numero(bono.porcentaje, 0), desde: diaMes(bono.desde), hasta: diaMes(bono.hasta) })) : null,
       recomendo.length ? h('ul', { class: 'lista' }, recomendo.map((r) => filaLista({
         titulo: r.recomendado || r.nombre_pedido,
         detalle: [fechaCorta(r.creado_en), r.motivo],
         derecha: pastilla(CLASE_RECOMENDACION[r.estado], ESTADO_RECOMENDACION[r.estado]),
       })))
-        : h('p', { class: 'ayuda' }, 'Todavía no recomendó a nadie.')) : null,
+        : h('p', { class: 'ayuda' }, textoPanel('panel.clientes.sin_recomendados', 'Todavía no recomendó a nadie.'))) : null,
 
-    h('h2', {}, 'Compras'),
+    h('h2', {}, textoPanel('panel.clientes.compras', 'Compras')),
     ventas.length
       ? h('ul', { class: 'lista' }, ventas.map((v) => filaLista({
         href: `#/ventas/${v.id}`,
@@ -119,11 +126,13 @@ async function ficha(cont, id) {
         detalle: fechaCorta(v.fecha),
         derecha: monto(pesos(v.total)),
       })))
-      : h('p', { class: 'vacio' }, 'Sin compras.'),
+      : h('p', { class: 'vacio' }, textoPanel('panel.clientes.sin_compras', 'Sin compras.')),
 
     h('details', { class: 'plegable' },
-      h('summary', {}, 'Fusionar con un duplicado'),
-      h('p', { class: 'ayuda' }, `Si el mismo cliente está cargado dos veces, elegí el otro: sus ventas pasan a "${c.nombre}" y el duplicado se borra.`),
+      h('summary', {}, textoPanel('panel.clientes.fusionar', 'Fusionar con un duplicado')),
+      h('p', { class: 'ayuda' }, textoPanel('panel.clientes.fusionar_ayuda',
+        'Si el mismo cliente está cargado dos veces, elegí el otro: sus ventas pasan a "{cliente}" y el duplicado se borra.',
+        { cliente: c.nombre })),
       campo('Duplicado', otro),
       h('div', { class: 'acciones', style: 'margin-bottom:1rem' }, fusionar)),
 
