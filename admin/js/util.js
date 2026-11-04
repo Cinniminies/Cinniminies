@@ -115,8 +115,6 @@ function partes(iso) {
   return { a, m, d, dia: DIAS[diaDeLaSemana(iso)] };
 }
 
-// "12/09"
-
 // "sáb 12/09"
 export function fechaCorta(iso) {
   if (!iso) return '';
