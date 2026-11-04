@@ -30,6 +30,20 @@ test('hashIp: estable, sin la IP en claro', () => {
   assert.equal(hashIp({ headers: {} }, 's'), null);
 });
 
+test('hashIp: sin sal no guarda nada', () => {
+  assert.equal(hashIp({ headers: { 'x-forwarded-for': '1.2.3.4' } }, ''), null);
+});
+
+test('hashIp: una IPv6 cuenta por su red /64', () => {
+  const de = (ip) => hashIp({ headers: { 'x-forwarded-for': ip } }, 's');
+  assert.equal(de('2001:db8:1:2:aaaa::1'), de('2001:db8:1:2:bbbb:cccc:dddd:eeee'));
+  assert.equal(de('2001:db8:1:2::'), de('2001:0db8:0001:0002::5'));
+  assert.equal(de('2001:db8::1'), de('2001:db8:0:0:1::'));
+  assert.notEqual(de('2001:db8:1:2::1'), de('2001:db8:1:3::1'));
+  assert.equal(de('::ffff:1.2.3.4'), de('1.2.3.4'));
+  assert.notEqual(de('1.2.3.4'), de('1.2.3.5'));
+});
+
 test('guardarPedido: mensaje de la base como ErrorPedido; otros errores, Error', async () => {
   const conf = (r) => ({ url: 'https://x', clave: 'eyJ', fetch: async () => r });
   await assert.rejects(guardarPedido({}, null, conf({ ok: false, status: 400, json: async () => ({ code: 'P0001', message: 'Falta el nombre' }) })),
