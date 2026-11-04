@@ -35,6 +35,17 @@ jobs:
           done < <(git ls-files '*.js' '*.mjs')
           exit $fallas
 
+      # Un patrón de vercel.json que Vercel no acepta frena el deploy sin que falle nada más (pasó con el #103).
+      # Se valida con la misma librería que usa Vercel, instalada aparte para no sumarla al package.json.
+      - name: Revisar vercel.json
+        run: |
+          npm install --prefix /tmp/vercel-rutas --no-save @vercel/routing-utils@6.6.1 > /dev/null
+          node -e "
+            const { getTransformedRoutes } = require('/tmp/vercel-rutas/node_modules/@vercel/routing-utils');
+            const { error } = getTransformedRoutes(require('./vercel.json'));
+            if (error) { console.log('::error file=vercel.json::' + error.errors.join(' ')); process.exit(1); }
+          "
+
       - name: Pruebas de /admin
         run: node --test admin/tests/*.test.mjs
 
