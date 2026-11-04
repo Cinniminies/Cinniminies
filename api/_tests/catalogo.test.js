@@ -1,7 +1,8 @@
 // Pruebas del catálogo público: node --test api/_tests/*.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { leerCatalogo, limpiar } = require('../_lib/catalogo.js');
+const { leerCatalogo, limpiar, limpiarContenido, limpiarPromos } = require('../_lib/catalogo.js');
+const { respuestaHttp, correrHandler } = require('./_ayudas.js');
 const handler = require('../catalogo.js');
 
 test('limpiar: tipos, sabores sin id y fotos no permitidas', () => {
@@ -66,22 +67,53 @@ test('leerCatalogo llama a la RPC con la clave', async () => {
   assert.equal(pedido.op.headers.apikey, 'eyJk');
 });
 
-function respuesta() {
-  return { statusCode: 200, headers: {}, cuerpo: '', setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, end(c) { this.cuerpo = c; } };
-}
+test('limpiar: fotos con barra inicial sí; http, espacios o etiquetas no; nombre por defecto el id', () => {
+  const sabores = limpiar({ sabores: [
+    { id: ' canela ', nombre: ' ', foto: '/img/roll-canela.webp' },
+    { id: 'b', foto: 'http://cdn.ejemplo.com/b.jpg' },
+    { id: 'c', foto: 'https://cdn.ejemplo.com/una foto.jpg' },
+    { id: 'd', foto: 'img/<script>.jpg' },
+  ] }).sabores;
+  assert.deepEqual(sabores.map((s) => [s.id, s.nombre, s.foto]),
+    [['canela', 'canela', '/img/roll-canela.webp'], ['b', 'b', null], ['c', 'c', null], ['d', 'd', null]]);
+});
+
+test('limpiar: formatos personalizados con mínimo y máximo, y números que no lo son', () => {
+  const formato = { nombre: ' ', tipo: 'personalizado', min_rolls: '3', max_rolls: '', precio: 'x' };
+  assert.deepEqual(limpiar({ formatos: [formato] }).formatos,
+    [{ nombre: null, tipo: 'personalizado', rolls: null, min_rolls: 3, max_rolls: null, precio: null }]);
+});
+
+test('limpiarContenido y limpiarPromos: lo que no es objeto o lista queda vacío', () => {
+  for (const nada of [null, 'texto', ['a'], 3]) assert.deepEqual(limpiarContenido(nada), {});
+  assert.deepEqual(limpiarPromos({ nombre: 'Halloween' }), []);
+  assert.deepEqual(limpiarPromos([null, { tipo: 'monto', valor: '-5' }, { tipo: 'monto', valor: 'abc' }]), []);
+});
+
+const GET = { method: 'GET', headers: {} };
+const ENTORNO = { SUPABASE_SERVICE_ROLE_KEY: 'eyJx', MODO_PRUEBA: undefined };
 
 test('handler: sin clave responde 500 sin caché; POST da 405', async () => {
-  const env = { ...process.env };
-  try {
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    let res = respuesta();
-    await handler({ method: 'GET', headers: {} }, res);
-    assert.equal(res.statusCode, 500);
-    assert.equal(res.headers['cache-control'], 'no-store');
-    res = respuesta();
-    await handler({ method: 'POST', headers: {} }, res);
-    assert.equal(res.statusCode, 405);
-  } finally {
-    process.env = env;
-  }
+  let { res } = await correrHandler(handler, GET, { env: { SUPABASE_SERVICE_ROLE_KEY: undefined } });
+  assert.equal(res.statusCode, 500);
+  assert.equal(res.headers['cache-control'], 'no-store');
+  ({ res } = await correrHandler(handler, { method: 'POST', headers: {} }, { env: ENTORNO }));
+  assert.equal(res.statusCode, 405);
+});
+
+test('handler: catálogo limpio, con la hora y cacheado en la CDN', async () => {
+  const { res, cuerpo } = await correrHandler(handler, GET, { env: ENTORNO,
+    responder: () => respuestaHttp({ sabores: [{ id: 'canela', nombre: 'Canela', precio_unidad: '50' }], envio: '120' }) });
+  assert.equal(res.statusCode, 200);
+  assert.match(res.headers['cache-control'], /^public, .*s-maxage=300/);
+  assert.ok(!Number.isNaN(Date.parse(cuerpo.generado)));
+  assert.equal(cuerpo.sabores[0].precio_unidad, 50);
+  assert.equal(cuerpo.envio, 120);
+});
+
+test('handler: si la base falla responde 502 sin caché (la web usa lo que trae escrito)', async () => {
+  const { res, logs } = await correrHandler(handler, GET, { env: ENTORNO, responder: () => respuestaHttp(null, 503) });
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.headers['cache-control'], 'no-store');
+  assert.equal(logs.length, 1);
 });

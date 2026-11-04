@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const {
   VISTAS, TAMANO_PAGINA, urlPagina, encabezados, leerVista, armarTabla, aCsv, autorizar,
 } = require('../_lib/export.js');
-const { claveValida } = require('../_lib/supabase.js');
+const { respuesta, respuestaHttp, conEntorno, correrHandler } = require('./_ayudas.js');
 const handler = require('../export/[vista].js');
 
 test('las vistas del handoff están todas', () => {
@@ -12,14 +12,6 @@ test('las vistas del handoff están todas', () => {
     'compras', 'tandas', 'ingresos']) {
     assert.ok(VISTAS[v], v);
   }
-});
-
-test('claveValida', () => {
-  assert.equal(claveValida('abc', 'abc'), true);
-  assert.equal(claveValida('abd', 'abc'), false);
-  assert.equal(claveValida(undefined, 'abc'), false);
-  assert.equal(claveValida('', ''), false);
-  assert.equal(claveValida('abc', undefined), false);
 });
 
 test('urlPagina: columnas, orden y página', () => {
@@ -71,26 +63,28 @@ test('aCsv escapa comillas, comas y saltos', () => {
   assert.equal(csv, 'a,b\r\n"x, y","dijo ""hola""\n"\r\n,3\r\n');
 });
 
-// Respuesta falsa al estilo de Vercel/Node.
-function respuesta() {
-  return {
-    statusCode: 200, headers: {}, cuerpo: '',
-    setHeader(k, v) { this.headers[k.toLowerCase()] = v; },
-    end(c) { this.cuerpo = c; },
-  };
-}
+test('armarTabla: números y dinero desde texto; fechas, booleanos y vacíos tal cual', () => {
+  const t = armarTabla('costos',
+    [{ nombre: 'Canela', activo: false, rolls_por_tanda: '12', costo_roll: 18.5, precio_unidad: undefined }]);
+  assert.deepEqual(t.filas[0], ['Canela', false, null, 12, null, 18.5, null, null]);
+});
 
-test('autorizar: sin variables, sin clave, clave mala, método', () => {
-  const env = { ...process.env };
-  try {
-    delete process.env.EXPORT_KEY;
-    let res = respuesta();
+test('aCsv: un retorno de carro solo también va entre comillas', () => {
+  assert.equal(aCsv({ columnas: [{ nombre: 'notas' }], filas: [['a\rb'], [0]] }), 'notas\r\n"a\rb"\r\n0\r\n');
+});
+
+const ENTORNO = { EXPORT_KEY: 'secreta', SUPABASE_SERVICE_ROLE_KEY: 'eyJx' };
+const CLAVE = { 'x-export-key': 'secreta' };
+
+test('autorizar: sin variables, sin clave, clave mala, método', async () => {
+  await conEntorno({ env: { EXPORT_KEY: undefined } }, () => {
+    const res = respuesta();
     assert.equal(autorizar({ method: 'GET', headers: {} }, res), null);
     assert.equal(res.statusCode, 500);
+  });
 
-    process.env.EXPORT_KEY = 'secreta';
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJx';
-    res = respuesta();
+  await conEntorno({ env: ENTORNO }, () => {
+    let res = respuesta();
     assert.equal(autorizar({ method: 'GET', headers: {} }, res), null);
     assert.equal(res.statusCode, 401);
 
@@ -99,29 +93,61 @@ test('autorizar: sin variables, sin clave, clave mala, método', () => {
     assert.equal(res.statusCode, 401);
 
     res = respuesta();
-    assert.equal(autorizar({ method: 'POST', headers: { 'x-export-key': 'secreta' } }, res), null);
+    assert.equal(autorizar({ method: 'POST', headers: CLAVE }, res), null);
     assert.equal(res.statusCode, 405);
 
     res = respuesta();
-    const conf = autorizar({ method: 'GET', headers: { 'x-export-key': 'secreta' } }, res);
+    const conf = autorizar({ method: 'GET', headers: CLAVE }, res);
     assert.equal(conf.clave, 'eyJx');
     assert.match(conf.url, /^https:\/\/.+\.supabase\.co$/);
     assert.equal(res.headers['cache-control'], 'no-store');
-  } finally {
-    process.env = env;
-  }
+  });
 });
 
+// Una página corta de v_gastos (con una coma en la descripción, para ver el CSV).
+const gastos = () => respuestaHttp([{ fecha: '2026-10-31', tipo: 'mejora', descripcion: 'Bandejas, 2', monto: '540' }]);
+const exportar = (vista, { query = {}, responder = gastos } = {}) =>
+  correrHandler(handler, { method: 'GET', headers: CLAVE, query: { vista, ...query } }, { env: ENTORNO, responder });
+
 test('handler: vista desconocida da 404', async () => {
-  const env = { ...process.env };
-  try {
-    process.env.EXPORT_KEY = 'secreta';
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJx';
-    const res = respuesta();
-    await handler({ method: 'GET', headers: { 'x-export-key': 'secreta' }, query: { vista: 'clientes' } }, res);
-    assert.equal(res.statusCode, 404);
-    assert.match(res.cuerpo, /Vista desconocida/);
-  } finally {
-    process.env = env;
-  }
+  const { res, cuerpo } = await exportar('clientes');
+  assert.equal(res.statusCode, 404);
+  assert.match(cuerpo.error, /Vista desconocida/);
+  assert.ok(cuerpo.vistas.includes('ventas'));
+  assert.equal((await exportar('toString')).res.statusCode, 404, 'una propiedad heredada no es una vista');
 });
+
+test('handler: la vista en JSON con sus columnas y números', async () => {
+  const { res, cuerpo, llamadas } = await exportar('gastos');
+  assert.equal(res.statusCode, 200);
+  assert.equal(cuerpo.vista, 'gastos');
+  assert.equal(cuerpo.filas[0][VISTAS.gastos.columnas.findIndex(([c]) => c === 'monto')], 540);
+  assert.equal(new URL(llamadas[0].url).pathname, '/rest/v1/v_gastos');
+});
+
+test('handler: CSV con ?formato=csv o con la vista terminada en .csv', async () => {
+  for (const pedido of [exportar('gastos', { query: { formato: 'csv' } }), exportar('gastos.csv')]) {
+    const { res, cuerpo } = await pedido;
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.headers['content-type'], 'text/csv; charset=utf-8');
+    assert.equal(res.headers['content-disposition'], 'inline; filename="gastos.csv"');
+    assert.ok(cuerpo.startsWith('fecha,mes,tipo,descripcion,monto'));
+    assert.match(cuerpo, /\r\n2026-10-31,,mejora,"Bandejas, 2",540,/);
+  }
+  assert.equal((await exportar('gastos.json')).res.headers['content-type'], 'application/json; charset=utf-8');
+});
+
+test('handler: si la base falla responde 502 con el detalle (es un endpoint privado)', async () => {
+  const { res, cuerpo } = await exportar('gastos', { responder: () => respuestaHttp('sin permiso', 401) });
+  assert.equal(res.statusCode, 502);
+  assert.match(cuerpo.detalle, /401 al leer v_gastos/);
+});
+
+test('/api/export: lista las vistas con su título, solo con la clave', async () => {
+  const lista = require('../export/index.js');
+  const { cuerpo } = await correrHandler(lista, { method: 'GET', headers: CLAVE }, { env: ENTORNO });
+  assert.deepEqual(cuerpo.vistas.map((v) => v.nombre), Object.keys(VISTAS));
+  assert.equal(cuerpo.vistas[0].titulo, VISTAS.ventas.titulo);
+  assert.equal((await correrHandler(lista, { method: 'GET', headers: {} }, { env: ENTORNO })).res.statusCode, 401);
+});
+
