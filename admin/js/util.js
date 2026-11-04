@@ -88,9 +88,12 @@ export function sumarDias(iso, n) {
   return d.toISOString().slice(0, 10);
 }
 
+// Día de la semana de una fecha ISO: 0 el domingo … 6 el sábado.
+export const diaDeLaSemana = (iso) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).getUTCDay();
+
 // El sábado que viene (hoy, si es sábado): los días de horneado.
 export function proximoSabado(desde = hoyISO()) {
-  return sumarDias(desde, (6 - new Date(`${desde}T12:00:00Z`).getUTCDay() + 7) % 7);
+  return sumarDias(desde, (6 - diaDeLaSemana(desde) + 7) % 7);
 }
 
 export function mesISO(fecha = hoyISO()) {
@@ -113,7 +116,7 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', '
 
 function partes(iso) {
   const [a, m, d] = iso.slice(0, 10).split('-').map(Number);
-  return { a, m, d, dia: DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()] };
+  return { a, m, d, dia: DIAS[diaDeLaSemana(iso)] };
 }
 
 // "12/09"
@@ -132,8 +135,7 @@ export function fechaCorta(iso) {
 // "12/09/2026"
 export function fechaLarga(iso) {
   if (!iso) return '';
-  const { a, m, d } = partes(iso);
-  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${a}`;
+  return `${diaMes(iso)}/${partes(iso).a}`;
 }
 
 // "septiembre 2026"
