@@ -5,8 +5,7 @@
 // Cada vista declara sus columnas con un tipo; el Apps Script del Sheet usa ese tipo
 // para dar formato (fechas, $), así agregar una columna no obliga a tocar el script.
 
-const crypto = require('node:crypto');
-const { configuracion, encabezados, responderJson, metodoPermitido } = require('./supabase.js');
+const { configuracion, encabezados, responderJson, metodoPermitido, claveValida } = require('./supabase.js');
 
 // Tipos: texto, fecha (AAAA-MM-DD), mes (primer día del mes), fechahora (ISO),
 // dinero, numero, bool.
@@ -126,14 +125,6 @@ const VISTAS = {
 
 const TAMANO_PAGINA = 1000; // el máximo que devuelve la API de Supabase por pedido
 
-// Compara la clave recibida con la esperada sin filtrar por tiempo cuántos caracteres coinciden.
-function claveValida(recibida, esperada) {
-  if (typeof recibida !== 'string' || !recibida || !esperada) return false;
-  const a = crypto.createHash('sha256').update(recibida).digest();
-  const b = crypto.createHash('sha256').update(esperada).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
 function listarVistas() {
   return Object.entries(VISTAS).map(([nombre, v]) => ({ nombre, titulo: v.titulo }));
 }
@@ -215,6 +206,6 @@ function autorizar(req, res) {
 }
 
 module.exports = {
-  VISTAS, TAMANO_PAGINA, claveValida, listarVistas, urlPagina, encabezados, leerVista,
+  VISTAS, TAMANO_PAGINA, listarVistas, urlPagina, encabezados, leerVista,
   armarTabla, aCsv, autorizar, responderJson,
 };

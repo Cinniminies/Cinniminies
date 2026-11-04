@@ -2,8 +2,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  VISTAS, TAMANO_PAGINA, claveValida, urlPagina, encabezados, leerVista, armarTabla, aCsv, autorizar,
+  VISTAS, TAMANO_PAGINA, urlPagina, encabezados, leerVista, armarTabla, aCsv, autorizar,
 } = require('../_lib/export.js');
+const { claveValida } = require('../_lib/supabase.js');
 const handler = require('../export/[vista].js');
 
 test('las vistas del handoff están todas', () => {
