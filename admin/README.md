@@ -31,6 +31,9 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 
 Las reglas de la base tienen sus pruebas en `supabase/tests/reglas.sql`.
 
+En cada PR contra `main` y en cada push a `main`, el Action `.github/workflows/pruebas.yml` corre `node --check` de todo
+el JS, estas pruebas y las de `api/_tests/`. Las reglas de la base se siguen corriendo a mano.
+
 ## Sabores: eliminar y fotos
 
 - **Eliminar sabor** (en la ficha): si nunca se usó, se borra con su receta y precios; si tiene ventas o
