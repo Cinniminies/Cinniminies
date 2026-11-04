@@ -51,7 +51,7 @@ test('limpiar: para qué sábado es el pedido', () => {
 
 test('leerCatalogo pide las promos de prueba solo en modo prueba', async () => {
   const cuerpos = [];
-  const falso = async (url, op) => { cuerpos.push(op.body); return { ok: true, json: async () => ({}) }; };
+  const falso = async (_url, op) => { cuerpos.push(op.body); return { ok: true, json: async () => ({}) }; };
   await leerCatalogo({ url: 'https://x.supabase.co', clave: 'eyJk', fetch: falso });
   await leerCatalogo({ url: 'https://x.supabase.co', clave: 'eyJk', fetch: falso, prueba: true });
   assert.deepEqual(cuerpos, ['{}', '{"p_prueba":true}']);

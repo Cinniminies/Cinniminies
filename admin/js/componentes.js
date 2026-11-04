@@ -240,9 +240,8 @@ export function subnavProduccion(actual) {
     }, texto)));
 }
 
-// "Semana del sábado 31/10": la semana de pedidos (domingo a sábado) se nombra por su sábado de entrega.
 // Las partes que no están vacías, con `separador` entre una y otra (sirve para textos y elementos).
-const intercalar = (partes, separador) => [partes].flat()
+const intercalar = (trozos, separador) => [trozos].flat()
   .filter((p) => p != null && p !== false && p !== '')
   .flatMap((p, i) => (i ? [separador, p] : [p]));
 
@@ -296,6 +295,7 @@ export function partesPorSabor(rollsPorSabor, cat) {
   });
 }
 
+// "Semana del sábado 31/10": la semana de pedidos (domingo a sábado) se nombra por su sábado de entrega.
 export const tituloSemana = (sabado) => textoPanel('panel.semana', 'Semana del sábado {fecha}', { fecha: diaMes(sabado) });
 
 // Libro de caja (Compras, Gastos): los movimientos agrupados por semana de pedidos, con lo que salió y entró
