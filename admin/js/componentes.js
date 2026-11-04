@@ -1,6 +1,6 @@
 import {
   h, vaciar, chips, stepper, campo, normalizar, pesos, numero, fechaLarga, fechaCorta, diaMes, hoyISO, proximoSabado, conBoton,
-  sumar, campoPesos, grupo, toast,
+  sumar, campoPesos, grupo, toast, abrirLugar, cerrarLugar,
 } from './util.js';
 import { partes } from './graficos.js';
 import { PRODUCCION } from './app.js';
@@ -147,7 +147,10 @@ export function editorLineas(cat, lineas, alCambiar) {
         h('h3', {}, lineas.length > 1 ? `Producto ${i + 1}` : 'Producto'),
         contador,
         lineas.length > 1
-          ? h('button', { type: 'button', class: 'quitar', 'aria-label': 'Quitar producto', onclick: () => { lineas.splice(i, 1); avisar(); } }, '×')
+          ? h('button', {
+            type: 'button', class: 'quitar', 'aria-label': 'Quitar producto',
+            onclick: async (e) => { await cerrarLugar(e.currentTarget.closest('.linea')); lineas.splice(i, 1); avisar(); },
+          }, '×')
           : null),
       h('div', { class: 'campo' },
         chips(cat.formatosActivos.map((fo) => ({ valor: fo.id, texto: fo.nombre })), l.formato_id,
@@ -166,7 +169,10 @@ export function editorLineas(cat, lineas, alCambiar) {
   function dibujar() {
     vaciar(cont,
       lineas.map(dibujarLinea),
-      h('button', { type: 'button', class: 'btn chico', onclick: () => { lineas.push(nueva()); avisar(); } }, '+ Agregar otro producto'));
+      h('button', {
+        type: 'button', class: 'btn chico',
+        onclick: () => { lineas.push(nueva()); avisar(); abrirLugar(cont.children[lineas.length - 1]); },
+      }, '+ Agregar otro producto'));
   }
 
   dibujar();

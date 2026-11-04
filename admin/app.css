@@ -245,9 +245,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--marca); out
    en una sola pieza, así se lee como "una de estas", distinto de los chips y de la navegación. */
 .chips.segmentado { display: inline-flex; flex-wrap: nowrap; gap: 3px; max-width: 100%; padding: 3px;
   background: var(--hundido); border: 1px solid var(--borde); border-radius: calc(var(--radio-control) + 3px); }
+/* El fondo de la elegida es un ::before, así al cambiar se corre de una opción a la otra (chips, en util.js). */
 .segmentado .chip { flex: 1 1 auto; border: 1px solid transparent; background: none; color: var(--suave); border-radius: var(--radio-control);
-  min-height: 2.5rem; padding: .4rem .85rem; line-height: 1.2; }
-.segmentado .chip[aria-pressed="true"] { background: var(--card); border-color: var(--borde); color: var(--marca); }
+  min-height: 2.5rem; padding: .4rem .85rem; line-height: 1.2; position: relative; isolation: isolate; }
+.segmentado .chip[aria-pressed="true"] { color: var(--marca); }
+.segmentado .chip[aria-pressed="true"]::before { content: ''; position: absolute; inset: -1px; z-index: -1;
+  background: var(--card); border: 1px solid var(--borde); border-radius: inherit; }
 
 .stepper-fila { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem 0; }
 .stepper-fila + .stepper-fila { border-top: 1px dashed var(--borde); }
@@ -701,8 +704,26 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
   transition-duration: var(--mov-rapida);
   transition-timing-function: var(--mov-curva);
 }
-/* Al tocar, el chip o el botón del stepper se hunde apenas: la respuesta empieza con el dedo, antes del resultado. */
-.chip:active, .stepper button:active:not(:disabled) { scale: .95; }
+/* Las filas son anchas y achicarlas se notaría de más: al tocarlas se marcan con el fondo. */
+a.fila:active, button.fila:active, summary.fila:active { background: var(--marca-suave); }
+/* Con "reducir movimiento" nada de esto existe: ni se hunde lo que se toca ni se abren los desplegables de a poco. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Al tocar, lo que se aprieta se hunde apenas: la respuesta empieza con el dedo, antes del resultado. */
+  .chip:active, .stepper button:active:not(:disabled) { scale: .95; }
+  .btn:active:not(:disabled), .acceso:active, .tarea-link:active, .tabs a:active, .quitar:active, .semana-sabado:active {
+    scale: .97; }
+  /* Los desplegables (details) se abren y se cierran con su alto en vez de saltar. Donde el navegador todavía no
+     sabe animar hasta "auto", se abren de golpe como siempre. */
+  @supports (interpolate-size: allow-keywords) {
+    details { interpolate-size: allow-keywords; }
+    details::details-content {
+      block-size: 0; opacity: 0; overflow: clip;
+      transition: block-size var(--mov-normal) var(--mov-curva), opacity var(--mov-normal) var(--mov-curva),
+        content-visibility var(--mov-normal) allow-discrete;
+    }
+    details[open]::details-content { block-size: auto; opacity: 1; }
+  }
+}
 /* Las cifras que cambian en un número (rodarNumero) se mueven sueltas; al terminar vuelve a ser un solo texto. */
 .mov-cifra { display: inline-block; }
 /* Cambio de tema (js/tema.js): un cruce corto entre las dos paletas en vez de un salto. */
@@ -751,7 +772,6 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; }
-  .chip:active, .stepper button:active:not(:disabled) { scale: none; }
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 }
 
