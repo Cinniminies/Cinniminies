@@ -1,9 +1,10 @@
 // Avisos push a los celulares de los dueños: pedido nuevo (fase 2 · 2.1, lo manda /api/pedidos después de guardar
-// el pedido) y cierre de mes (idea 4.4, lo manda el cron del día 1, /api/cierre-mes). Van a todas las suscripciones
+// el pedido), cierre de mes (idea 4.4, lo manda el cron del día 1, /api/cierre-mes) y compras del viernes (idea 3.6,
+// el cron de los viernes, /api/compras-sabado). Van a todas las suscripciones
 // de push_suscripciones (una por endpoint). El cifrado de Web Push lo hace la librería web-push; acá solo se arma
 // el aviso y se limpian las suscripciones vencidas.
 const { encabezados } = require('./supabase.js');
-const { pesos, textoVariacion } = require('../../admin/js/cifras.js');
+const { pesos, textoVariacion, diaMes } = require('../../admin/js/cifras.js');
 
 // Claves VAPID de Vercel (las genera scripts/generar-vapid.js). Sin ellas no se manda nada.
 function configuracionPush(env = process.env) {
@@ -41,17 +42,36 @@ function armarAvisoCierre(cierre) {
   };
 }
 
+// "Compras para el sábado 07/11" · "Leche, Huevos, Manteca y 2 más · $854,27". `compras`: lo que devuelve la función
+// compras_sabado de la base. Sin pedidos por hacer no hay nada que avisar (null). El link abre ¿Qué compro? con el
+// plan de ese sábado, donde está el botón para mandar la lista por WhatsApp.
+function armarAvisoCompras(compras) {
+  if (!compras.pedidos) return null;
+  const nombres = compras.comprar.map((f) => f.insumo);
+  const lista = unir(nombres.length > 4 ? [...nombres.slice(0, 3), `${nombres.length - 3} más`] : nombres);
+  return {
+    titulo: `Compras para el sábado ${diaMes(compras.sabado)}`,
+    cuerpo: nombres.length
+      ? `${lista} · ${pesos(compras.total)}`
+      : `Tenés todo para ${compras.pedidos === 1 ? 'el pedido' : `los ${compras.pedidos} pedidos`}`,
+    url: `/admin/#/comprar/${compras.sabado}`,
+    tag: `compras-${compras.sabado}`,
+  };
+}
+
+// "Leche", "Leche y Huevos", "Leche, Huevos y Manteca".
+const unir = (nombres) => nombres.length > 1 ? `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}` : nombres.join('');
+
 // Pedido nuevo: nombre y total. Devuelve lo mismo que mandarAviso.
 async function avisarPedidoNuevo(pedido, guardado, conf, webpush, vapid) {
-  if (!guardado?.codigo) return { enviados: 0, borrados: 0, fallidos: 0 };
-  return mandarAviso(armarAviso(pedido, guardado), conf, webpush, vapid);
+  return mandarAviso(guardado?.codigo ? armarAviso(pedido, guardado) : null, conf, webpush, vapid);
 }
 
 // Manda el aviso a todas las suscripciones. Nunca tira error: lo que lo disparó (un pedido, el cron) ya pasó y no
-// depende del aviso. Devuelve { enviados, borrados, fallidos } (para las pruebas).
+// depende del aviso. Sin aviso (null: nada que contar) no manda nada. Devuelve { enviados, borrados, fallidos }.
 async function mandarAviso(aviso, { url, clave, fetch: pedir = fetch }, webpush, vapid) {
   const resultado = { enviados: 0, borrados: 0, fallidos: 0 };
-  if (!vapid) return resultado;
+  if (!aviso || !vapid) return resultado;
   const base = `${url}/rest/v1/push_suscripciones`;
   const h = encabezados(clave);
   try {
@@ -89,4 +109,4 @@ async function mandarAviso(aviso, { url, clave, fetch: pedir = fetch }, webpush,
   return resultado;
 }
 
-module.exports = { configuracionPush, armarAviso, armarAvisoCierre, avisarPedidoNuevo, mandarAviso };
+module.exports = { configuracionPush, armarAviso, armarAvisoCierre, armarAvisoCompras, avisarPedidoNuevo, mandarAviso };

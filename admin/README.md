@@ -111,6 +111,14 @@ Abajo muestra las **cajas de los pedidos** (`cajas_plan`: cajas, papel manteca y
 que cuenta como disponibles las cajas de los pedidos que todavía no se hicieron; "Ver qué comprar" también las suma.
 Los rolls extra quedan en una sección plegada: por ahora trabajan solo por pedido y venden lo que sobra.
 
+## Aviso del viernes con las compras (idea 3.6)
+
+Los viernes a las 9 el cron de Vercel (`/api/compras-sabado`) manda un aviso push con lo que falta comprar para el
+sábado (los insumos y el total estimado), a los mismos celulares que reciben los pedidos nuevos. Lo arma la base
+(`compras_sabado`) con el plan que Producción → Plan elige por defecto: todos los pedidos por hacer de ese sábado o de
+antes, con sus cajas. Sin pedidos por hacer no avisa. Al tocarlo abre ¿Qué compro? con ese plan cargado
+(`#/comprar/AAAA-MM-DD`), donde está **Mandar por WhatsApp**.
+
 ## Web: textos e imágenes (Etapa 7)
 
 **Web → Textos e imágenes** edita lo que dice la web pública (inicio, dónde encontrarnos, contacto, WhatsApp,

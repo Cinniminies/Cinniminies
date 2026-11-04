@@ -45,7 +45,7 @@ export function vaciar(el, ...hijos) {
 export const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 // $1.234,50 (sin decimales si es un número entero: $250)
-export const { pesos } = globalThis.cifras;
+export const { pesos, diaMes } = globalThis.cifras;
 
 // "1 venta", "3 ventas" (plural regular por defecto).
 export const plural = (n, uno, varios = `${uno}s`) => `${numero(n, 0)} ${Number(n) === 1 ? uno : varios}`;
@@ -113,13 +113,6 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', '
 function partes(iso) {
   const [a, m, d] = iso.slice(0, 10).split('-').map(Number);
   return { a, m, d, dia: DIAS[diaDeLaSemana(iso)] };
-}
-
-// "12/09"
-export function diaMes(iso) {
-  if (!iso) return '';
-  const { m, d } = partes(iso);
-  return `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
 }
 
 // "sáb 12/09"

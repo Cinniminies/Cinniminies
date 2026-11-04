@@ -36,8 +36,12 @@ function mensajeCompras(comprar, total) {
   return [`*${titulo}*`, '', ...lineas, '', pie].join('\n');
 }
 
-export async function mostrar(cont) {
-  const [cat, recetas] = await Promise.all([catalogo(), q(sb.from('recetas').select('sabor_id'))]);
+// `#/comprar/AAAA-MM-DD` (el aviso push del viernes, idea 3.6): carga el plan de ese sábado con todos sus pedidos por
+// hacer, el mismo que usó el aviso (compras_sabado en la base).
+export async function mostrar(cont, { id: sabado } = {}) {
+  const [cat, recetas, delSabado] = await Promise.all([catalogo(), q(sb.from('recetas').select('sabor_id')),
+    sabado ? rpc('compras_sabado', { p_sabado: sabado }) : null]);
+  if (delSabado) cargarPlan(delSabado.tandas, { cajas: delSabado.cajas, fecha: sabado });
   const sabores = cat.saboresActivos.filter((s) => recetas.some((r) => r.sabor_id === s.id));
   const resultado = h('div');
   let pedido = 0;
