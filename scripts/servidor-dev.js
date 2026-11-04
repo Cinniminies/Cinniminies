@@ -26,7 +26,7 @@ require('./_env.js').cargarEnvLocal();
 if (process.env.MODO_PRUEBA === undefined) process.env.MODO_PRUEBA = '1';
 const tipos = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
-  '.webp': 'image/webp', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml',
+  '.webp': 'image/webp', '.avif': 'image/avif', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml',
   '.json': 'application/json', '.webmanifest': 'application/manifest+json',
 };
 
