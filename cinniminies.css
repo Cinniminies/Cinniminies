@@ -23,6 +23,7 @@
   --font-mono: 'Space Mono', monospace;
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --alto-barra: 67px; /* la .topbar fija: 16 + 34 del logo + 16 + 1 de borde */
 }
 
 *{ box-sizing: border-box; }
@@ -31,9 +32,9 @@
    para poder tocar rápido "Agregar al pedido" sin que se agrande la pantalla */
 *{ touch-action: manipulation; }
 
-/* La barra de arriba es fija (67 px): sin este margen, lo que recibe foco al volver con Shift+Tab, o el
+/* La barra de arriba es fija: sin este margen, lo que recibe foco al volver con Shift+Tab, o el
    comienzo de una sección a la que se salta desde el menú, queda tapado por ella. */
-html{ scroll-behavior: smooth; scroll-padding-top: 67px; }
+html{ scroll-behavior: smooth; scroll-padding-top: var(--alto-barra); }
 
 body{
   margin: 0;
@@ -152,13 +153,13 @@ a:hover{ color: var(--canela-hover); }
   background: var(--cafe);
   transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
 }
-.menu-toggle.is-active span:nth-child(1){
+.menu-toggle[aria-expanded="true"] span:nth-child(1){
   transform: translateY(7px) rotate(45deg);
 }
-.menu-toggle.is-active span:nth-child(2){
+.menu-toggle[aria-expanded="true"] span:nth-child(2){
   opacity: 0;
 }
-.menu-toggle.is-active span:nth-child(3){
+.menu-toggle[aria-expanded="true"] span:nth-child(3){
   transform: translateY(-7px) rotate(-45deg);
 }
 
@@ -373,7 +374,7 @@ a:hover{ color: var(--canela-hover); }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
-  scroll-margin-top: 33px; /* + los 67 px de scroll-padding-top: queda donde estaba */
+  scroll-margin-top: calc(100px - var(--alto-barra)); /* sumado al scroll-padding-top, 100 px como antes */
 }
 
 .roll-card{
@@ -502,7 +503,7 @@ a:hover{ color: var(--canela-hover); }
   border-radius: 22px;
   padding: 36px 5vw;
   text-align: center;
-  scroll-margin-top: 33px;
+  scroll-margin-top: calc(100px - var(--alto-barra));
 }
 .box-picker-label{
   font-family: var(--font-display);

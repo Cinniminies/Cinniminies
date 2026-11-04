@@ -7,31 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- Menú mobile ---------- */
   const toggle = document.querySelector('.menu-toggle');
   const mobileNav = document.getElementById('mobileNav');
-  // Abre o cierra el menú mobile; el ícono pasa a "X" mientras está abierto.
+  // Abre o cierra el menú mobile; con aria-expanded="true" el ícono pasa a "X" (lo dibuja el CSS).
   function mostrarMenuMobile(abierto) {
     mobileNav.classList.toggle('is-open', abierto);
     toggle.setAttribute('aria-expanded', abierto);
-    toggle.classList.toggle('is-active', abierto);
   }
   if (toggle && mobileNav) {
     toggle.addEventListener('click', () => mostrarMenuMobile(!mobileNav.classList.contains('is-open')));
     mobileNav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => mostrarMenuMobile(false)));
-    // Con teclado, Escape lo cierra y el foco vuelve al botón (si no, queda en un link que ya no se ve).
-    document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !mobileNav.classList.contains('is-open')) return;
-      mostrarMenuMobile(false);
-      toggle.focus();
-    });
-  }
-
-  // Quien pidió menos movimiento en el sistema: sin desplazamientos suaves ni confeti.
-  function prefiereSinMovimiento() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  }
-
-  // Lleva la pantalla hasta `nodo`. El scroll-behavior del CSS no alcanza: un `behavior: 'smooth'` en JS lo pisa.
-  function desplazarA(nodo) {
-    nodo?.scrollIntoView({ behavior: prefiereSinMovimiento() ? 'auto' : 'smooth', block: 'start' });
   }
 
   /* ---------- Progress roll (indicador de scroll) ---------- */
@@ -543,7 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateBoxPickerNote();
     updateFlavorPrices();
     updateBoxProgress();
-    desplazarA(menuGrid);
+    // Sin `behavior`: así sigue al scroll-behavior del CSS, que es instantáneo con prefers-reduced-motion.
+    menuGrid?.scrollIntoView({ block: 'start' });
   });
   updateFlavorPrices();
   updateBoxProgress();
@@ -875,7 +859,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function openModal() {
     mostrarDialogo(cartModal);
     document.body.style.overflow = 'hidden';
-    enfocarPaso();
   }
   function closeModal() {
     ocultarDialogo(cartModal);
@@ -889,8 +872,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // El carrito se abre desde el botón flotante o desde el aviso de caja completa: las dos cuentan como paso "carrito".
   function abrirCarrito() {
-    goToStep(stepCart);
     openModal();
+    goToStep(stepCart);
     registrarPaso('carrito');
   }
   if (cartFab) cartFab.addEventListener('click', abrirCarrito);
@@ -919,18 +902,23 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('boxCompleteBackdrop')?.addEventListener('click', closeBoxCompleteModal);
   document.getElementById('boxCompleteContinue')?.addEventListener('click', () => {
     closeBoxCompleteModal();
-    desplazarA(document.querySelector('.box-picker'));
+    document.querySelector('.box-picker')?.scrollIntoView({ block: 'start' });
   });
   document.getElementById('boxCompleteCart')?.addEventListener('click', () => {
     closeBoxCompleteModal();
     abrirCarrito();
   });
 
-  // Escape cierra el popup de caja completa o el carrito (salvo mientras se envía el pedido).
+  // Escape cierra el popup de caja completa, el carrito (salvo mientras se envía el pedido) o el menú mobile; del menú,
+  // el foco vuelve al botón, que si no queda en un link que ya no se ve.
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (boxCompleteModal?.classList.contains('is-open')) closeBoxCompleteModal();
-    else if (cartModal?.classList.contains('is-open') && !enviandoPedido) closeModal();
+    else if (cartModal?.classList.contains('is-open')) { if (!enviandoPedido) closeModal(); }
+    else if (mobileNav?.classList.contains('is-open')) {
+      mostrarMenuMobile(false);
+      toggle.focus();
+    }
   });
 
   cartContinueBtn?.addEventListener('click', () => {
@@ -1114,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Confeti en un canvas encima de todo; se borra solo. Sin animación si la persona la desactivó.
   function lanzarConfeti() {
-    if (prefiereSinMovimiento()) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const canvas = document.createElement('canvas');
     canvas.className = 'confeti';
     canvas.setAttribute('aria-hidden', 'true');
