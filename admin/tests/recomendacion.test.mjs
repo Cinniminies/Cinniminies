@@ -5,17 +5,12 @@ import { register } from 'node:module';
 import { tablas, consultas, reiniciar, pasosDe } from './_supabase-falso.mjs';
 
 register('./_cargador.mjs', import.meta.url);
-const { campanaVigente, bonoDe, codigoDe, diaMes, mensajeCodigo, linkCodigo } = await import('../js/recomendacion.js');
+const { campanaVigente, bonoDe, codigoDe, mensajeCodigo, linkCodigo } = await import('../js/recomendacion.js');
 
 const campana = { porcentaje: '7.50', tope: '30.00' };
 const bono = { porcentaje: '5.00', hasta: '2027-01-19' };
 
 beforeEach(reiniciar);
-
-test('diaMes: día y mes sin ceros', () => {
-  assert.equal(diaMes('2027-01-19'), '19/1');
-  assert.equal(diaMes('2026-10-05'), '5/10');
-});
 
 test('mensajeCodigo: el texto de siempre con el primer nombre, el código y la campaña', () => {
   const texto = mensajeCodigo('  Ana María Pérez ', 'ANAK7P', campana);
@@ -34,7 +29,7 @@ test('mensajeCodigo: sin campaña cargada usa 5 % y tope 30 %; sin nombre, "¡Ho
 
 test('mensajeCodigo: con el bono de la Box de 12 agrega cuánto es y hasta cuándo', () => {
   const texto = mensajeCodigo('Ana', 'ANAK7P', campana, bono);
-  assert.match(texto, /\n\nY por tu primera Box de 12 ya tenés 5 % de descuento para tus próximos pedidos, hasta el 19\/1\.$/);
+  assert.match(texto, /\n\nY por tu primera Box de 12 ya tenés 5 % de descuento para tus próximos pedidos, hasta el 19\/01\.$/);
 });
 
 test('mensajeCodigo: los textos editables de la campaña ganan, y una variable desconocida queda como está', () => {
@@ -42,7 +37,7 @@ test('mensajeCodigo: los textos editables de la campaña ganan, y una variable d
     ...campana, mensaje: ' {nombre}: tu código es {codigo} ({porcentaje} %, {otra}) ', mensaje_bono: 'Bono {bono} % al {vence}',
   };
   assert.equal(mensajeCodigo('Ana', 'ANAK7P', editable), 'Ana: tu código es ANAK7P (7,5 %, {otra})');
-  assert.equal(mensajeCodigo('Ana', 'ANAK7P', editable, bono), 'Ana: tu código es ANAK7P (7,5 %, {otra})\n\nBono 5 % al 19/1');
+  assert.equal(mensajeCodigo('Ana', 'ANAK7P', editable, bono), 'Ana: tu código es ANAK7P (7,5 %, {otra})\n\nBono 5 % al 19/01');
   assert.match(mensajeCodigo('Ana', 'X', { ...campana, mensaje: '   ' }), /^¡Hola Ana!/, 'un texto en blanco usa el de siempre');
 });
 
