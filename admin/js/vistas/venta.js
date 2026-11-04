@@ -1,6 +1,6 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, campoSabado, grupo, pesos, diaMes, toast, conBoton, debounce, mostrarError, ETIQUETAS,
+  h, vaciar, chips, campo, campoSabado, grupo, pesos, diaMes, toast, conBoton, debounce, mostrarError, entrar, ETIQUETAS,
   opciones, campoPesos,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
@@ -183,13 +183,16 @@ function confirmacion(cont, cat, r, guardado) {
     await mostrar(cont).catch(mostrarError);
   });
 
-  vaciar(cont, h('div', { class: 'card hecho' },
+  // La confirmación llega en el lugar del formulario, como resultado de tocar Guardar.
+  const hecho = h('div', { class: 'card hecho' },
     h('div', { class: 'tilde' }, '✓'),
     h('h1', {}, 'Venta guardada'),
     h('div', { class: 'monto-grande' }, pesos(total)),
     h('p', {}, h('strong', {}, cliente?.nombre || ''), ` · ${ETIQUETAS.estado_pago[guardado.estado_pago]}`,
       ` · Sábado ${diaMes(r.fecha)}`, guardado.por_hacer ? ' · Por hacer (entra en el plan de horneado)' : ''),
     h('p', { class: 'ayuda' }, detalle),
-    h('div', { class: 'acciones', style: 'justify-content:center' }, otra, deshacer)));
+    h('div', { class: 'acciones', style: 'justify-content:center' }, otra, deshacer));
+  vaciar(cont, hecho);
+  entrar(hecho);
   window.scrollTo(0, 0);
 }

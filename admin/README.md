@@ -23,8 +23,9 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/app.js` | Login, control de acceso y rutas (`#/panel`, `#/venta`, `#/ventas/:id`, …). |
 | `js/db.js`, `js/catalogo.js` | Cliente de Supabase y catálogo en memoria (sabores, formatos, insumos). |
 | `js/componentes.js` | Piezas de varias pantallas: fila de lista, etiquetas, tarjeta de un número, caja vacía, link externo, selector de cliente con autocompletar, editor de productos (formatos + sabores + caja), precios, libro de caja y rolls por sabor. |
-| `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), links de WhatsApp, chips, steppers, campos y avisos. |
+| `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), links de WhatsApp, chips, steppers, campos, avisos y movimiento (`animar`, `entrar`, `rodarNumero`, con los tokens `--mov-*` de `app.css` y respetando "reducir movimiento"). |
 | `js/cifras.js` | `pesos` y el texto de la variación, compartidos con los avisos push de `api/` (es un script común que también se carga con `require`). |
+| `js/tema.js` | Aplica el tema elegido antes de pintar (script común, no módulo, cargado antes del CSS). |
 | `js/textos.js` | `textoPanel`: los textos del panel que se editan en Web → Textos e imágenes (filas `panel.*`). |
 | `js/tiempos.js`, `js/desvios.js`, `js/historial.js`, `js/redes.js` | Cuentas puras (con pruebas): tiempo del horneado, desvíos de stock, historial de precios de un insumo y sugerencias de Instagram. |
 | `js/fotos.js`, `js/push.js`, `js/recomendacion.js` | Fotos al bucket (las achica `/achicar-imagen.js`, compartido con la web), suscripción a los avisos push y lo común del descuento por recomendación. |
@@ -72,9 +73,9 @@ funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari com�
 ## Tema claro u oscuro (idea 7.5)
 
 **Más → Cuenta → Tema**: Automático (sigue al celular, el de siempre), Claro u Oscuro, por dispositivo (se guarda en
-`localStorage`, clave `cinniminies.tema`). Un script corto en el `<head>` de `index.html` lo aplica antes de pintar como
-`data-tema="claro"` u `"oscuro"` en `<html>` (en Automático, según el celular y cambiando con él) y pone el fondo del
-tema en `theme-color`. Los tokens oscuros de `app.css` están una sola vez, en `:root[data-tema="oscuro"]`; los
+`localStorage`, clave `cinniminies.tema`). `js/tema.js` (un `<script src>` sin `defer` en el `<head>`, antes del CSS; en un
+archivo y no en línea por la CSP de /admin) lo aplica antes de pintar como `data-tema="claro"` u `"oscuro"` en `<html>`
+(en Automático, según el celular y cambiando con él) y pone el fondo del tema en `theme-color`. Los tokens oscuros de `app.css` están una sola vez, en `:root[data-tema="oscuro"]`; los
 gráficos usan esos tokens, así que siguen al tema solos, y el logo de la barra va en línea en `index.html` (no como
 `<img>`) por lo mismo.
 

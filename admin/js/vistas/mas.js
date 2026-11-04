@@ -5,7 +5,7 @@ import { icono } from '../iconos.js';
 import { sesion } from '../app.js';
 import * as push from '../push.js';
 
-// Elección de tema de este dispositivo; el script del <head> de index.html lee la misma clave.
+// Elección de tema de este dispositivo; js/tema.js lee la misma clave.
 const CLAVE_TEMA = 'cinniminies.tema';
 
 // Fila de la cuenta: ícono, título y detalle; `control` va a la derecha y `debajo`, abajo del texto.
@@ -44,8 +44,8 @@ function filaAvisos() {
   return fila(h('label', { class: 'interruptor solo' }, casilla));
 }
 
-// Tema de este dispositivo: Automático (sigue al celular), Claro u Oscuro. Lo aplica el script del <head> de
-// index.html; acá solo se guarda y se le avisa.
+// Tema de este dispositivo: Automático (sigue al celular), Claro u Oscuro. Lo aplica js/tema.js; acá solo se
+// guarda y se le avisa.
 function filaTema() {
   let elegido = 'auto';
   try { elegido = localStorage.getItem(CLAVE_TEMA) || 'auto'; } catch { /* sin almacenamiento: Automático */ }

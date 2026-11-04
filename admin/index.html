@@ -12,28 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Cinniminies">
-<script>
-  // Tema (Más → Cuenta → Tema): va antes del CSS para que data-tema ya esté al pintar y no parpadee. Queda
-  // siempre en "claro" u "oscuro": en Automático sigue al celular y cambia con él. La barra del celular
-  // (theme-color) toma el --bg del tema cuando el CSS ya cargó. La vista de Más avisa con el evento 'cambio-tema'.
-  (() => {
-    const raiz = document.documentElement;
-    const barra = document.querySelector('meta[name="theme-color"]');
-    const oscuro = matchMedia('(prefers-color-scheme: dark)');
-    const aplicar = () => {
-      let elegido = null;
-      try { elegido = localStorage.getItem('cinniminies.tema'); } catch { /* sin almacenamiento: Automático */ }
-      raiz.dataset.tema = elegido === 'claro' || elegido === 'oscuro' ? elegido : oscuro.matches ? 'oscuro' : 'claro';
-    };
-    const pintarBarra = () => { barra.content = getComputedStyle(raiz).getPropertyValue('--bg').trim() || barra.content; };
-    const cambiar = () => { aplicar(); pintarBarra(); };
-    aplicar();
-    addEventListener('DOMContentLoaded', pintarBarra);
-    oscuro.addEventListener('change', cambiar);
-    addEventListener('storage', cambiar);
-    document.addEventListener('cambio-tema', cambiar);
-  })();
-</script>
+<script src="js/tema.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..600,100&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">

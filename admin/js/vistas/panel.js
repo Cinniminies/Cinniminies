@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import {
   h, vaciar, chips, pesos, numero, fechaCorta, mesISO, nombreMes, soloMes, hoyISO, proximoSabado, sumarDias, sumarMeses, sumar,
-  conBoton, toast, plural, ETIQUETAS,
+  conBoton, toast, plural, rodarNumero, ETIQUETAS,
 } from '../util.js';
 import { icono } from '../iconos.js';
 import { areas, variacion } from '../graficos.js';
@@ -189,6 +189,9 @@ export async function mostrar(cont) {
       vaciar(porSabor, partesPorSabor(suma, cat));
     }).catch((e) => vaciar(porSabor, h('p', { class: 'mensaje-error' }, e.message)));
 
+    // Al cambiar de período los números ruedan desde los que había: se ve qué cambió y para dónde.
+    const cifras = () => contPeriodo.querySelectorAll('.hero-num, .stat .num');
+    const antes = [...cifras()].map((el) => el.textContent);
     vaciar(contPeriodo,
       h('div', { class: 'hero' },
         h('div', { class: 'etq' }, mesSel ? `Vendido en ${nombreMes(mesSel)}` : 'Vendido desde el principio'),
@@ -203,6 +206,7 @@ export async function mostrar(cont) {
         stat('Gastado', pesos(datos.total_gastado), 'compras y gastos')),
       entroAparte(datos),
       h('div', { class: 'graficos' }, h('div', { class: 'card' }, grafico), h('div', { class: 'card' }, porSabor)));
+    cifras().forEach((el, i) => rodarNumero(el, antes[i]));
   }
 
   // Plata que entró sin ser una venta (aportes de socios y otros ingresos), si hubo.

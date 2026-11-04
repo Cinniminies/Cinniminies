@@ -1,4 +1,4 @@
-import { h, plural, sumar, numero } from './util.js';
+import { h, plural, sumar, numero, animar } from './util.js';
 import './cifras.js';
 
 // Gráficos en HTML y SVG (sin librerías), cada uno para un tipo de dato. Reglas: marcas finas con punta
@@ -18,6 +18,13 @@ export function variacion(actual, anterior, contra) {
   return h('span', { class: 'delta ' + (c > 0 ? 'bueno' : 'malo') },
     h('span', { 'aria-hidden': 'true' }, c > 0 ? '▲ ' : '▼ '), texto);
 }
+
+// Una barra crece una vez desde la izquierda cuando aparece (sin texto adentro: el borde no corta nada).
+// `retraso` escalona varias en el orden de lectura.
+const crecer = (barra, { retraso = 0, pseudo } = {}) => {
+  animar(barra, [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duracion: 'lenta', retraso, pseudo });
+  return barra;
+};
 
 const SVG = 'http://www.w3.org/2000/svg';
 function s(tag, attrs, ...hijos) {
@@ -221,10 +228,11 @@ export function partes(datos, { formato, titulo, vacio }) {
   const mayor = Math.max(...lista.map((d) => d.valor));
   return h('figure', { class: 'grafico' },
     h('figcaption', { class: 'graf-titulo' }, titulo, h('span', { class: 'graf-total' }, ` · ${formato(total)} en total`)),
-    h('div', { class: 'graf-partes', role: 'img', 'aria-label': lista.map((d) => `${d.etiqueta} ${pct(d.valor)}`).join(', ') },
-      lista.map((d) => h('span', {
-        style: `flex:${d.valor};--c:${d.color}`, title: `${d.etiqueta}: ${formato(d.valor)} (${pct(d.valor)})`,
-      }))),
+    crecer(h('div', {
+      class: 'graf-partes', role: 'img', 'aria-label': lista.map((d) => `${d.etiqueta} ${pct(d.valor)}`).join(', '),
+    }, lista.map((d) => h('span', {
+      style: `flex:${d.valor};--c:${d.color}`, title: `${d.etiqueta}: ${formato(d.valor)} (${pct(d.valor)})`,
+    })))),
     h('ul', { class: 'graf-partes-lista' }, lista.map((d) => h('li', { class: d.valor === mayor ? 'mayor' : null },
       h('i', { style: `--c:${d.color}` }), h('span', { class: 'graf-etq' }, d.etiqueta),
       h('span', { class: 'graf-valor' }, formato(d.valor)), h('span', { class: 'graf-pct' }, pct(d.valor))))));
@@ -244,7 +252,8 @@ export function embudo(pasos, { titulo, vacio }) {
         h('span', { class: 'graf-etq' }, p.etiqueta),
         h('span', { class: 'graf-valor' }, numero(p.valor, 0)),
         h('span', { class: 'graf-pct', title: siguio ? 'de los del paso anterior' : null }, siguio),
-        h('span', { class: 'graf-embudo-barra', 'aria-hidden': 'true', style: `--ancho:${(100 * p.valor) / primero}%` }));
+        crecer(h('span', { class: 'graf-embudo-barra', 'aria-hidden': 'true', style: `--ancho:${(100 * p.valor) / primero}%` }),
+          { retraso: i * 60, pseudo: '::after' }));
     })),
     h('p', { class: 'graf-ayuda' }, 'El porcentaje es de los que llegaron al paso anterior.'));
 }
@@ -291,11 +300,12 @@ export function composicion(grupos, { partes: piezas, formato, titulo, columnasT
   let primera = null;
   const cuerpo = grupos.map((g) => h('div', { class: 'graf-grupo' },
     grupos.length > 1 ? h('div', { class: 'graf-subtitulo' }, g.titulo) : null,
-    g.filas.map((f) => {
+    g.filas.map((f, i) => {
       const el = h('button', { type: 'button', class: 'graf-comp',
         'aria-label': `${f.etiqueta}: ${piezas.map((p) => `${p.nombre} ${formato(f.valores[p.clave])}`).join(', ')}` },
       h('span', { class: 'graf-etq' }, f.etiqueta),
-      h('span', { class: 'graf-pila' }, piezas.map((p) => h('span', { style: `flex:${pct(f, p.clave)};--c:${p.color}` }))),
+      crecer(h('span', { class: 'graf-pila' }, piezas.map((p) => h('span', { style: `flex:${pct(f, p.clave)};--c:${p.color}` }))),
+        { retraso: Math.min(i, 6) * 40 }),
       h('span', { class: 'graf-valor' }, `${Math.round(pct(f, ultima.clave))} %`));
       el.addEventListener('pointerenter', () => mostrar(f, el));
       el.addEventListener('focus', () => mostrar(f, el));
