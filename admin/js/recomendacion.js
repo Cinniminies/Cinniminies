@@ -1,7 +1,7 @@
 // Descuento por recomendación (docs/descuento-plan/logica.md): lo que comparten Ventas, Clientes y
 // Recomendaciones. Las reglas están en la base (saldo_recomendacion, consultar_codigo, crear_pedido_web).
 import { sb, q } from './db.js';
-import { hoyISO, linkWhatsapp } from './util.js';
+import { hoyISO, linkWhatsapp, diaMes } from './util.js';
 
 const WEB = 'cinniminies.emprendeuy.com';
 
@@ -36,8 +36,6 @@ export async function codigoDe(clienteId) {
 }
 
 const num = (n) => String(Number(n)).replace('.', ',');
-// "2027-01-19" → "19/1"
-export const diaMes = (iso) => { const [, m, d] = iso.split('-'); return `${Number(d)}/${Number(m)}`; };
 
 // Si todavía no se cargó el texto editable (o lo dejaron vacío).
 const MENSAJE = '¡Hola {nombre}! Gracias por tu compra en Cinniminies. Este es tu código: {codigo}\n\n'

@@ -279,16 +279,21 @@ export function chipsUnidad(lista, valor, alCambiar) {
 export const stat = (etiqueta, valor, sub, delta) => h('div', { class: 'stat' },
   h('div', { class: 'etq' }, etiqueta), h('div', { class: 'num' }, valor), sub ? h('div', { class: 'sub' }, sub) : null, delta);
 
-// Rolls por sabor ({ 'Canela': 40, … }) en una barra partida. Cada sabor con su color fijo, así no cambia cuando
-// cambia el período: primero los de masa compartida (los mismos colores que en el desglose del plan de horneado),
-// después los de masa propia y los inactivos.
+// Los sabores en el orden de sus colores: primero los de masa compartida, después los de masa propia y los inactivos.
+const saboresEnOrden = (cat) => [...cat.saboresActivos.filter((x) => !x.masa_propia),
+  ...cat.saboresActivos.filter((x) => x.masa_propia), ...cat.sabores.filter((x) => !x.activo)];
+
+// Color fijo de un sabor (por id) en los gráficos: el mismo en Inicio, Cierre de mes y el plan de horneado, y no
+// cambia cuando cambia el período. Los seis primeros tienen --serie-1 a 6; el resto, gris.
+export function colorSabor(cat, id) {
+  const i = saboresEnOrden(cat).findIndex((x) => x.id === id);
+  return i >= 0 && i < 6 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
+}
+
+// Rolls por sabor ({ 'Canela': 40, … }) en una barra partida, cada sabor con su colorSabor.
 export function partesPorSabor(rollsPorSabor, cat) {
-  const orden = [...cat.saboresActivos.filter((x) => !x.masa_propia), ...cat.saboresActivos.filter((x) => x.masa_propia),
-    ...cat.sabores.filter((x) => !x.activo)].map((x) => x.nombre);
-  const colorDe = (nombre) => {
-    const i = orden.indexOf(nombre);
-    return i >= 0 && i < 6 ? `var(--serie-${i + 1})` : 'var(--graf-gris)';
-  };
+  const orden = saboresEnOrden(cat).map((x) => x.nombre);
+  const colorDe = (nombre) => colorSabor(cat, cat.sabores.find((x) => x.nombre === nombre)?.id);
   const lista = Object.entries(rollsPorSabor)
     .map(([etiqueta, valor]) => ({ etiqueta, valor: Number(valor), color: colorDe(etiqueta) }))
     .sort((a, b) => (orden.indexOf(a.etiqueta) + 1 || 999) - (orden.indexOf(b.etiqueta) + 1 || 999));

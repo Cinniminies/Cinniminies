@@ -1,4 +1,5 @@
 import { ZONA_HORARIA } from './config.js';
+import './cifras.js';
 
 // ---------------------------------------------------------------- DOM
 
@@ -44,20 +45,15 @@ export function vaciar(el, ...hijos) {
 export const normalizar = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 // $1.234,50 (sin decimales si es un número entero: $250)
-export function pesos(n) {
-  if (n == null || n === '' || Number.isNaN(Number(n))) return '—';
-  const centavos = Math.round(Math.abs(Number(n)) * 100);
-  const entero = Math.floor(centavos / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  const resto = centavos % 100;
-  return (Number(n) < 0 ? '−' : '') + '$' + entero + (resto ? ',' + String(resto).padStart(2, '0') : '');
-}
+export const { pesos } = globalThis.cifras;
 
 // "1 venta", "3 ventas" (plural regular por defecto).
 export const plural = (n, uno, varios = `${uno}s`) => `${numero(n, 0)} ${Number(n) === 1 ? uno : varios}`;
 
 export function numero(n, decimales = 2) {
   if (n == null || n === '') return '—';
-  return Number(n).toLocaleString('es-UY', { maximumFractionDigits: decimales });
+  // Se redondea antes de formatear: -0,001 da "0" y no "-0".
+  return (Number(Number(n).toFixed(decimales)) || 0).toLocaleString('es-UY', { maximumFractionDigits: decimales });
 }
 
 // Cantidad en unidad base con una unidad legible: 5000 g → "5 kg", 250 ml → "250 ml", 12 un → "12 un".
@@ -230,7 +226,7 @@ export function interruptor(etiqueta, valor, alCambiar, ayuda) {
 }
 
 // Campo de fecha que avisa cuando no es la de hoy (la app puede quedar abierta de un día al otro).
-export function campoFecha(valor, alCambiar, etiqueta = 'Fecha') {
+export function campoFecha(valor, alCambiar) {
   const aviso = h('div', { class: 'ayuda aviso-fecha' });
   const revisar = (v) => { aviso.textContent = v && v !== hoyISO() ? `Ojo: no es la fecha de hoy (${fechaLarga(v)})` : ''; };
   const input = h('input', {
@@ -238,19 +234,19 @@ export function campoFecha(valor, alCambiar, etiqueta = 'Fecha') {
     onchange: (e) => { const v = e.target.value || hoyISO(); revisar(v); alCambiar(v); },
   });
   revisar(valor);
-  return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), input, aviso);
+  return h('label', { class: 'campo' }, h('span', { class: 'etq' }, 'Fecha'), input, aviso);
 }
 
 // La fecha de una venta es siempre el sábado de entrega: se elige entre 8 sábados para atrás y 8 para adelante
 // (y el que ya tenía la venta, si es más viejo).
-export function campoSabado(valor, alCambiar, etiqueta = 'Sábado de entrega') {
+export function campoSabado(valor, alCambiar) {
   const este = proximoSabado();
   const sabados = Array.from({ length: 17 }, (_, i) => sumarDias(este, (i - 8) * 7));
   if (valor && !sabados.includes(valor)) sabados.unshift(valor);
   const select = h('select', { required: true, onchange: (e) => alCambiar(e.target.value) },
     sabados.map((s) => h('option', { value: s }, `${fechaCorta(s)}${s === este ? ' · este sábado' : ''}`)));
   select.value = valor;
-  return h('label', { class: 'campo' }, h('span', { class: 'etq' }, etiqueta), select);
+  return h('label', { class: 'campo' }, h('span', { class: 'etq' }, 'Sábado de entrega'), select);
 }
 
 export function grupo(etiqueta, control) {

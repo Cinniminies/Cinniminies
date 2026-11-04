@@ -12,10 +12,12 @@ Antes de crear una función, un componente o una clase CSS, buscar con `grep` si
 | `admin/js/util.js` | `h`, `vaciar`, formatos (`pesos`, `numero`, `cantidad`, `plural`, `fechaCorta`, `fechaLarga`, `nombreMes`), fechas (`hoyISO`, `mesISO`, `proximoSabado`, `diaDeLaSemana`, `sumarDias`, `sumarMeses`), `sumar(lista, valorDe)`, controles (`chips`, `stepper`, `campo`, `interruptor`, `campoFecha`), `toast`, `conBoton`, `debounce` |
 | `admin/js/db.js` | `sb`, `q` (consulta que tira el error), `rpc`, `contar` |
 | `admin/js/catalogo.js` | `catalogo()` en memoria: sabores, formatos, insumos, parámetros |
-| `admin/js/componentes.js` | `filaLista({ href, titulo, detalle, derecha })`, `pastilla(clase, texto)`, `linkExterno(href, contenido, { clase })`, `cajaVacia`, `monto`, `stat` (tarjeta de un número), `elegirCliente`, `editorLineas`, `seccionPrecios`, `tituloSemana`, `libroCaja` |
+| `admin/js/componentes.js` | `filaLista({ href, titulo, detalle, derecha })`, `pastilla(clase, texto)`, `linkExterno(href, contenido, { clase })`, `cajaVacia`, `colorSabor(cat, id)`, `monto`, `stat` (tarjeta de un número), `elegirCliente`, `editorLineas`, `seccionPrecios`, `tituloSemana`, `libroCaja` |
+| `admin/js/cifras.js` | `pesos` y `textoVariacion`, compartidos con `api/` (los avisos push) |
+| `achicar-imagen.js` | `achicarImagen(archivo, { ladoMax, tipos, calidad })`, para la web y /admin |
 | `admin/js/graficos.js` | `linea`, `areas`, `partes`, `pesas`, `composicion`, `puntos`, `variacion` |
 | `admin/js/textos.js` | `textoPanel(clave, defecto, vars)` para los textos del panel |
-| `api/_lib/supabase.js` | `rpc(nombre, args, conf, { ErrorCliente })`, `metodoPermitido`, `configuracionLista`, `leerCuerpoJson`, `responderJson`, `encabezados` |
+| `api/_lib/supabase.js` | `rpc(nombre, args, conf, { ErrorCliente })`, `metodoPermitido`, `configuracionLista`, `leerCuerpoJson`, `responderJson`, `encabezados`, `funcionCron`, `claveValida` |
 | `scripts/_env.js` | `cargarEnvLocal()` para los scripts que leen `.env.local` |
 
 - Si ya existe, se usa. Si casi sirve, se extiende con una opción en vez de copiarlo.

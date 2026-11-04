@@ -1,33 +1,21 @@
 import { h, plural, sumar, numero } from './util.js';
+import './cifras.js';
 
 // Gráficos en HTML y SVG (sin librerías), cada uno para un tipo de dato. Reglas: marcas finas con punta
 // redondeada, acento para lo que importa y gris de contexto (colores de --serie-* para identidades),
 // etiquetas selectivas en color de texto, detalle al tocar o con el teclado, y una tabla con los mismos datos.
 
-// Cambio relativo contra el período anterior (0.12 = 12 %), o null si no hay con qué comparar.
-function cambio(actual, anterior) {
-  if (!anterior || actual == null) return null;
-  const c = (actual - anterior) / Math.abs(anterior);
-  return Number.isFinite(c) ? c : null;
-}
+// La cuenta y el texto de la variación están en cifras.js, para que el aviso push diga lo mismo que la pantalla.
+const { cambio, textoVariacion } = globalThis.cifras;
+export { textoVariacion };
 
-// "sube 12 % vs agosto", "baja 3,5 % vs agosto" o "igual que agosto"; null si no hay con qué comparar.
-export function textoVariacion(actual, anterior, contra) {
-  const c = cambio(actual, anterior);
-  if (c == null) return null;
-  const pct = Math.abs(c * 100);
-  if (pct < 0.05) return `igual que ${contra}`;
-  return `${c > 0 ? 'sube' : 'baja'} ${pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)} % vs ${contra}`;
-}
-
-// Variación contra el período anterior: "▲ sube 12 % vs agosto" (verde si sube algo bueno).
-export function variacion(actual, anterior, contra, { masEsMejor = true } = {}) {
+// Variación contra el período anterior: "▲ sube 12 % vs agosto", en verde si sube y en rojo si baja.
+export function variacion(actual, anterior, contra) {
   const texto = textoVariacion(actual, anterior, contra);
   if (!texto) return null;
   const c = cambio(actual, anterior);
   if (Math.abs(c * 100) < 0.05) return h('span', { class: 'delta' }, texto);
-  const bueno = c > 0 === masEsMejor;
-  return h('span', { class: 'delta ' + (bueno ? 'bueno' : 'malo') },
+  return h('span', { class: 'delta ' + (c > 0 ? 'bueno' : 'malo') },
     h('span', { 'aria-hidden': 'true' }, c > 0 ? '▲ ' : '▼ '), texto);
 }
 

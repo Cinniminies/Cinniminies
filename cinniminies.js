@@ -1303,13 +1303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const esImagen = archivo.type.startsWith('image/');
     if (!esImagen || archivo.size <= 1024 * 1024) return archivo;
     try {
-      const bmp = await createImageBitmap(archivo);
-      const escala = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
-      const lienzo = document.createElement('canvas');
-      lienzo.width = Math.round(bmp.width * escala);
-      lienzo.height = Math.round(bmp.height * escala);
-      lienzo.getContext('2d').drawImage(bmp, 0, 0, lienzo.width, lienzo.height);
-      const blob = await new Promise(ok => lienzo.toBlob(ok, 'image/jpeg', 0.85));
+      const blob = await achicarImagen(archivo, { ladoMax: 2000 });
       return blob && blob.size < archivo.size ? blob : archivo;
     } catch {
       return archivo; // el navegador no la sabe abrir (p. ej. HEIC fuera de Safari): que la valide la API

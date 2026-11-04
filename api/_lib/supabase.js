@@ -71,12 +71,15 @@ async function leerJson(req, maximo, muyGrande) {
     if (texto.length > maximo) throw muyGrande();
     return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
   }
-  let texto = '';
+  // Se juntan los bytes y se pasan a texto al final: una letra con tilde puede quedar partida entre dos pedazos.
+  const partes = [];
+  let bytes = 0;
   for await (const parte of req) {
-    texto += parte;
-    if (texto.length > maximo) throw muyGrande();
+    partes.push(Buffer.from(parte));
+    bytes += parte.length;
+    if (bytes > maximo) throw muyGrande();
   }
-  return JSON.parse(texto || 'null');
+  return JSON.parse(Buffer.concat(partes).toString('utf8') || 'null');
 }
 
 // Llama a una función de la base (POST /rest/v1/rpc/nombre) y devuelve su resultado. Los `raise exception` de la
@@ -140,7 +143,24 @@ function cronAutorizado(req, res) {
   return true;
 }
 
+// Handler de una función que llama el cron: autoriza, arma la configuración y responde 200 con lo que devuelve
+// `trabajo(conf)`, o 502 con el error (que queda en el log de Vercel con `nombre`).
+function funcionCron(nombre, trabajo) {
+  return async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!cronAutorizado(req, res)) return;
+    const conf = configuracionLista(res);
+    if (!conf) return;
+    try {
+      responderJson(res, 200, await trabajo(conf));
+    } catch (e) {
+      console.error(`${nombre}:`, e.message);
+      responderJson(res, 502, { error: e.message });
+    }
+  };
+}
+
 module.exports = {
   URL_SUPABASE, configuracion, configuracionLista, encabezados, modoPrueba, responderJson, metodoPermitido, leerCuerpoJson, rpc,
-  claveValida, cronAutorizado, fechaLocal, hashIp,
+  claveValida, cronAutorizado, funcionCron, fechaLocal, hashIp,
 };

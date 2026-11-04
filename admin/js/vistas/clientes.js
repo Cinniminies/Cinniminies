@@ -1,9 +1,9 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, campo, pesos, numero, fechaCorta, toast, conBoton, linkWhatsapp, normalizar, plural } from '../util.js';
+import { h, vaciar, campo, pesos, numero, fechaCorta, diaMes, toast, conBoton, linkWhatsapp, normalizar, plural } from '../util.js';
 import { filaLista, pastilla, monto, linkExterno } from '../componentes.js';
 import { clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { irA } from '../app.js';
-import { campanaVigente, codigoDe, bonoDe, diaMes, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
+import { campanaVigente, codigoDe, bonoDe, linkCodigo, ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
 
 let busqueda = '';
 
