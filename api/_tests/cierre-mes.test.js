@@ -33,9 +33,9 @@ test('handler: sin el secreto del cron no hace nada', async () => {
   assert.equal(r.llamadas.length, 0);
 });
 
-test('handler: sin las claves VAPID responde 500 antes de pedir el cierre', async () => {
+test('handler: sin las claves VAPID responde 502 antes de pedir el cierre', async () => {
   const r = await cerrar(CRON, { env: { VAPID_PRIVATE_KEY: undefined } });
-  assert.equal(r.res.statusCode, 500);
+  assert.equal(r.res.statusCode, 502);
   assert.match(r.cuerpo.error, /VAPID/);
   assert.equal(r.llamadas.length, 0);
 });
