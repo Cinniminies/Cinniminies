@@ -129,8 +129,8 @@ function resultado(cont, r, unidad) {
   vaciar(cont, h('div', { class: 'card' },
     h('h1', {}, textoPanel('panel.stock.conteo_guardado', 'Conteo guardado')),
     h('p', { class: 'ayuda' }, textoPanel('panel.stock.conteo_ayuda',
-      '{cantidad} insumos, {fecha}. Desde ahora el stock teórico arranca de estas cantidades.',
-      { cantidad: r.length, fecha: fechaLarga(hoyISO()) })),
+      '{insumos}, {fecha}. Desde ahora el stock teórico arranca de estas cantidades.',
+      { insumos: plural(r.length, 'insumo'), fecha: fechaLarga(hoyISO()) })),
     h('table', { class: 'tabla' },
       h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num-der' }, 'Debería haber'), h('th', { class: 'num-der' }, 'Hay'), h('th', { class: 'num-der' }, 'Desvío')),
       r.map((x) => h('tr', {}, h('td', {}, x.insumo),
@@ -320,8 +320,8 @@ async function desvios(cont) {
     const ajustar = h('button', { class: 'btn chico', type: 'button' }, `Ajustar recetas ${pct(f.rel)}`);
     ajustar.onclick = () => conBoton(ajustar, async () => {
       const pregunta = textoPanel('panel.stock.ajustar_confirmar',
-        '¿Cambiar {insumo} en {recetas} receta(s) un {porcentaje}? El promedio de {insumo} arranca de nuevo.',
-        { insumo: f.nombre, recetas: deEste.length, porcentaje: pct(f.rel) });
+        '¿Cambiar {insumo} en {recetas} un {porcentaje}? El promedio de {insumo} arranca de nuevo.',
+        { insumo: f.nombre, recetas: plural(deEste.length, 'receta'), porcentaje: pct(f.rel) });
       if (!confirm(pregunta)) return;
       await rpc('ajustar_recetas_insumo', { p_insumo: f.insumo_id, p_factor: factor });
       toast(textoPanel('panel.stock.ajustadas', 'Recetas con {insumo} ajustadas', { insumo: f.nombre }));

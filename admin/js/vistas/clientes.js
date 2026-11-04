@@ -27,7 +27,7 @@ async function lista(cont) {
   };
   vaciar(cont,
     campo('Buscar', h('input', { type: 'search', value: busqueda, placeholder: 'Nombre o contacto', oninput: (e) => { busqueda = e.target.value; dibujar(); } })),
-    h('p', { class: 'ayuda' }, textoPanel('panel.clientes.cuantos', '{cantidad} clientes', { cantidad: todos.length })),
+    h('p', { class: 'ayuda' }, textoPanel('panel.clientes.cuantos', '{clientes}', { clientes: plural(todos.length, 'cliente') })),
     resultados);
   dibujar();
 }
