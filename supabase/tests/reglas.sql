@@ -1522,3 +1522,49 @@ begin
   end if;
   raise exception 'TODO OK';
 end $$;
+
+-- Compras del viernes (20261104130000): compras_sabado usa el plan por defecto de ese sábado (sus pedidos por hacer y
+-- los atrasados, no los de sábados siguientes) con sus cajas, y devuelve lo mismo que ¿Qué compro? con eso.
+do $$
+declare
+  ca uuid := (select id from sabores where nombre = 'Canela');
+  pers uuid := (select id from formatos where nombre = 'Personalizado');
+  doce jsonb;
+  v1 uuid; v2 uuid;
+  sab date;
+  r jsonb;
+  antes jsonb;
+begin
+  -- es_admin() pide un dispositivo autorizado (20261024130000): uno de prueba para cada admin, solo en este bloque
+  insert into dispositivos (user_id, token_hash, nombre, autorizado)
+  select user_id, encode(sha256(convert_to('reglas-sql-0123456789abcdef0123456789', 'UTF8')), 'hex'), 'reglas.sql', true
+    from usuarios_admin;
+  perform set_config('request.headers', '{"x-dispositivo":"reglas-sql-0123456789abcdef0123456789"}', true);
+  update ventas set por_hacer = false where por_hacer;   -- se deshace al final
+  doce := jsonb_build_object('entrega', 'retiro', 'medio_pago', 'efectivo', 'por_hacer', true, 'notas', 'PRUEBA compras',
+    'lineas', jsonb_build_array(jsonb_build_object('formato_id', pers, 'sabores',
+      jsonb_build_array(jsonb_build_object('sabor_id', ca, 'unidades', 12)))));
+  v1 := (registrar_venta(doce)->>'venta_id')::uuid;
+  v2 := (registrar_venta(doce)->>'venta_id')::uuid;
+  sab := (select fecha from ventas where id = v1);
+  update ventas set fecha = sab + 7 where id = v2;   -- la del sábado siguiente no entra
+
+  r := compras_sabado(sab);
+  if (r->>'pedidos')::int <> 1 or r->'tandas' <> jsonb_build_object(ca, 1) then
+    raise exception 'plan del sábado: %', r;
+  end if;
+  if r->'comprar' <> (select coalesce(jsonb_agg(to_jsonb(c) order by c.insumo), '[]'::jsonb)
+                        from que_comprar(r->'tandas', r->'cajas') c where c.faltante > 0) then
+    raise exception 'no coincide con ¿Qué compro?: %', r->'comprar';
+  end if;
+  if (r->>'total')::numeric <> (select coalesce(sum((x->>'costo_estimado')::numeric), 0) from jsonb_array_elements(r->'comprar') x) then
+    raise exception 'total: %', r;
+  end if;
+  -- El sábado siguiente suma el atrasado; un sábado anterior no tiene pedidos; sin fecha, el de esta semana
+  antes := compras_sabado(sab - 7);
+  if (compras_sabado(sab + 7)->>'pedidos')::int <> 2 or (antes->>'pedidos')::int <> 0 or antes->'comprar' <> '[]'::jsonb
+     or compras_sabado()->>'sabado' <> privado.sabado_de_semana(hoy())::text then
+    raise exception 'sábados vecinos';
+  end if;
+  raise exception 'TODO OK';
+end $$;

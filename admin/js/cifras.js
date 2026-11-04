@@ -1,4 +1,4 @@
-// Formatos de plata y de variación que comparten /admin (lo importa util.js como módulo ES) y api/ (los avisos push
+// Formatos de plata, de variación y de fecha que comparten /admin (lo importa util.js como módulo ES) y api/ (los avisos push
 // de api/_lib/push.js, en CommonJS). Un solo archivo que sirve en los dos lados, así el aviso del celular y la pantalla
 // muestran lo mismo: queda en globalThis.cifras y, en Node, también en module.exports.
 (() => {
@@ -29,7 +29,10 @@
     return `${c > 0 ? 'sube' : 'baja'} ${unDecimal < 10 ? unDecimal.toFixed(1).replace('.', ',') : Math.round(pct)} % vs ${contra}`;
   }
 
-  const cifras = { pesos, cambio, textoVariacion };
+  // "07/11" de una fecha AAAA-MM-DD ('' sin fecha).
+  const diaMes = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '');
+
+  const cifras = { pesos, cambio, textoVariacion, diaMes };
   globalThis.cifras = cifras;
   if (typeof module === 'object' && module.exports) module.exports = cifras;
 })();

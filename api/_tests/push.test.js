@@ -1,7 +1,7 @@
-// Pruebas de los avisos push (fase 2 · 2.1 y cierre de mes): node --test api/_tests/*.test.js
+// Pruebas de los avisos push (fase 2 · 2.1, cierre de mes y compras del viernes): node --test api/_tests/*.test.js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { configuracionPush, armarAviso, armarAvisoCierre, avisarPedidoNuevo } = require('../_lib/push.js');
+const { configuracionPush, armarAviso, armarAvisoCierre, armarAvisoCompras, avisarPedidoNuevo } = require('../_lib/push.js');
 const { sinLogs } = require('./_ayudas.js');
 
 const vapid = { publica: 'pub', privada: 'priv', sujeto: 'mailto:x@y.z' };
@@ -57,6 +57,24 @@ test('armarAvisoCierre: baja, igual y decimal por debajo del 10 %; sin ventas el
   assert.equal(cuerpo(1000, 1000), 'Vendieron $1.000 (igual que septiembre) · ganancia $100');
   assert.equal(cuerpo(500, 0), 'Vendieron $500 · ganancia $100');
   assert.equal(armarAvisoCierre({ mes: '2026-12-01', actual: null, anterior: null }).titulo, 'Cierre de diciembre');
+});
+
+test('armarAvisoCompras: sábado, lo que falta y el total; abre ¿Qué compro? con ese sábado', () => {
+  const compras = (insumos, pedidos = 3) => ({
+    sabado: '2026-11-07', pedidos, total: 854.27, comprar: insumos.map((insumo) => ({ insumo })),
+  });
+  const a = armarAvisoCompras(compras(['Leche', 'Huevos', 'Manteca', 'Harina', 'Azúcar']));
+  assert.equal(a.titulo, 'Compras para el sábado 07/11');
+  assert.equal(a.cuerpo, 'Leche, Huevos, Manteca y 2 más · $854,27');
+  assert.equal(a.url, '/admin/#/comprar/2026-11-07');
+  assert.equal(a.tag, 'compras-2026-11-07');
+  assert.equal(armarAvisoCompras(compras(['Leche', 'Huevos', 'Manteca', 'Harina'])).cuerpo,
+    'Leche, Huevos, Manteca y Harina · $854,27');
+  assert.equal(armarAvisoCompras(compras(['Leche'])).cuerpo, 'Leche · $854,27');
+  // Con pedidos y todo en stock, avisa igual; sin pedidos, no hay aviso
+  assert.equal(armarAvisoCompras(compras([])).cuerpo, 'Tenés todo para los 3 pedidos');
+  assert.equal(armarAvisoCompras(compras([], 1)).cuerpo, 'Tenés todo para el pedido');
+  assert.equal(armarAvisoCompras(compras([], 0)), null);
 });
 
 test('armarAviso: los centavos van con dos cifras, como en /admin', {
