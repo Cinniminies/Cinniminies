@@ -192,6 +192,21 @@ async function enrutar() {
 
 // ---------------------------------------------------------------- login
 
+// El logo grande del login y de "dispositivo no autorizado". Va con <use> y no con <img> para que tome los colores
+// del tema elegido (Más → Cuenta → Tema): con <img> quedaba café sobre café en Oscuro.
+function logoLogin() {
+  const SVG = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(SVG, 'svg');
+  const uso = document.createElementNS(SVG, 'use');
+  uso.setAttribute('href', 'icons/logo.svg#logo');
+  svg.setAttribute('class', 'logo-login');
+  svg.setAttribute('viewBox', '1.05 -0.92 1539.6 1211.08');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', 'Cinniminies');
+  svg.append(uso);
+  return svg;
+}
+
 function pantallaLogin(mensaje) {
   tabs.hidden = true;
   atras.hidden = true;
@@ -240,7 +255,7 @@ function pantallaLogin(mensaje) {
     boton);
 
     vaciar(cont,
-      h('h1', {}, h('img', { class: 'logo-login', src: 'icons/logo.svg', alt: 'Cinniminies' })),
+      h('h1', {}, logoLogin()),
       mensaje ? h('p', { class: 'mensaje-error' }, mensaje) : null,
       form,
       h('p', { class: 'pie' }, modo === 'clave'
@@ -333,7 +348,7 @@ function pantallaDispositivo(disp) {
   ya.onclick = () => conBoton(ya, reintentar);
 
   vaciar(vista, h('div', { class: 'login' },
-    h('h1', {}, h('img', { class: 'logo-login', src: 'icons/logo.svg', alt: 'Cinniminies' })),
+    h('h1', {}, logoLogin()),
     h('div', { class: 'card' },
       h('h2', {}, 'Este dispositivo no está autorizado'),
       disp.estado === 'pendiente'

@@ -76,7 +76,8 @@ funciona con la app agregada a la pantalla de inicio (iOS 16.4+); en Safari com�
 `data-tema="claro"` u `"oscuro"` en `<html>` (en Automático, según el celular y cambiando con él) y pone el fondo del
 tema en `theme-color`. Los tokens oscuros de `app.css` están una sola vez, en `:root[data-tema="oscuro"]`; los
 gráficos usan esos tokens, así que siguen al tema solos, y el logo de la barra va en línea en `index.html` (no como
-`<img>`) por lo mismo.
+`<img>`) por lo mismo. El logo grande del login usa `<use href="icons/logo.svg#logo">`: el SVG pinta con
+`var(--texto, …)`, `var(--canela, …)` y `var(--marca, …)`, que con `<use>` toman el tema y suelto caen a sus colores.
 
 ## Cierre de mes (idea 4.4)
 
