@@ -47,7 +47,7 @@
   --cuerpo: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   color-scheme: light;
 }
-/* Oscuro: data-tema lo pone el script del <head> de index.html (la elección de Más → Cuenta → Tema o, en
+/* Oscuro: data-tema lo pone js/tema.js (la elección de Más → Cuenta → Tema o, en
    Automático, lo que diga el celular), así estos valores están una sola vez. Al imprimir (Cierre de mes →
    Guardar PDF) siempre en claro: los tokens oscuros solo valen en pantalla. */
 @media screen {
@@ -705,7 +705,7 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .chip:active, .stepper button:active:not(:disabled) { scale: .95; }
 /* Las cifras que cambian en un número (rodarNumero) se mueven sueltas; al terminar vuelve a ser un solo texto. */
 .mov-cifra { display: inline-block; }
-/* Cambio de tema (script del <head>): un cruce corto entre las dos paletas en vez de un salto. */
+/* Cambio de tema (js/tema.js): un cruce corto entre las dos paletas en vez de un salto. */
 ::view-transition-old(root), ::view-transition-new(root) {
   animation-duration: var(--mov-normal); animation-timing-function: var(--mov-curva);
 }
