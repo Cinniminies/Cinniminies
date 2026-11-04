@@ -17,6 +17,9 @@
   --canela-tostada: #8B4226;
   --canela-soft-text: #F0B873;
   --linea:        rgba(var(--cafe-rgb), 0.12);
+  /* Borde de lo que se completa (campos, cantidad, retiro/pago): al 50 % llega a 3:1 sobre la crema, el mínimo de
+     WCAG para distinguir un control. --linea queda para separadores y tarjetas. */
+  --borde-campo:  rgba(var(--cafe-rgb), 0.5);
 
   --font-display: 'Fraunces', serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
@@ -468,13 +471,9 @@ a:hover{ color: var(--canela-hover); }
   text-align: center;
   padding: 9px 4px;
   border-radius: 10px;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-campo);
   background: var(--crema);
   color: var(--cafe);
-}
-.roll-qty:focus{
-  outline: none;
-  border-color: var(--canela);
 }
 
 .roll-add{
@@ -490,7 +489,7 @@ a:hover{ color: var(--canela-hover); }
   white-space: nowrap;
   transition: background 0.3s var(--ease), transform 0.2s var(--ease);
 }
-.roll-add:hover{ background: var(--canela-hover); }
+.roll-add:hover{ background: var(--canela-tostada); } /* la crema sobre --canela-hover no llegaba a 4,5:1 */
 .roll-add:active{ transform: scale(0.95); }
 .roll-add:disabled{ background: var(--linea); color: var(--cafe-suave); cursor: not-allowed; transform: none; }
 
@@ -564,7 +563,7 @@ a:hover{ color: var(--canela-hover); }
   line-height: 1.4;
 }
 .promo-cinta::before{ content: "%"; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
-  background: var(--canela); color: var(--crema-card); font-family: var(--font-mono); font-size: 14px; }
+  background: var(--canela-tostada); color: var(--crema-card); font-family: var(--font-mono); font-size: 14px; }
 .promo-cinta[hidden]{ display: none; }
 .box-option.is-active{
   background: var(--canela);
@@ -996,14 +995,16 @@ a:hover{ color: var(--canela-hover); }
   font-size: 15px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-campo);
   background: var(--crema);
   color: var(--cafe);
   resize: vertical;
 }
-.field input:not([type="radio"]):focus, .field select:focus, .field textarea:focus{
-  outline: none;
-  border-color: var(--canela);
+/* Foco de los campos: contorno además del borde, para que se vea a simple vista en qué campo se está escribiendo */
+.roll-qty:focus, .field input:not([type="radio"]):focus, .field select:focus, .field textarea:focus{
+  outline: 2px solid var(--canela-tostada);
+  outline-offset: 2px;
+  border-color: var(--canela-tostada);
 }
 /* Feedback de validación: solo marca error si el campo tiene contenido
    inválido y no está siendo editado en este momento, para no "gritar"
@@ -1051,7 +1052,7 @@ a:hover{ color: var(--canela-hover); }
   min-width: 72px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: var(--canela);
+  background: var(--canela-tostada); /* la crema sobre --canela no llegaba a 3:1 */
   color: var(--crema-card);
   font-family: var(--font-display);
   font-size: 26px;
@@ -1116,7 +1117,7 @@ a:hover{ color: var(--canela-hover); }
 /* Toggle de modalidad: retiro vs entrega, dos rectángulos pegados */
 .modalidad-toggle{
   display: flex;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-campo);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -1140,7 +1141,7 @@ a:hover{ color: var(--canela-hover); }
   transition: background 0.25s var(--ease), color 0.25s var(--ease);
 }
 .modalidad-toggle label:first-of-type{
-  border-right: 1.5px solid var(--linea);
+  border-right: 1.5px solid var(--borde-campo);
 }
 .modalidad-toggle input[type="radio"]:checked + label{
   background: var(--canela);
