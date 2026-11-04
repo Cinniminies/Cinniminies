@@ -27,7 +27,7 @@
       ]
     },
     {
-      "source": "/admin/?(.*)",
+      "source": "/admin(.*)",
       "headers": [
         {
           "key": "X-Frame-Options",
