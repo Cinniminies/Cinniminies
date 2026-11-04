@@ -17,12 +17,16 @@
   --canela-tostada: #8B4226;
   --canela-soft-text: #F0B873;
   --linea:        rgba(var(--cafe-rgb), 0.12);
+  /* Borde de lo que se completa (campos, cantidad, retiro/pago): al 50 % llega a 3:1 sobre la crema, el mínimo de
+     WCAG para distinguir un control. --linea queda para separadores y tarjetas. */
+  --borde-campo:  rgba(var(--cafe-rgb), 0.5);
 
   --font-display: 'Fraunces', serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'Space Mono', monospace;
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --alto-barra: 67px; /* la .topbar fija: 16 + 34 del logo + 16 + 1 de borde */
 }
 
 *{ box-sizing: border-box; }
@@ -31,7 +35,9 @@
    para poder tocar rápido "Agregar al pedido" sin que se agrande la pantalla */
 *{ touch-action: manipulation; }
 
-html{ scroll-behavior: smooth; }
+/* La barra de arriba es fija: sin este margen, lo que recibe foco al volver con Shift+Tab, o el
+   comienzo de una sección a la que se salta desde el menú, queda tapado por ella. */
+html{ scroll-behavior: smooth; scroll-padding-top: var(--alto-barra); }
 
 body{
   margin: 0;
@@ -150,13 +156,13 @@ a:hover{ color: var(--canela-hover); }
   background: var(--cafe);
   transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
 }
-.menu-toggle.is-active span:nth-child(1){
+.menu-toggle[aria-expanded="true"] span:nth-child(1){
   transform: translateY(7px) rotate(45deg);
 }
-.menu-toggle.is-active span:nth-child(2){
+.menu-toggle[aria-expanded="true"] span:nth-child(2){
   opacity: 0;
 }
-.menu-toggle.is-active span:nth-child(3){
+.menu-toggle[aria-expanded="true"] span:nth-child(3){
   transform: translateY(-7px) rotate(-45deg);
 }
 
@@ -174,9 +180,17 @@ a:hover{ color: var(--canela-hover); }
   gap: 28px;
   padding: 0 40px;
   transform: translateX(100%);
-  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
+  /* Cerrado queda fuera de la pantalla: visibility lo saca también del Tab y del lector de pantalla
+     (se oculta recién cuando termina de salir, para que se vea la animación). */
+  visibility: hidden;
+  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), visibility 0s 0.4s;
 }
-.mobile-nav.is-open{ transform: translateX(0); box-shadow: -20px 0 50px rgba(var(--cafe-rgb), 0.12); }
+.mobile-nav.is-open{
+  transform: translateX(0);
+  visibility: visible;
+  box-shadow: -20px 0 50px rgba(var(--cafe-rgb), 0.12);
+  transition-delay: 0s;
+}
 .mobile-nav a{
   text-decoration: none;
   color: var(--cafe);
@@ -363,7 +377,7 @@ a:hover{ color: var(--canela-hover); }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
-  scroll-margin-top: 100px;
+  scroll-margin-top: calc(100px - var(--alto-barra)); /* sumado al scroll-padding-top, 100 px como antes */
 }
 
 .roll-card{
@@ -457,13 +471,9 @@ a:hover{ color: var(--canela-hover); }
   text-align: center;
   padding: 9px 4px;
   border-radius: 10px;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-campo);
   background: var(--crema);
   color: var(--cafe);
-}
-.roll-qty:focus{
-  outline: none;
-  border-color: var(--canela);
 }
 
 .roll-add{
@@ -479,7 +489,7 @@ a:hover{ color: var(--canela-hover); }
   white-space: nowrap;
   transition: background 0.3s var(--ease), transform 0.2s var(--ease);
 }
-.roll-add:hover{ background: var(--canela-hover); }
+.roll-add:hover{ background: var(--canela-tostada); } /* la crema sobre --canela-hover no llegaba a 4,5:1 */
 .roll-add:active{ transform: scale(0.95); }
 .roll-add:disabled{ background: var(--linea); color: var(--cafe-suave); cursor: not-allowed; transform: none; }
 
@@ -492,7 +502,7 @@ a:hover{ color: var(--canela-hover); }
   border-radius: 22px;
   padding: 36px 5vw;
   text-align: center;
-  scroll-margin-top: 100px;
+  scroll-margin-top: calc(100px - var(--alto-barra));
 }
 .box-picker-label{
   font-family: var(--font-display);
@@ -553,7 +563,7 @@ a:hover{ color: var(--canela-hover); }
   line-height: 1.4;
 }
 .promo-cinta::before{ content: "%"; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
-  background: var(--canela); color: var(--crema-card); font-family: var(--font-mono); font-size: 14px; }
+  background: var(--canela-tostada); color: var(--crema-card); font-family: var(--font-mono); font-size: 14px; }
 .promo-cinta[hidden]{ display: none; }
 .box-option.is-active{
   background: var(--canela);
@@ -769,8 +779,10 @@ a:hover{ color: var(--canela-hover); }
   transition: background 0.2s var(--ease), opacity 0.2s var(--ease);
   opacity: 0;
   pointer-events: none;
+  /* Con el carrito vacío no se ve: que tampoco lo encuentre el Tab */
+  visibility: hidden;
 }
-.cart-fab.is-visible{ opacity: 1; pointer-events: auto; }
+.cart-fab.is-visible{ opacity: 1; pointer-events: auto; visibility: visible; }
 .cart-fab:hover{ background: var(--canela-hover); }
 .cart-fab svg{ width: 24px; height: 24px; }
 .cart-fab-count{
@@ -839,6 +851,8 @@ a:hover{ color: var(--canela-hover); }
   margin: 0;
   color: var(--cafe);
 }
+/* El título recibe el foco al cambiar de paso (para el teclado y el lector de pantalla), pero no es un control */
+.cart-modal-head h3:focus{ outline: none; }
 .cart-close{
   background: none;
   border: none;
@@ -848,9 +862,12 @@ a:hover{ color: var(--canela-hover); }
   color: var(--cafe);
   opacity: 0.5;
   padding: 0;
+  position: relative;
   transition: opacity 0.2s var(--ease);
 }
 .cart-close:hover{ opacity: 1; }
+/* La × mide 16 px de ancho: un área invisible alrededor la hace fácil de tocar (mínimo de 24 px de WCAG 2.2) */
+.cart-close::after{ content: ''; position: absolute; inset: -8px -14px; }
 
 /* Para qué sábado es el pedido; invertido (café sobre crema) cuando no es el de esta semana: cierre o sin horneado */
 .cart-sabado{
@@ -978,14 +995,16 @@ a:hover{ color: var(--canela-hover); }
   font-size: 15px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-campo);
   background: var(--crema);
   color: var(--cafe);
   resize: vertical;
 }
-.field input:not([type="radio"]):focus, .field select:focus, .field textarea:focus{
-  outline: none;
-  border-color: var(--canela);
+/* Foco de los campos: contorno además del borde, para que se vea a simple vista en qué campo se está escribiendo */
+.roll-qty:focus, .field input:not([type="radio"]):focus, .field select:focus, .field textarea:focus{
+  outline: 2px solid var(--canela-tostada);
+  outline-offset: 2px;
+  border-color: var(--canela-tostada);
 }
 /* Feedback de validación: solo marca error si el campo tiene contenido
    inválido y no está siendo editado en este momento, para no "gritar"
@@ -1033,7 +1052,7 @@ a:hover{ color: var(--canela-hover); }
   min-width: 72px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: var(--canela);
+  background: var(--canela-tostada); /* la crema sobre --canela no llegaba a 3:1 */
   color: var(--crema-card);
   font-family: var(--font-display);
   font-size: 26px;
@@ -1098,7 +1117,7 @@ a:hover{ color: var(--canela-hover); }
 /* Toggle de modalidad: retiro vs entrega, dos rectángulos pegados */
 .modalidad-toggle{
   display: flex;
-  border: 1.5px solid var(--linea);
+  border: 1.5px solid var(--borde-campo);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -1122,7 +1141,7 @@ a:hover{ color: var(--canela-hover); }
   transition: background 0.25s var(--ease), color 0.25s var(--ease);
 }
 .modalidad-toggle label:first-of-type{
-  border-right: 1.5px solid var(--linea);
+  border-right: 1.5px solid var(--borde-campo);
 }
 .modalidad-toggle input[type="radio"]:checked + label{
   background: var(--canela);
