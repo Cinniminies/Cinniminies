@@ -1,5 +1,5 @@
 import { sb, q, rpc, contar } from '../db.js';
-import { h, vaciar, campo, interruptor, pesos, plural, toast, conBoton } from '../util.js';
+import { h, vaciar, campo, interruptor, pesos, plural, toast, conBoton, abrirLugar, cerrarLugar } from '../util.js';
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { seccionPrecios, filaLista, pastilla } from '../componentes.js';
 import { irA } from '../app.js';
@@ -98,7 +98,10 @@ async function ficha(cont, id) {
           h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: r.cantidad || '',
             oninput: (e) => { r.cantidad = Number(e.target.value); calcularCosto(); } }),
           h('small', {}, unidad)),
-        h('button', { type: 'button', class: 'quitar', 'aria-label': 'Quitar', onclick: () => { receta.splice(i, 1); dibujarReceta(); } }, '×'));
+        h('button', {
+          type: 'button', class: 'quitar', 'aria-label': 'Quitar',
+          onclick: async (e) => { await cerrarLugar(e.currentTarget.parentElement); receta.splice(i, 1); dibujarReceta(); },
+        }, '×'));
     }));
     calcularCosto();
     dibujarRelleno();
@@ -295,7 +298,14 @@ async function ficha(cont, id) {
     h('div', { class: 'card' },
       h('div', { class: 'seccion-cab' }, h('h3', {}, textoPanel('panel.sabores.receta', 'Receta por tanda')), copiar),
       filasReceta,
-      h('button', { type: 'button', class: 'btn chico', onclick: () => { receta.push({ insumo_id: '', cantidad: 0 }); dibujarReceta(); } }, '+ Ingrediente'),
+      h('button', {
+        type: 'button', class: 'btn chico',
+        onclick: () => {
+          receta.push({ insumo_id: '', cantidad: 0 });
+          dibujarReceta();
+          abrirLugar(filasReceta.lastElementChild);
+        },
+      }, '+ Ingrediente'),
       costoReceta),
 
     h('div', { class: 'card' },

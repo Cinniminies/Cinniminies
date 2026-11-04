@@ -1,4 +1,4 @@
-import { h, plural, sumar, numero, animar } from './util.js';
+import { h, plural, sumar, numero, animar, escalonado } from './util.js';
 import './cifras.js';
 
 // Gráficos en HTML y SVG (sin librerías), cada uno para un tipo de dato. Reglas: marcas finas con punta
@@ -305,7 +305,7 @@ export function composicion(grupos, { partes: piezas, formato, titulo, columnasT
         'aria-label': `${f.etiqueta}: ${piezas.map((p) => `${p.nombre} ${formato(f.valores[p.clave])}`).join(', ')}` },
       h('span', { class: 'graf-etq' }, f.etiqueta),
       crecer(h('span', { class: 'graf-pila' }, piezas.map((p) => h('span', { style: `flex:${pct(f, p.clave)};--c:${p.color}` }))),
-        { retraso: Math.min(i, 6) * 40 }),
+        { retraso: escalonado(i) }),
       h('span', { class: 'graf-valor' }, `${Math.round(pct(f, ultima.clave))} %`));
       el.addEventListener('pointerenter', () => mostrar(f, el));
       el.addEventListener('focus', () => mostrar(f, el));

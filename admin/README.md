@@ -23,7 +23,7 @@ la web pública: HTML, CSS y módulos ES, sin nada que compilar. Vercel la sirve
 | `js/app.js` | Login, control de acceso y rutas (`#/panel`, `#/venta`, `#/ventas/:id`, …). |
 | `js/db.js`, `js/catalogo.js` | Cliente de Supabase y catálogo en memoria (sabores, formatos, insumos). |
 | `js/componentes.js` | Piezas de varias pantallas: fila de lista, etiquetas, tarjeta de un número, caja vacía, link externo, selector de cliente con autocompletar, editor de productos (formatos + sabores + caja), precios, libro de caja y rolls por sabor. |
-| `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), links de WhatsApp, chips, steppers, campos, avisos y movimiento (`animar`, `entrar`, `rodarNumero`, con los tokens `--mov-*` de `app.css` y respetando "reducir movimiento"). |
+| `js/util.js` | Formatos (`$1.234,50`, fechas de Montevideo), links de WhatsApp, chips, steppers, campos, avisos y movimiento (`animar`, `entrar`, `rodarNumero`, `abrirLugar`, `cerrarLugar`, `escalonado`, con los tokens `--mov-*` de `app.css` y respetando "reducir movimiento"). |
 | `js/cifras.js` | `pesos` y el texto de la variación, compartidos con los avisos push de `api/` (es un script común que también se carga con `require`). |
 | `js/tema.js` | Aplica el tema elegido antes de pintar (script común, no módulo, cargado antes del CSS). |
 | `js/textos.js` | `textoPanel`: los textos del panel que se editan en Web → Textos e imágenes (filas `panel.*`). |

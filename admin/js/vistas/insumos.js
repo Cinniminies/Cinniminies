@@ -1,5 +1,8 @@
 import { sb, q, rpc, contar } from '../db.js';
-import { h, vaciar, campo, chips, grupo, interruptor, pesos, plural, numero, cantidad, fechaLarga, toast, conBoton } from '../util.js';
+import {
+  h, vaciar, campo, chips, grupo, interruptor, pesos, plural, numero, cantidad, fechaLarga, toast, conBoton,
+  abrirLugar, cerrarLugar,
+} from '../util.js';
 import { filaLista, pastilla } from '../componentes.js';
 import { catalogo, invalidarCatalogo } from '../catalogo.js';
 import { irA } from '../app.js';
@@ -96,7 +99,10 @@ async function ficha(cont, id) {
       return h('div', { class: 'receta-fila' }, sel,
         h('div', { class: 'unidad' }, h('input', { type: 'number', inputmode: 'decimal', min: 0, step: 'any', value: x.cantidad || '',
           oninput: (e) => { x.cantidad = Number(e.target.value); dibujarTotal(); } }), unidad),
-        h('button', { type: 'button', class: 'quitar', 'aria-label': 'Quitar', onclick: () => { extra.splice(i, 1); dibujarExtra(); } }, '×'));
+        h('button', {
+          type: 'button', class: 'quitar', 'aria-label': 'Quitar',
+          onclick: async (e) => { await cerrarLugar(e.currentTarget.parentElement); extra.splice(i, 1); dibujarExtra(); },
+        }, '×'));
     }));
     dibujarTotal();
   }
@@ -107,7 +113,10 @@ async function ficha(cont, id) {
       textoPanel('panel.insumos.caja_ayuda', 'Cada caja usada en una venta descuenta esto del stock y lo suma al costo de caja.')),
     filasExtra,
     totalCaja,
-    h('button', { type: 'button', class: 'btn chico', onclick: () => { extra.push({ insumo_id: '', cantidad: 1 }); dibujarExtra(); } }, '+ Packaging'));
+    h('button', {
+      type: 'button', class: 'btn chico',
+      onclick: () => { extra.push({ insumo_id: '', cantidad: 1 }); dibujarExtra(); abrirLugar(filasExtra.lastElementChild); },
+    }, '+ Packaging'));
   const actualizarCaja = () => { seccionCaja.hidden = !esCaja(); };
 
   const guardar = h('button', { class: 'btn primario', type: 'button' }, id ? 'Guardar' : 'Crear insumo');

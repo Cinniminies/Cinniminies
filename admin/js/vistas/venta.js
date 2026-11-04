@@ -1,7 +1,7 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, campo, campoSabado, grupo, pesos, diaMes, toast, conBoton, debounce, mostrarError, entrar, ETIQUETAS,
-  opciones, campoPesos,
+  h, vaciar, chips, campo, campoSabado, grupo, pesos, diaMes, toast, conBoton, debounce, mostrarError, entrar,
+  rodarNumero, ETIQUETAS, opciones, campoPesos,
 } from '../util.js';
 import { catalogo, clientes as leerClientes, origenes as leerOrigenes } from '../catalogo.js';
 import { elegirCliente, editorLineas } from '../componentes.js';
@@ -78,6 +78,10 @@ function formulario(cont, cat, clientes, origenes) {
       const nombres = [...new Set(r.lineas.map((l) => l.promo?.promo).filter(Boolean))].join(', ');
       const conPromo = promo > 0 && p.aplicar_promo && p.precio_especial == null;
       const otro = Number(r.descuento) - (conPromo ? promo : 0);
+      // El "Cobrás" que había, para que el total ruede al cambiar en vez de saltar.
+      const cobradoAntes = resumen.querySelector('.total span:last-child')?.textContent;
+      const cobra = pesos(total);
+      const cifraCobrado = h('span', {}, cobra);
       const cambiarPromo = h('button', { class: 'promo-boton', type: 'button' }, conPromo ? 'Sacar' : 'Aplicar');
       cambiarPromo.onclick = () => { estado.sin_promo = conPromo; recalcular(); };
       vaciar(resumen,
@@ -88,11 +92,12 @@ function formulario(cont, cat, clientes, origenes) {
           h('span', {}, pesos(-otro))) : null,
         Number(r.cobro_envio) ? h('div', { class: 'r' }, h('span', {}, 'Envío'), h('span', {}, pesos(r.cobro_envio))) : null,
         p.propina ? h('div', { class: 'r' }, h('span', {}, 'Propina'), h('span', {}, pesos(p.propina))) : null,
-        h('div', { class: 'r total' }, h('span', {}, 'Cobrás'), h('span', {}, pesos(total))),
+        h('div', { class: 'r total' }, h('span', {}, 'Cobrás'), cifraCobrado),
         h('div', { class: 'r' }, h('span', {}, 'Costo rolls + caja'),
           h('span', {}, pesos(Number(r.costo_produccion) + Number(r.costo_caja)))),
         h('div', { class: 'r gan' }, h('span', {}, 'Ganancia'), h('span', {}, pesos(Number(r.ganancia) + p.propina))));
-      guardar.textContent = `Guardar venta · ${pesos(total)}`;
+      rodarNumero(cifraCobrado, cobradoAntes);
+      guardar.textContent = `Guardar venta · ${cobra}`;
     } catch (e) {
       if (este !== pedido) return;
       vaciar(resumen, h('p', { class: 'aviso' }, e.message));

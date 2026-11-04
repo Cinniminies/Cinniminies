@@ -1,25 +1,12 @@
 import { sb, q, rpc } from '../db.js';
 import {
-  h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton, sumar, animar,
+  h, vaciar, chips, stepper, campo, campoFecha, grupo, hoyISO, fechaCorta, numero, pesos, plural, toast, conBoton, sumar,
+  abrirLugar, cerrarLugar, entrar, escalonado,
 } from '../util.js';
 import { catalogo } from '../catalogo.js';
 import { irA, refrescarSi } from '../app.js';
 import { subnavProduccion, pastilla } from '../componentes.js';
 import { textoPanel } from '../textos.js';
-
-// Una fila nueva abre su lugar en la lista y empuja a las de abajo; el contenido aparece cuando ya hay lugar.
-// Se mide en el cuadro siguiente, cuando la fila ya está en la página.
-function abrirFila(el) {
-  requestAnimationFrame(() => {
-    if (!el.isConnected) return;
-    const alto = `${el.offsetHeight}px`;
-    const animacion = animar(el, [{ height: '0px', opacity: 0 }, { opacity: 0, offset: 0.4 }, { height: alto, opacity: 1 }],
-      { duracion: 'lenta' });
-    if (!animacion) return;
-    el.style.overflow = 'hidden';
-    animacion.onfinish = animacion.oncancel = () => { el.style.overflow = ''; };
-  });
-}
 
 // Alta rápida ("2 × Canela") e historial. El consumo de insumos lo calcula registrar_tanda
 // con la receta del día (snapshot en tanda_consumos). `nueva`: la tanda recién guardada, que entra abriendo su lugar.
@@ -99,13 +86,15 @@ export async function mostrar(cont, { nueva } = {}) {
           irA('#/tandas');
         });
         const li = h('li');
-        if (t.id === nueva) abrirFila(li);
+        if (t.id === nueva) abrirLugar(li);
         const editar = h('button', { class: 'btn chico', type: 'button' }, 'Editar');
         let form = null;
+        const cerrarEdicion = () => { const saliente = form; form = null; cerrarLugar(saliente).then(() => saliente.remove()); };
         editar.onclick = () => {
-          if (form) { form.remove(); form = null; return; }
-          form = formEditar(t, () => { form.remove(); form = null; });
+          if (form) { cerrarEdicion(); return; }
+          form = formEditar(t, cerrarEdicion);
           li.append(form);
+          abrirLugar(form);
         };
         return vaciar(li, h('div', { class: 'fila' },
           h('div', { class: 'princ' },
@@ -166,7 +155,13 @@ function seccionSobrantes(filas, cat) {
   const visibles = h('div', { class: 'horneados' }, horneados.slice(0, 6).map(tarjeta));
   const verMas = horneados.length > 6 ? h('button', { class: 'btn chico', type: 'button', style: 'margin-top:.6rem' },
     `Ver ${plural(horneados.length - 6, 'horneado anterior', 'horneados anteriores')}`) : null;
-  if (verMas) verMas.onclick = () => { horneados.slice(6).forEach((fs) => visibles.append(tarjeta(fs))); verMas.remove(); };
+  if (verMas) {
+    verMas.onclick = () => {
+      // Los anteriores entran de a uno, de arriba abajo, desde donde estaba el botón.
+      horneados.slice(6).forEach((fs, i) => entrar(visibles.appendChild(tarjeta(fs)), { retraso: escalonado(i) }));
+      verMas.remove();
+    };
+  }
 
   return [
     h('h2', {}, textoPanel('panel.tandas.sobrantes', 'Rolls que sobraron')),

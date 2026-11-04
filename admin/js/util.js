@@ -173,9 +173,11 @@ export function chips(lista, valor, alCambiar, { desmarcable = false } = {}) {
   for (const o of lista) {
     cont.append(h('button', {
       type: 'button', class: 'chip', 'data-valor': String(o.valor),
-      onclick: () => {
+      onclick: (e) => {
         valor = desmarcable && String(valor) === String(o.valor) ? null : o.valor;
+        const deslizar = segmentado ? deslizarSeleccion(cont.querySelector('[aria-pressed="true"]')) : null;
         dibujar();
+        deslizar?.(e.currentTarget);
         alCambiar(valor);
       },
     }, o.texto));
@@ -330,6 +332,49 @@ export function animar(el, cuadros, { duracion = 'normal', retraso = 0, pseudo, 
 // Usa `translate` y no `transform`, así no pisa el centrado de quien ya tiene un transform (el aviso).
 export const entrar = (el, { desde = '8px', retraso = 0 } = {}) =>
   animar(el, [{ opacity: 0, translate: `0 ${desde}` }, { opacity: 1, translate: '0 0' }], { retraso });
+
+// Retraso del elemento `i` de un grupo que entra escalonado: de a uno, hasta el séptimo; los demás, juntos.
+export const escalonado = (i) => Math.min(i, 6) * 40;
+
+// Una fila o un bloque nuevo abre su lugar y empuja a los de abajo; el contenido aparece cuando ya hay lugar.
+// Se mide en el cuadro siguiente, cuando `el` ya está en la página.
+export function abrirLugar(el) {
+  requestAnimationFrame(() => {
+    if (!el.isConnected) return;
+    const alto = `${el.offsetHeight}px`;
+    const animacion = animar(el, [{ height: '0px', opacity: 0 }, { opacity: 0, offset: 0.4 }, { height: alto, opacity: 1 }],
+      { duracion: 'lenta' });
+    if (!animacion) return;
+    el.style.overflow = 'hidden';
+    animacion.onfinish = animacion.oncancel = () => { el.style.overflow = ''; };
+  });
+}
+
+// Lo inverso de abrirLugar: el contenido se va primero y después se cierra el hueco. Se resuelve cuando terminó
+// (enseguida si no hay movimiento), así quien llama saca el elemento o vuelve a dibujar la lista.
+export function cerrarLugar(el) {
+  const animacion = animar(el, [{ height: `${el.offsetHeight}px`, opacity: 1 }, { opacity: 0, offset: 0.4 },
+    { height: '0px', opacity: 0, paddingBlock: 0, marginBlock: 0 }], { duracion: 'normal', fill: 'forwards' });
+  if (!animacion) return Promise.resolve();
+  el.style.overflow = 'hidden';
+  el.inert = true; // que no se toque dos veces mientras se va
+  return animacion.finished.catch(() => {});
+}
+
+// Selector segmentado: el fondo de la opción elegida se corre desde la anterior, así se ve que es la misma pieza
+// que cambia de lugar. El fondo es el ::before del chip (app.css), y el texto queda quieto. Mide la elegida antes
+// de cambiar la selección y devuelve la función que, ya cambiada, anima la nueva.
+function deslizarSeleccion(anterior) {
+  if (!anterior || sinMovimiento()) return null;
+  const desde = anterior.getBoundingClientRect();
+  return (nueva) => {
+    if (nueva === anterior) return;
+    const hasta = nueva.getBoundingClientRect();
+    const corrimiento = desde.left + desde.width / 2 - (hasta.left + hasta.width / 2);
+    const cuadros = [{ translate: `${corrimiento}px 0`, scale: `${desde.width / hasta.width} 1` }, { translate: '0 0', scale: '1 1' }];
+    animar(nueva, cuadros, { pseudo: '::before' });
+  };
+}
 
 // "$12.450" → 12450: alcanza para saber si un número subió o bajó.
 const cifra = (texto) => Number(texto.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
