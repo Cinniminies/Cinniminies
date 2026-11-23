@@ -256,11 +256,14 @@ const intercalar = (trozos, separador) => [trozos].flat()
 
 // Fila de una lista: el título (con sus etiquetas), el detalle y, a la derecha, un monto, una etiqueta o
 // botones. Título y detalle pueden ser listas: se saltean las partes vacías y el detalle se une con " · ".
-// Con `href` la fila es un link y, si no hay nada a la derecha, lleva la flecha.
-export function filaLista({ href, titulo, detalle, derecha }) {
+// Con `href` la fila es un link y, si no hay nada a la derecha, lleva la flecha. `accion` (un botón o un link
+// externo) va al final, fuera del link: así se puede tocar sin abrir la fila.
+export function filaLista({ href, titulo, detalle, derecha, accion }) {
   const sub = intercalar(detalle, ' · ');
+  const textos = [h('div', { class: 't1' }, intercalar(titulo, ' ')), sub.length ? h('div', { class: 't2' }, sub) : null];
+  if (accion) return h('li', { class: 'fila' }, h(href ? 'a' : 'div', { class: 'princ', href }, textos), derecha, accion);
   return h('li', {}, h(href ? 'a' : 'div', { class: 'fila', href },
-    h('div', { class: 'princ' }, h('div', { class: 't1' }, intercalar(titulo, ' ')), sub.length ? h('div', { class: 't2' }, sub) : null),
+    h('div', { class: 'princ' }, textos),
     derecha ?? (href ? h('span', { class: 'chev', 'aria-hidden': 'true' }, '›') : null)));
 }
 

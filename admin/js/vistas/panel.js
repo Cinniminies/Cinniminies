@@ -114,12 +114,12 @@ export async function mostrar(cont) {
             { cliente: v.cliente || 'sin cliente' }));
           irA('#/panel');
         });
-        return h('li', { class: 'fila' },
-          h('a', { class: 'princ', href: `#/ventas/${v.id}` },
-            h('div', { class: 't1' }, v.cliente || 'Sin cliente'),
-            h('div', { class: 't2' }, [fechaCorta(v.fecha), v.formatos, pesos(v.total), ETIQUETAS.medio_pago[v.medio_pago] || 'sin medio de pago']
-              .filter(Boolean).join(' · '))),
-          boton);
+        return filaLista({
+          href: `#/ventas/${v.id}`,
+          titulo: v.cliente || 'Sin cliente',
+          detalle: [fechaCorta(v.fecha), v.formatos, pesos(v.total), ETIQUETAS.medio_pago[v.medio_pago] || 'sin medio de pago'],
+          accion: boton,
+        });
       }))));
   }
   if (alertas.length) {
