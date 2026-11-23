@@ -193,7 +193,7 @@ main:focus { outline: none; }
   display: flex; align-items: center; gap: .75rem; padding: .7rem .9rem;
   color: inherit; text-decoration: none; width: 100%; background: none; border: 0; font: inherit; text-align: left;
 }
-.fila .princ { flex: 1; min-width: 0; }
+.fila .princ { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
 .fila .t1 { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fila .t2 { font-size: .875rem; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fila .monto { font-weight: 600; white-space: nowrap; }
@@ -418,7 +418,6 @@ details.plegable[open] > summary { margin-bottom: .5rem; }
 .tema-opciones { margin-top: .5rem; }
 .lista.plana { background: none; border: 0; border-radius: 0; margin-top: .5rem; }
 .lista.plana .fila { padding-left: 0; padding-right: 0; }
-.lista.plana .princ { color: inherit; text-decoration: none; }
 
 /* Inicio: abre con la fecha de hoy, no con un saludo */
 .saludo { margin: 0 0 1rem; font-family: var(--display); font-variation-settings: 'SOFT' 100; font-size: 1.5rem; font-weight: 600; }

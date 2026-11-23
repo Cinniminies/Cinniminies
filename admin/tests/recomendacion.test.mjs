@@ -5,7 +5,7 @@ import { register } from 'node:module';
 import { tablas, consultas, reiniciar, pasosDe } from './_supabase-falso.mjs';
 
 register('./_cargador.mjs', import.meta.url);
-const { campanaVigente, bonoDe, codigoDe, mensajeCodigo, linkCodigo } = await import('../js/recomendacion.js');
+const { campanaVigente, bonoDe, codigoDe, mensajeCodigo, linkCodigo, linkSaldo } = await import('../js/recomendacion.js');
 
 const campana = { porcentaje: '7.50', tope: '30.00' };
 const bono = { porcentaje: '5.00', hasta: '2027-01-19' };
@@ -48,11 +48,11 @@ test('linkCodigo: WhatsApp con el mensaje, solo para celulares uruguayos', () =>
   assert.equal(linkCodigo('@ana.cinnamon', 'Ana', 'ANAK7P', campana), null);
 });
 
-test('campanaVigente: la de hoy, con los dos textos editables', async () => {
+test('campanaVigente: la de hoy, con los textos editables', async () => {
   tablas.campanas_recomendacion = [{ id: 1, porcentaje: 5, tope: 30 }];
   tablas.contenido_web = [{ clave: 'recomendacion.mensaje', valor: 'Hola {nombre}' }];
   const c = await campanaVigente();
-  assert.deepEqual(c, { id: 1, porcentaje: 5, tope: 30, mensaje: 'Hola {nombre}', mensaje_bono: null });
+  assert.deepEqual(c, { id: 1, porcentaje: 5, tope: 30, mensaje: 'Hola {nombre}', mensaje_bono: null, mensaje_saldo: null });
   const pasos = pasosDe('campanas_recomendacion');
   assert.deepEqual(pasos.map(([metodo]) => metodo), ['select', 'lte', 'gte', 'order', 'limit']);
   assert.equal(pasos[1][2], pasos[2][2], 'desde y hasta se comparan contra el mismo día');
@@ -76,4 +76,23 @@ test('bonoDe y codigoDe: sin cliente no consultan; con cliente filtran por él',
   assert.equal(await codigoDe('c1'), null);
   tablas.codigos_recomendacion = [{ codigo: 'ANAK7P' }];
   assert.equal(await codigoDe('c1'), 'ANAK7P');
+});
+
+const conSaldo = { nombre: 'Ana María', contacto: '099 123 456', codigo: 'ANAK7P', saldo: '12.50', vence: '2026-11-30' };
+const textoDe = (link) => decodeURIComponent(link.split('?text=')[1]);
+
+test('linkSaldo: el descuento juntado, el código y hasta cuándo vale', () => {
+  const texto = textoDe(linkSaldo(conSaldo, {}));
+  assert.match(texto, /^¡Hola Ana! /);
+  assert.match(texto, /12,5 % de descuento/);
+  assert.match(texto, /tu código ANAK7P/);
+  assert.match(texto, /hasta el 30\/11\.$/);
+  assert.match(linkSaldo(conSaldo, {}), /^https:\/\/wa\.me\/59899123456\?text=/);
+});
+
+test('linkSaldo: el texto editable gana; sin saldo, sin código o sin celular no hay link', () => {
+  assert.equal(textoDe(linkSaldo(conSaldo, { mensaje_saldo: ' {nombre}: {saldo} % ({codigo}) ' })), 'Ana: 12,5 % (ANAK7P)');
+  assert.equal(linkSaldo({ ...conSaldo, saldo: '0' }, {}), null);
+  assert.equal(linkSaldo({ ...conSaldo, codigo: null }, {}), null);
+  assert.equal(linkSaldo({ ...conSaldo, contacto: '@ana' }, {}), null);
 });

@@ -1,17 +1,18 @@
 import { sb, q, rpc } from '../db.js';
-import { h, vaciar, campo, pesos, numero, plural, fechaCorta, nombreMes, hoyISO, toast, conBoton } from '../util.js';
+import { h, vaciar, campo, pesos, numero, plural, fechaCorta, diaMes, nombreMes, hoyISO, toast, conBoton } from '../util.js';
 import { irA, sesion } from '../app.js';
 import { textoPanel } from '../textos.js';
-import { stat, filaLista, pastilla, monto } from '../componentes.js';
-import { ESTADO_RECOMENDACION, CLASE_RECOMENDACION } from '../recomendacion.js';
+import { stat, filaLista, pastilla, monto, linkExterno } from '../componentes.js';
+import { ESTADO_RECOMENDACION, CLASE_RECOMENDACION, mensajesWhatsapp, linkSaldo } from '../recomendacion.js';
 
 // Descuento por recomendación (docs/descuento-plan/logica.md): campañas, cómo va la vigente y la lista de
 // recomendaciones. Las reglas están en la base; acá solo se cargan las campañas y se mira.
 // En modo prueba (usuario de prueba) todo lo que se ve es de prueba y se puede borrar de una vez.
 export async function mostrar(cont) {
-  const [campanas, recos] = await Promise.all([
+  const [campanas, recos, mensajes] = await Promise.all([
     q(sb.from('campanas_recomendacion').select('*').order('desde', { ascending: false })),
     q(sb.from('v_recomendaciones').select('*').order('creado_en', { ascending: false }).limit(100)),
+    mensajesWhatsapp(),
   ]);
   const hoy = hoyISO();
   const vigente = campanas.find((k) => k.desde <= hoy && k.hasta >= hoy) || null;
@@ -64,6 +65,20 @@ export async function mostrar(cont) {
     irA('#/recomendaciones');
   });
 
+  // Quien recomendó: el descuento que tiene hoy a la vista y, si juntó algo, el WhatsApp para avisarle.
+  const recomendador = (x) => {
+    const wa = linkSaldo(x, mensajes);
+    const vence = x.vence
+      ? textoPanel('panel.recomendaciones.ranking_vence', 'vale hasta el {fecha}', { fecha: diaMes(x.vence) }) : null;
+    return filaLista({
+      href: `#/clientes/${x.id}`,
+      titulo: x.nombre,
+      detalle: [plural(x.validas, 'recomendación', 'recomendaciones'), vence],
+      derecha: monto(`${numero(x.saldo, 1)} %`),
+      accion: wa ? linkExterno(wa, 'WhatsApp', { clase: 'btn chico' }) : null,
+    });
+  };
+
   const reco = (r) => filaLista({
     href: r.venta_id ? `#/ventas/${r.venta_id}` : null,
     titulo: `${r.recomendado || r.nombre_pedido} ← ${r.recomendador}`,
@@ -101,9 +116,9 @@ export async function mostrar(cont) {
         stat('Costo por cliente nuevo', resumen.costo_por_cliente == null ? '—' : pesos(resumen.costo_por_cliente),
           'descuento entregado ÷ clientes nuevos')),
       resumen.ranking.length ? [h('h3', {}, textoPanel('panel.recomendaciones.ranking', 'Quiénes más recomendaron')),
-        h('ul', { class: 'lista' }, resumen.ranking.slice(0, 10).map((x) => filaLista({
-          href: `#/clientes/${x.id}`, titulo: x.nombre, derecha: monto(plural(x.validas, 'recomendación', 'recomendaciones')),
-        })))] : null,
+        h('p', { class: 'ayuda' }, textoPanel('panel.recomendaciones.ranking_ayuda',
+          'A la derecha, el descuento que tiene cada uno hoy. Con WhatsApp le mandás cuánto juntó y su código.')),
+        h('ul', { class: 'lista' }, resumen.ranking.slice(0, 10).map(recomendador))] : null,
       h('details', { class: 'plegable' }, h('summary', {},
         textoPanel('panel.recomendaciones.editar', 'Editar la campaña')), formulario(elegida)),
       h('div', { class: 'acciones' }, generar),

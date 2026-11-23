@@ -1070,6 +1070,11 @@ begin
   if (r->>'validas')::int <> 1 or r->'ranking'->0->>'nombre' <> 'Ana Prueba' or (r->>'bonos')::int <> 1 then
     raise exception 'resumen: %', r;
   end if;
+  -- El ranking trae el descuento de hoy y su código, para mandarlo por WhatsApp sin entrar a la ficha.
+  if (r->'ranking'->0->>'saldo')::numeric <> 10 or r->'ranking'->0->>'codigo' <> v_cod
+     or (r->'ranking'->0->>'vence')::date > (date_trunc('month', hoy()) + interval '1 month - 1 day')::date then
+    raise exception 'ranking con saldo: %', r->'ranking';
+  end if;
   r := borrar_datos_prueba();
   if (r->>'pedidos')::int <> 5 or (r->>'clientes')::int < 2 or (r->>'campanas')::int <> 1 then raise exception 'borrar: %', r; end if;
   if exists (select 1 from pedidos) or exists (select 1 from ventas) then raise exception 'quedaron datos de prueba'; end if;
